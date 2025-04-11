@@ -11,6 +11,6 @@ helmCharts:
   releaseName: jupyterhub
   valuesInline:
     prePuller:
-    hook:
-      enabled:
-          false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
+      hook:
+        enabled:
+            false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
