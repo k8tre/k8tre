@@ -9,3 +9,8 @@ helmCharts:
   repo: https://hub.jupyter.org/helm-chart/
   version: 4.1.0  # Update to your desired version
   releaseName: jupyterhub
+  valuesInline:
+    prePuller:
+    hook:
+      enabled:
+          false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
