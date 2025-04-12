@@ -3,10 +3,9 @@ kind: Kustomization
 
 resources:
   - ../../base
-  
 
 helmCharts:
 - name: jupyterhub
   repo: https://hub.jupyter.org/helm-chart/
-  version: 4.1.0
+  version: 4.1.0  # Staging-specific version
   releaseName: jupyterhub

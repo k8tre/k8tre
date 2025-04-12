@@ -4,9 +4,29 @@ kind: Kustomization
 resources:
   - ../../base
 
+# Reference the common values from the ConfigMap
+# and add environment-specific overrides
 helmCharts:
 - name: jupyterhub
   repo: https://hub.jupyter.org/helm-chart/
-  version: 4.0.0  # Update to your desired version
+  version: 4.0.0  # Dev-specific version
   releaseName: jupyterhub
-  
+  valuesFile: dev-values.yaml  # Local values file
+
+# Generate the values file by merging common and environment-specific values
+configMapGenerator:
+- name: jupyterhub-values-generator
+  behavior: replace
+  files:
+  - dev-values.yaml=values.yaml
+
+# This transformer writes the ConfigMap data to a file that can be used by the Helm chart
+transformers:
+- |-
+  apiVersion: builtin
+  kind: ConfigMapGenerator
+  metadata:
+    name: values-writer
+  behavior: create
+  literals:
+  - values.yaml=$(cat $(kustomize config read configMap jupyterhub-common-values values.yaml) $(kustomize config read configMap jupyterhub-values-generator dev-values.yaml))

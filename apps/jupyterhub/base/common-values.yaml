@@ -1,0 +1,12 @@
+# Common values for all jupyterhub environments
+prePuller:
+  hook:
+    enabled: false  # Disable prePuller hook for all environments
+
+hub:
+  config:
+    Authenticator:
+      admin_users:
+        - admin
+    JupyterHub:
+      authenticator_class: dummy

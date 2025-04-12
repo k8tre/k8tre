@@ -1,15 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Common resources that all environments will inherit
 # resources:
 #   - namespace.yaml
 
-helmCharts:
-- name: jupyterhub
-  repo: https://hub.jupyter.org/helm-chart/
-  version: 4.1.0  # Update to your desired version
-  releaseName: jupyterhub
-  valuesInline:
-    prePuller:
-      hook:
-        enabled: false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
+# Create a ConfigMap with common values that can be read by environment overlays
+configMapGenerator:
+- name: jupyterhub-common-values
+  files:
+  - values.yaml=common-values.yaml
+
+# No helmCharts section here - each environment will define its own
