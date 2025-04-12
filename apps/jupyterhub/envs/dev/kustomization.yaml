@@ -3,3 +3,10 @@ kind: Kustomization
 
 resources:
   - ../../base
+
+helmCharts:
+- name: jupyterhub
+  repo: https://hub.jupyter.org/helm-chart/
+  version: 4.0.0  # Update to your desired version
+  releaseName: jupyterhub
+  
