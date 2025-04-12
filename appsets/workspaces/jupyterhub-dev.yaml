@@ -26,7 +26,7 @@ spec:
       directories:
         # Matches all apps with production environments
         # Format: apps/<app-name>/envs/prod
-        - path: apps/*/envs/prod
+        - path: apps/*/envs/dev
   
   # Template for generating Application resources
   template:
@@ -51,9 +51,9 @@ spec:
         path: '{{.path.path}}'
       # Destination cluster and namespace to deploy the application
       destination:
-        # Deploy to the same cluster where ArgoCD is running
-        server: https://kubernetes.default.svc
-        # Use namespace with pattern: <app-name>-<environment>
+        # Deploy to the a destination cluster 
+        server: https://192.168.123.62:16443 
+        # Use namespace with pattern: <app-name>
         # e.g., jupyterhub
         namespace: '{{index .path.segments 1}}'
       # Sync policy for the application
