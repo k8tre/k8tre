@@ -13,3 +13,6 @@ helmCharts:
     prePuller:
       hook:
         enabled: false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
+
+configurations:
+- behavior.yaml
