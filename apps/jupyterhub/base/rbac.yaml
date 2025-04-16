@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jupyterhub-hub
+  namespace: jupyterhub
+rules:
+- apiGroups: [""]
+  resources: ["pods", "persistentvolumeclaims", "events"]
+  verbs: ["get", "list", "watch", "create", "delete", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "delete", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jupyterhub-hub
+  namespace: jupyterhub
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jupyterhub-hub
+subjects:
+- kind: ServiceAccount
+  name: hub
+  namespace: jupyterhub

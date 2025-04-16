@@ -11,3 +11,10 @@ spec:
   egress:
   - toEntities:
     - kube-apiserver
+  - toFQDNs:
+    - matchName: "kubernetes.default.svc.cluster.local"
+    - matchPattern: "*.jupyterhub.svc.cluster.local"
+  - toCIDR:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16

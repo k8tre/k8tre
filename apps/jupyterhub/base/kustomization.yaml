@@ -3,4 +3,4 @@ kind: Kustomization
 
 resources:
   - network_policy.yaml
-
+  - rbac.yaml
