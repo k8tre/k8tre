@@ -1,20 +1,13 @@
-apiVersion: "cilium.io/v2"
+apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: "allow-hub-to-k8s-api"
-  namespace: jupyterhub
+  name: allow-access-to-api-server
+  namespace: jupyterhub-test
 spec:
-  description: "Allow JupyterHub hub pod to communicate with the Kubernetes API server"
-  endpointSelector:
-    matchLabels:
-      io.cilium.k8s.policy.serviceaccount: hub
   egress:
   - toEntities:
     - kube-apiserver
-  - toFQDNs:
-    - matchName: "kubernetes.default.svc.cluster.local"
-    - matchPattern: "*.jupyterhub.svc.cluster.local"
-  - toCIDR:
-    - 10.0.0.0/8
-    - 172.16.0.0/12
-    - 192.168.0.0/16
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: hub
