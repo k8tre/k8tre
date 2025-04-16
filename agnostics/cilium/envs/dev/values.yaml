@@ -8,4 +8,14 @@ resources:
     memory: 512Mi
 operator:
   replicas: 1
-    
+
+# Enable Hubble for observability
+hubble:
+  ui:
+    enabled: true
+    service: 
+      type: NodePort
+      nodePort: 31235
+  relay:
+    enabled: true
+  
