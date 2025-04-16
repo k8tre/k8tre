@@ -6,7 +6,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   # Name of the ApplicationSet resource
-  name: jupyterhub-prod-appset
+  name: jupyterhub-appset
   # The ApplicationSet is created in the ArgoCD namespace
   namespace: argocd
 spec:
