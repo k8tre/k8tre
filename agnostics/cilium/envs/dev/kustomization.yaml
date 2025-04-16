@@ -7,3 +7,4 @@ helmCharts:
   version: 1.17.3
   releaseName: cilium
   valuesFile: values.yaml
+  namespace: kube-system
