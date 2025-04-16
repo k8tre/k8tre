@@ -7,3 +7,6 @@ cilium:
     limits:
       cpu: 500m
       memory: 512Mi
+  operator:
+    replicas: 1
+    
