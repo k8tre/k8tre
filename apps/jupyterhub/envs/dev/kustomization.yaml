@@ -18,3 +18,4 @@ helmCharts:
         egress:
           - ports:
               - port: 6443
+              - port: 443
