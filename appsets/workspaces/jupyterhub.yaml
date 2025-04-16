@@ -24,9 +24,9 @@ spec:
       revision: main
       # Pattern to match directories for app discovery
       directories:
-        # Matches all apps with production environments
-        # Format: apps/<app-name>/envs/prod
-        - path: apps/*/envs/dev
+        # Matches any directory under apps/jupyterhub/envs/
+        # e.g., apps/jupyterhub/envs/prod
+        - path: apps/jupyterhub/envs/*  
   
   # Template for generating Application resources
   template:
