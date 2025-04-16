@@ -1,0 +1,17 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "allow-hub-to-k8s-api"
+  namespace: jupyterhub
+spec:
+  description: "Allow JupyterHub hub pod to communicate with the Kubernetes API server"
+  endpointSelector:
+    matchLabels:
+      app: hub
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
