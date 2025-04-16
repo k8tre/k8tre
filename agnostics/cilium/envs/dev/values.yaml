@@ -1,12 +1,11 @@
-cilium:
-  # Dev-specific configurations
-  debug:
-    enabled: true
-  # Lower resource limits for dev environment
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-  operator:
-    replicas: 1
+# Dev-specific configurations
+debug:
+  enabled: true
+# Lower resource limits for dev environment
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+operator:
+  replicas: 1
     
