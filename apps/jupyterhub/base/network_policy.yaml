@@ -2,7 +2,7 @@ apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
   name: allow-access-to-api-server
-  namespace: jupyterhub-test
+  namespace: jupyterhub
 spec:
   egress:
   - toEntities:
