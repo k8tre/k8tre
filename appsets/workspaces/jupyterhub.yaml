@@ -17,16 +17,24 @@ spec:
   
   # Define how applications are discovered and generated
   generators:
-  - git:
-      # Repository containing the application definitions
-      repoURL: https://github.com/k8tre/k8tre.git
-      # Use HEAD to always track the latest commit on the default branch
-      revision: main
-      # Pattern to match directories for app discovery
-      directories:
-        # Matches any directory under apps/jupyterhub/envs/
-        # e.g., apps/jupyterhub/envs/prod
-        - path: apps/jupyterhub/envs/*  
+  - matrix:
+      generators:
+        - git:
+            # Repository containing the application definitions
+            repoURL: https://github.com/k8tre/k8tre.git
+            # Use HEAD to always track the latest commit on the default branch
+            revision: main
+            # Pattern to match directories for app discovery
+            directories:
+              # Matches any directory under apps/jupyterhub/envs/
+              # e.g., apps/jupyterhub/envs/prod
+              - path: apps/jupyterhub/envs/*
+        - clusters:
+            selector:
+              matchLabels:
+                # This will match the environment from the path segment
+                # e.g., if path is apps/jupyterhub/envs/dev, it will match clusters with label environment: dev
+                environment: '{{index .path.segments 3}}'
   
   # Template for generating Application resources
   template:
@@ -51,8 +59,8 @@ spec:
         path: '{{.path.path}}'
       # Destination cluster and namespace to deploy the application
       destination:
-        # Deploy to the a destination cluster 
-        server: https://192.168.123.62:16443 
+        # Use the server URL from the matched cluster
+        server: '{{.server}}'
         # Use namespace with pattern: <app-name>
         # e.g., jupyterhub
         namespace: '{{index .path.segments 1}}'
