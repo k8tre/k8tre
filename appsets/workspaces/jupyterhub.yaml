@@ -22,8 +22,8 @@ spec:
         - git:
             # Repository containing the application definitions
             repoURL: https://github.com/k8tre/k8tre.git
-            # Use HEAD to always track the latest commit on the default branch
-            revision: main
+            # Use HEAD to always track the latest commit on the feature branch
+            revision: feature/vc-appsets
             # Pattern to match directories for app discovery
             directories:
               # Matches any directory under apps/jupyterhub/envs/
@@ -53,8 +53,8 @@ spec:
       source:
         # Git repository containing the application manifests
         repoURL: https://github.com/k8tre/k8tre.git
-        # Use the latest commit on the default branch
-        targetRevision: main
+        # Use the latest commit on the feature branch
+        targetRevision: feature/vc-appsets
         # Path to the application manifests within the repository
         path: '{{.path.path}}'
       # Destination cluster and namespace to deploy the application
