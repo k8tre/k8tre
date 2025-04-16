@@ -11,7 +11,7 @@ spec:
               # Repository containing the application definitions
               repoURL: https://github.com/k8tre/k8tre.git
               # Use HEAD to always track the latest commit on the default branch
-              revision: main
+              revision: feature/vc-appsets
               # Pattern to match directories for app discovery
               directories:
                 # Matches any directory under agnostics/cilium/envs/
