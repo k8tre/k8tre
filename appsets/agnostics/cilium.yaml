@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cilium
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: dev
+            url: https://kubernetes.default.svc
+          - cluster: stg
+            url: https://kubernetes.stg.svc
+          - cluster: prod
+            url: https://kubernetes.prod.svc
+  template:
+    metadata:
+      name: 'cilium-{{cluster}}'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/k8tre/k8tre.git' # Replace with your actual repo URL
+        targetRevision: HEAD
+        path: agnostics/cilium
+      destination:
+        server: '{{url}}'
+        namespace: kube-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=false # Cilium should be installed in existing kube-system namespace

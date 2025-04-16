@@ -1,0 +1,10 @@
+apiVersion: v2
+name: cilium
+description: Helm chart for Cilium CNI deployment
+type: application
+version: 0.1.0
+appVersion: "1.14.0"
+dependencies:
+  - name: cilium
+    version: 1.17.3
+    repository: https://helm.cilium.io/
