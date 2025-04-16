@@ -1,0 +1,15 @@
+cilium:
+  # Production-specific configurations
+  debug:
+    enabled: false
+  # Higher resource limits for production
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  # Enable high availability for production
+  operator:
+    replicas: 2
+  hubble:
+    relay:
+      replicas: 2

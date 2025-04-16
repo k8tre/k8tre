@@ -1,0 +1,17 @@
+cilium:
+  ipam:
+    mode: kubernetes
+  kubeProxyReplacement: strict
+  k8sServiceHost: kubernetes.default.svc
+  k8sServicePort: 443
+  hubble:
+    enabled: true
+    relay:
+      enabled: true
+    ui:
+      enabled: true
+  prometheus:
+    enabled: true
+  operator:
+    prometheus:
+      enabled: true

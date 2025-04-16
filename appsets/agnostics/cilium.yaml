@@ -5,29 +5,46 @@ metadata:
   namespace: argocd
 spec:
   generators:
-    - list:
-        elements:
-          - cluster: dev
-            url: https://kubernetes.default.svc
-          - cluster: stg
-            url: https://kubernetes.stg.svc
-          - cluster: prod
-            url: https://kubernetes.prod.svc
+    - matrix:
+        generators:
+          - git:
+              # Repository containing the application definitions
+              repoURL: https://github.com/k8tre/k8tre.git
+              # Use HEAD to always track the latest commit on the default branch
+              revision: main
+              # Pattern to match directories for app discovery
+              directories:
+                # Matches any directory under agnostics/cilium/envs/
+                # e.g., agnostics/cilium/envs/prod
+                - path: agnostics/cilium/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  # This will match the environment from the path segment
+                  environment: "{{index .path.segments 3}}"
+
   template:
     metadata:
-      name: 'cilium-{{cluster}}'
+      name: "{{index .path.segments 1}}"
+      annotations:
+        # ArgoCD application name
+        argocd.argoproj.io/instance: '{{index .path.segments 1}}-{{index .path.segments 3}}'
+        # Sync wave to control the order of application sync
+        # Lower numbers are synced first
+        # This is set to -10 to ensure it syncs before other applications
+        argocd.argoproj.io/sync-wave: '-10'
     spec:
       project: default
       source:
-        repoURL: 'https://github.com/k8tre/k8tre.git' # Replace with your actual repo URL
-        targetRevision: HEAD
-        path: agnostics/cilium
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: feature/vc-appsets
+        path: '{{.path.path}}'
       destination:
-        server: '{{url}}'
+        server: "{{.server}}"
         namespace: kube-system
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=false # Cilium should be installed in existing kube-system namespace
+          - CreateNamespace=false
