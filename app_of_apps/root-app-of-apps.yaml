@@ -28,6 +28,8 @@ spec:
   # Destination defines where to deploy the manifests
   destination:
     # Target the same cluster where ArgoCD is running (in-cluster deployment)
+    # This is for the root application only. 
+    # Child applications will be deployed to their respective clusters.
     server: https://kubernetes.default.svc
     # Deploy resources to the ArgoCD namespace
     namespace: argocd
