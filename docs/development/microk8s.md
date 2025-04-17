@@ -1,5 +1,11 @@
 # Setting up MicroK8s Development Environment
 
+!!! warning "DO NOT USE MicroK8s"
+
+  Latest versions of Microk8s comes with Calico built-in and this conflicts with Cilium.
+  Use k3s instead and the other instructions in this document should still be applicable.
+  ToDo: Create a new page for documenting k3s setup. 
+
 This documentation guides you through creating a development environment using MicroK8s. 
 Alternative approaches include K3s, KinD, vCluster, and others.
 
@@ -135,18 +141,18 @@ Learn more about [MicroK8s add-ons](https://microk8s.io/docs/addons).
 
 ```bash
 # On the management VM
-microk8s config > ~/mgmt-kubeconfig.yaml
+microk8s config > ~/.kube/config
 
 # On the development VM
-microk8s config > ~/dev-kubeconfig.yaml
+microk8s config > ~/.kube/config
 ```
 
 ### 4.2 Copy Kubeconfig Files to Host
 
 ```bash
 # From your host machine
-scp <username>@192.168.123.52:~/mgmt-kubeconfig.yaml ~/mgmt-kubeconfig.yaml
-scp <username>@192.168.123.62:~/dev-kubeconfig.yaml ~/dev-kubeconfig.yaml
+scp <username>@192.168.123.52:~/.kube/config ~/.kube/mgmt-config
+scp <username>@192.168.123.62:~/.kube/config ~/.kube/dev-config
 ```
 
 ### 4.3 Edit and Merge Kubeconfig Files
@@ -166,8 +172,8 @@ Edit each kubeconfig file to rename clusters and users:
 Then merge them:
 
 ```bash
-KUBECONFIG=~/.kube/config:~/mgmt-kubeconfig.yaml:~/dev-kubeconfig.yaml kubectl config view --flatten > ~/merged-config.yaml
-mv ~/merged-config.yaml ~/.kube/config
+KUBECONFIG=~/.kube/config:~/.kube/mgmt-config:~/.kube/dev-config kubectl config view --flatten > ~/.kube/merged-config
+mv ~/.kube/merged-config ~/.kube/config
 chmod 600 ~/.kube/config
 ```
 
@@ -193,7 +199,7 @@ kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 
 ```bash
 # Port-forward ArgoCD server (run this in a separate terminal)
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd 8080:443 --address 0.0.0.0
 
 # Get the initial admin password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
@@ -215,7 +221,7 @@ argocd login mgmt.xk8tre.org:8080
 
 ```bash
 # Add the development cluster to ArgoCD
-argocd cluster add microk8s-dev
+argocd cluster add microk8s-dev --name dev --label environment=dev
 ```
 
 ### 5.5 Configure ArgoCD for Kustomize Helm Overlays
@@ -229,6 +235,9 @@ kind: ConfigMap
 metadata:
   name: argocd-cm
   namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
 data:
   kustomize.buildOptions: "--enable-helm --load-restrictor LoadRestrictionsNone"
 EOF
