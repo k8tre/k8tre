@@ -34,18 +34,19 @@ spec:
                       # Matches any directory under agnostics/cnpg/envs/
                       # e.g., agnostics/cnpg/envs/prod
                       - path: agnostics/cnpg/envs/*
+                    pathParamPrefix: env
                 - clusters:
                     selector:
                       matchLabels:
                         # This will match the environment from the path segment
-                        environment: "{{index .path.segments 3}}"
+                        environment: "{{index .env.path.segments 3}}"
 
   template:
     metadata:
-      name: "{{index .path.segments 1}}"
+      name: "{{index .env.path.segments 1}}"
       annotations:
         # ArgoCD application name
-        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .env.path.segments 3}}"
         # Sync wave to control the order of application sync
         argocd.argoproj.io/sync-wave: "-10"
     spec:
