@@ -16,7 +16,7 @@ spec:
           - git:
               # Repository containing the application definitions
               repoURL: https://github.com/k8tre/k8tre.git
-              # Use feature branch for testing
+              # Use HEAD to always track the latest commit on the default branch
               revision: feature/vc-cnpg
               # Pattern to match directories for app discovery
               directories:
@@ -24,9 +24,8 @@ spec:
                 # e.g., agnostics/cnpg/envs/prod
                 - path: agnostics/cnpg/envs/*
               files:
-                # Create environment-specific values files that will be used to configure deployments
+                # Load the environment-specific values file
                 - path: agnostics/cnpg/envs/{{index .path.segments 3}}/values.yaml
-                  name: values
           - clusters:
               selector:
                 matchLabels:
@@ -46,11 +45,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{ if (index .values).targetRevision }}{{ (index .values).targetRevision }}{{ else }}release-1.23{{ end }}"
+        targetRevision: "{{ if (hasKey .resources.values \"targetRevision\") }}{{ index .resources.values \"targetRevision\" }}{{ else }}release-1.23{{ end }}"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{ if (index .values).operatorVersion }}{{ (index .values).operatorVersion }}{{ else }}cnpg-1.23.6.yaml{{ end }}"
+          include: "{{ if (hasKey .resources.values \"operatorVersion\") }}{{ index .resources.values \"operatorVersion\" }}{{ else }}cnpg-1.23.6.yaml{{ end }}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
