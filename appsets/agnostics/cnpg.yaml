@@ -25,7 +25,7 @@ spec:
                 - path: agnostics/cnpg/envs/*
               files:
                 # Load the environment-specific values file
-                - path: agnostics/cnpg/envs/*/values.json
+                - path: agnostics/cnpg/envs/*/values.yaml
           - clusters:
               selector:
                 matchLabels:
@@ -45,11 +45,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{.targetRevision}}"
+        targetRevision: "{{.cluster.targetRevision}}"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{.operatorVersion}}"
+          include: "{{.cluster.operatorVersion}}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
