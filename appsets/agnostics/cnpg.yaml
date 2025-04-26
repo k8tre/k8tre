@@ -27,7 +27,7 @@ spec:
               selector:
                 matchLabels:
                   # This will match the environment from the path segment
-                  environment: "{{index .path.segments 3}}"
+                  environment: "{{ .environment | default (index .path.segments 3) }}"
 
   template:
     metadata:
