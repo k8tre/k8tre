@@ -16,13 +16,17 @@ spec:
           - git:
               # Repository containing the application definitions
               repoURL: https://github.com/k8tre/k8tre.git
-              # Use HEAD to always track the latest commit on the default branch
+              # Use feature branch for testing
               revision: feature/vc-cnpg
               # Pattern to match directories for app discovery
               directories:
                 # Matches any directory under agnostics/cnpg/envs/
                 # e.g., agnostics/cnpg/envs/prod
                 - path: agnostics/cnpg/envs/*
+              files:
+                # Create environment-specific values files that will be used to configure deployments
+                - path: agnostics/cnpg/envs/{{index .path.segments 3}}/values.yaml
+                  name: values
           - clusters:
               selector:
                 matchLabels:
@@ -36,17 +40,17 @@ spec:
         # ArgoCD application name
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
         # Sync wave to control the order of application sync
-        # Lower numbers are synced first
-        # This is set to -10 to ensure it syncs before other applications
         argocd.argoproj.io/sync-wave: "-10"
     spec:
       project: default
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
-        targetRevision: '{{.values.targetRevision | default "release-1.23"}}'
+        # Use the targetRevision value from the environment-specific values file
+        targetRevision: "{{ if (index .values).targetRevision }}{{ (index .values).targetRevision }}{{ else }}release-1.23{{ end }}"
         path: releases
         directory:
-          include: '{{.values.operatorVersion | default "cnpg-1.23.6.yaml"}}'
+          # Use the operatorVersion value from the environment-specific values file
+          include: "{{ if (index .values).operatorVersion }}{{ (index .values).operatorVersion }}{{ else }}cnpg-1.23.6.yaml{{ end }}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
