@@ -25,7 +25,7 @@ spec:
                 - path: agnostics/cnpg/envs/*
               files:
                 # Load the environment-specific values file
-                - path: agnostics/cnpg/envs/{{index .path.segments 3}}/values.yaml
+                - path: agnostics/cnpg/envs/*/values.yaml
           - clusters:
               selector:
                 matchLabels:
@@ -45,11 +45,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{ if (hasKey .resources.values \"targetRevision\") }}{{ index .resources.values \"targetRevision\" }}{{ else }}release-1.23{{ end }}"
+        targetRevision: "{{.values.targetRevision}}"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{ if (hasKey .resources.values \"operatorVersion\") }}{{ index .resources.values \"operatorVersion\" }}{{ else }}cnpg-1.23.6.yaml{{ end }}"
+          include: "{{.values.operatorVersion}}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
