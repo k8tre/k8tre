@@ -18,35 +18,22 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               # Use HEAD to always track the latest commit on the default branch
               revision: feature/vc-cnpg
-              files:
-                # Load the environment-specific values file
-                - path: agnostics/cnpg/envs/*/values.yaml
-              pathParamPrefix: config
-          - matrix:
-              generators:
-                - git:
-                    # Repository containing the application definitions
-                    repoURL: https://github.com/k8tre/k8tre.git
-                    # Use HEAD to always track the latest commit on the default branch
-                    revision: feature/vc-cnpg
-                    # Pattern to match directories for app discovery
-                    directories:
-                      # Matches any directory under agnostics/cnpg/envs/
-                      # e.g., agnostics/cnpg/envs/prod
-                      - path: agnostics/cnpg/envs/*
-                    pathParamPrefix: env
-                - clusters:
-                    selector:
-                      matchLabels:
-                        # This will match the environment from the path segment
-                        environment: "{{index .env.path.segments 3}}"
-
+              # Pattern to match directories for app discovery
+              directories:
+                # Matches any directory under agnostics/cnpg/envs/
+                # e.g., agnostics/cnpg/envs/prod
+                - path: agnostics/cnpg/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  # This will match the environment from the path segment
+                  environment: "{{index .path.segments 3}}"
   template:
     metadata:
-      name: "{{index .env.path.segments 1}}"
+      name: "{{index .path.segments 1}}"
       annotations:
         # ArgoCD application name
-        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .env.path.segments 3}}"
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
         # Sync wave to control the order of application sync
         argocd.argoproj.io/sync-wave: "-10"
     spec:
@@ -54,11 +41,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{.config.cluster.targetRevision}}"
+        targetRevision: "release-1.23"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{.config.cluster.operatorVersion}}"
+          include: "cnpg-1.23.6.yaml"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
