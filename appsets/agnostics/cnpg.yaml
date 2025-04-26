@@ -23,9 +23,15 @@ spec:
                 # Matches any directory under agnostics/cnpg/envs/
                 # e.g., agnostics/cnpg/envs/prod
                 - path: agnostics/cnpg/envs/*
+          - git:
+              # Repository containing the application definitions
+              repoURL: https://github.com/k8tre/k8tre.git
+              # Use HEAD to always track the latest commit on the default branch
+              revision: feature/vc-cnpg
               files:
                 # Load the environment-specific values file
                 - path: agnostics/cnpg/envs/*/values.yaml
+              pathParamPrefix: config
           - clusters:
               selector:
                 matchLabels:
@@ -45,11 +51,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{.cluster.targetRevision}}"
+        targetRevision: "{{.config.cluster.targetRevision}}"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{.cluster.operatorVersion}}"
+          include: "{{.config.cluster.operatorVersion}}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
