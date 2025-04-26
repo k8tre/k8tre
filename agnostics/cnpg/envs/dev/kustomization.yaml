@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: cnpg-values
+    namespace: cnpg-system
+    behavior: merge
+    literals:
+      - operatorVersion=cnpg-1.23.6.yaml
+      - targetRevision=release-1.23
