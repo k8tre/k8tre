@@ -1,23 +1,15 @@
-# Cilium CNI Configuration
+# Cilium for K8TRE
 
-This directory contains the Helm chart for deploying Cilium CNI to all Kubernetes clusters.
+This directory contains the Kubernetes manifests for deploying Cilium within the K8TRE environment. Cilium provides networking, security, and observability for Kubernetes clusters.
 
-## Overview
+## Structure
 
-Cilium is a networking, observability, and security solution with an eBPF-based dataplane. This configuration:
+- `base/` - Contains the base Kubernetes manifests for Cilium
+  - `kustomization.yaml` - Base kustomization configuration
+  - `values.yaml` - Default Cilium configuration values
+- `envs/` - Environment-specific configurations
+  - `dev/` - Development environment configuration
+  - `prod/` - Production environment configuration
+  - `stg/` - Staging environment configuration
 
-- Deploys Cilium as the CNI provider
-- Enables Hubble for network observability
-- Configures Prometheus monitoring
-- Uses Kubernetes services for IPAM
-
-## Customization
-
-To customize the Cilium deployment for specific environments:
-- Create environment-specific value files (e.g., values-dev.yaml, values-prod.yaml)
-- Adjust the ApplicationSet in `/appsets/agnostics/cilium.yaml` to use the appropriate values file
-
-## Documentation
-
-- [Cilium Documentation](https://docs.cilium.io/)
-- [Hubble Documentation](https://docs.cilium.io/en/stable/gettingstarted/hubble/)
+Cilium is deployed as part of the platform agnostic components through the `appsets/agnostics/cilium.yaml` ApplicationSet.
