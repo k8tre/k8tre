@@ -11,7 +11,7 @@ spec:
 
   # Define how applications are discovered and generated
   generators:
-    - matrix:
+    - merge:
         generators:
           - git:
               # Repository containing the application definitions
