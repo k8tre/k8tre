@@ -45,11 +45,11 @@ spec:
       source:
         repoURL: https://github.com/cloudnative-pg/cloudnative-pg
         # Use the targetRevision value from the environment-specific values file
-        targetRevision: "{{.values.targetRevision}}"
+        targetRevision: "{{.targetRevision}}"
         path: releases
         directory:
           # Use the operatorVersion value from the environment-specific values file
-          include: "{{.values.operatorVersion}}"
+          include: "{{.operatorVersion}}"
       destination:
         server: "{{.server}}"
         namespace: cnpg-system
