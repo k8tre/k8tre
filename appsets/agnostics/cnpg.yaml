@@ -11,18 +11,8 @@ spec:
 
   # Define how applications are discovered and generated
   generators:
-    - merge:
+    - matrix:
         generators:
-          - git:
-              # Repository containing the application definitions
-              repoURL: https://github.com/k8tre/k8tre.git
-              # Use HEAD to always track the latest commit on the default branch
-              revision: feature/vc-cnpg
-              # Pattern to match directories for app discovery
-              directories:
-                # Matches any directory under agnostics/cnpg/envs/
-                # e.g., agnostics/cnpg/envs/prod
-                - path: agnostics/cnpg/envs/*
           - git:
               # Repository containing the application definitions
               repoURL: https://github.com/k8tre/k8tre.git
@@ -32,11 +22,23 @@ spec:
                 # Load the environment-specific values file
                 - path: agnostics/cnpg/envs/*/values.yaml
               pathParamPrefix: config
-          - clusters:
-              selector:
-                matchLabels:
-                  # This will match the environment from the path segment
-                  environment: "{{index .path.segments 3}}"
+          - matrix:
+              generators:
+                - git:
+                    # Repository containing the application definitions
+                    repoURL: https://github.com/k8tre/k8tre.git
+                    # Use HEAD to always track the latest commit on the default branch
+                    revision: feature/vc-cnpg
+                    # Pattern to match directories for app discovery
+                    directories:
+                      # Matches any directory under agnostics/cnpg/envs/
+                      # e.g., agnostics/cnpg/envs/prod
+                      - path: agnostics/cnpg/envs/*
+                - clusters:
+                    selector:
+                      matchLabels:
+                        # This will match the environment from the path segment
+                        environment: "{{index .path.segments 3}}"
 
   template:
     metadata:
