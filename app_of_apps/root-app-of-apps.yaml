@@ -18,16 +18,13 @@ spec:
   source:
     # The Git repository containing all application definitions
     repoURL: https://github.com/k8tre/k8tre.git
-    # The branch or tag to use - using a feature branch here
+    # The branch or tag to use - typically the main branch
+    # Create a copy of this tile and change this to a feature branch for development
+    # Use kubectl apply -k root-app-of-apps.yaml to deploy the application in your development environment
     targetRevision: main
     # The directory within the repository containing ApplicationSet definitions
     path: appsets
-    # directory:
-    #   recurse: true # Recursively search for ApplicationSet definitions
-    # Replace Helm parameters with Kustomize
     kustomize:
-      # This will create a ConfigMap named 'repo-config'
-      # with a data field 'repoURL' containing the repository URL
       commonLabels:
         app.kubernetes.io/managed-by: argocd
       commonAnnotations:
@@ -42,6 +39,12 @@ spec:
             - op: replace
               path: /spec/template/spec/source/repoURL
               value: https://github.com/k8tre/k8tre.git
+            - op: replace
+              path: /spec/generators/0/matrix/generators/0/git/revision
+              value: main
+            - op: replace
+              path: /spec/template/spec/source//targetRevision
+              value: main
 
   # Destination defines where to deploy the manifests
   destination:
@@ -59,3 +62,8 @@ spec:
     automated:
       prune: true # Automatically delete resources that are no longer defined in Git
       selfHeal: true # Automatically sync when drift is detected between Git and cluster state
+  info:
+    - name: K8TRE App of Apps
+      value: "https://github.com/k8tre/k8tre"
+    - name: K8TRE Documentation
+      value: "https://k8tre.github.io/k8tre/"
