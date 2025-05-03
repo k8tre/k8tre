@@ -15,13 +15,13 @@ spec:
         generators:
           - git:
               # Repository containing the application definitions
-              repoURL: https://github.com/k8tre/k8tre.git
+              repoURL: '{{ (index .ApplicationSetSourceObjectMap "ConfigMap" "repo-config" "data").repoURL }}'
               # Use HEAD to always track the latest commit on the default branch
               revision: main
               # Pattern to match directories for app discovery
               directories:
-                # Matches any directory under agnostics/cilium/envs/
-                # e.g., agnostics/cilium/envs/prod
+                # Matches any directory under agnostics/keycloak-operator/envs/
+                # e.g., agnostics/keycloak-operator/envs/prod
                 - path: agnostics/keycloak-operator/envs/*
           - clusters:
               selector:
@@ -38,11 +38,11 @@ spec:
         # Sync wave to control the order of application sync
         # Lower numbers are synced first
         # This is set to 0 to ensure it syncs before other applications
-        argocd.argoproj.io/sync-wave: "0"
+        argocd.argoproj.io/sync-wave: "-5"
     spec:
       project: default
       source:
-        repoURL: https://github.com/k8tre/k8tre.git
+        repoURL: '{{ (index .ApplicationSetSourceObjectMap "ConfigMap" "repo-config" "data").repoURL }}'
         targetRevision: main
         path: "{{.path.path}}"
       destination:

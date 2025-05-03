@@ -3,16 +3,16 @@
 # the ApplicationSet controller, which allows for dynamic generation of
 # applications based on a set of parameters or templates.
 # This manifest is part of a GitOps workflow, where the desired state of
-# applications is defined in Git repositories. 
+# applications is defined in Git repositories.
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-app-of-apps  # Name of the application
-  namespace: argocd  # The namespace where ArgoCD is installed
+  name: root-app-of-apps # Name of the application
+  namespace: argocd # The namespace where ArgoCD is installed
 spec:
   # Use the default project for this application
-  project: default  # ToDo: Consider creating a dedicated project for better organization
+  project: default # ToDo: Consider creating a dedicated project for better organization
 
   # Source configuration defines where to find the application manifests
   source:
@@ -23,21 +23,29 @@ spec:
     # The directory within the repository containing ApplicationSet definitions
     path: appsets
     directory:
-      recurse: true  # Recursively search for ApplicationSet definitions
-  
+      recurse: true # Recursively search for ApplicationSet definitions
+    # Replace Helm parameters with Kustomize
+    kustomize:
+      # This will create a ConfigMap named 'repo-config'
+      # with a data field 'repoURL' containing the repository URL
+      commonLabels:
+        app.kubernetes.io/managed-by: argocd
+      commonAnnotations:
+        app.kubernetes.io/part-of: k8tre
+
   # Destination defines where to deploy the manifests
   destination:
     # Target the same cluster where ArgoCD is running (in-cluster deployment)
-    # This is for the root application only. 
+    # This is for the root application only.
     # Child applications will be deployed to their respective clusters.
     server: https://kubernetes.default.svc
     # Deploy resources to the ArgoCD namespace
     namespace: argocd
-  
+
   # Sync policy controls how ArgoCD manages this application
   syncPolicy:
     syncOptions:
-    - CreateNamespace=true  # Automatically create namespaces if they don't exist
-    automated: 
-      prune: true  # Automatically delete resources that are no longer defined in Git
-      selfHeal: true  # Automatically sync when drift is detected between Git and cluster state
+      - CreateNamespace=true # Automatically create namespaces if they don't exist
+    automated:
+      prune: true # Automatically delete resources that are no longer defined in Git
+      selfHeal: true # Automatically sync when drift is detected between Git and cluster state
