@@ -22,8 +22,8 @@ spec:
     targetRevision: main
     # The directory within the repository containing ApplicationSet definitions
     path: appsets
-    directory:
-      recurse: true # Recursively search for ApplicationSet definitions
+    # directory:
+    #   recurse: true # Recursively search for ApplicationSet definitions
     # Replace Helm parameters with Kustomize
     kustomize:
       # This will create a ConfigMap named 'repo-config'
@@ -32,6 +32,16 @@ spec:
         app.kubernetes.io/managed-by: argocd
       commonAnnotations:
         app.kubernetes.io/part-of: k8tre
+      patches:
+        - target:
+            kind: ApplicationSet
+          patch: |-
+            - op: replace
+              path: /spec/generators/0/matrix/generators/0/git/repoURL
+              value: https://github.com/k8tre/k8tre.git
+            - op: replace
+              path: /spec/template/spec/source/repoURL
+              value: https://github.com/k8tre/k8tre.git
 
   # Destination defines where to deploy the manifests
   destination:

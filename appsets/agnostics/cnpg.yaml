@@ -15,7 +15,7 @@ spec:
         generators:
           - git:
               # Repository containing the application definitions
-              repoURL: '{{ (index .ApplicationSetSourceObjectMap "ConfigMap" "repo-config" "data").repoURL }}'
+              repoURL: https://github.com/k8tre/k8tre.git
               # Use HEAD to always track the latest commit on the default branch
               revision: main
               # Pattern to match directories for app discovery
@@ -39,7 +39,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: '{{ (index .ApplicationSetSourceObjectMap "ConfigMap" "repo-config" "data").repoURL }}'
+        repoURL: https://github.com/k8tre/k8tre.git
         # Use the targetRevision value from the environment-specific values file
         targetRevision: main
         path: "{{.path.path}}"

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: repo-config
-  namespace: argocd
-data:
-  repoURL: https://github.com/k8tre/k8tre.git

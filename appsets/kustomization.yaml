@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+
+resources:
+  - agnostics/cilium.yaml
+  - agnostics/cnpg.yaml
+  - agnostics/keycloak-operator.yaml
+  - agnostics/sealed-secrets.yaml
+  - workspaces/awms.yaml
+  - workspaces/jupyterhub.yaml
