@@ -43,7 +43,7 @@ spec:
               path: /spec/generators/0/matrix/generators/0/git/revision
               value: main
             - op: replace
-              path: /spec/template/spec/source//targetRevision
+              path: /spec/template/spec/source/targetRevision
               value: main
 
   # Destination defines where to deploy the manifests
