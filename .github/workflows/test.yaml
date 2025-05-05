@@ -1,0 +1,76 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  # pre-commit:
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #     - uses: pre-commit/action@v3.0.1
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: dev-requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r dev-requirements.txt
+
+      - name: Install deployment
+        run: |
+          ./ci/run_codeblocks.py docs/development/k3s-dev.md --run
+
+      - name: Run tests
+        run: |
+          python -mpytest -v --color=yes
+
+      - name: Get logs, including on failure
+        if: always()
+        run: |
+          echo "::group::argocd-server"
+          kubectl -nargocd logs deploy/argocd-server
+          echo "::endgroup::"
+
+      - name: Get ArgoCD apps, including on failure
+        if: always()
+        run: |
+          for kind in appprojects applicationsets applications; do
+            echo "::group::argocd $kind"
+            kubectl describe $kind -A
+            echo "::endgroup::"
+          done
+
+  # Set a single status check for the whole workflow, so that we can use it in a
+  # branch protection rule
+  status-check:
+    runs-on: ubuntu-24.04
+    needs:
+      # - pre-commit
+      - test
+    if: always()
+    steps:
+      - name: Get job statuses
+        uses: technote-space/workflow-conclusion-action@v3.0.3
+        with:
+          FALLBACK_CONCLUSION: failure
+          STRICT_SUCCESS: true
+        # Status is saved in env.WORKFLOW_CONCLUSION
+
+      - name: Status check
+        if: env.WORKFLOW_CONCLUSION != 'success'
+        run: |
+          exit 1
