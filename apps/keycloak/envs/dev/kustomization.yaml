@@ -5,3 +5,4 @@ resources:
   - keycloak.yaml
   - postgres.yaml
   - keycloak-db-sealedsecret.yaml
+  - keycloak-tls-sealed-secret.yaml

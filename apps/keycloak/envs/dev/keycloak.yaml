@@ -17,4 +17,4 @@ spec:
   http:
     tlsSecret: keycloak-tls-secret
   hostname:
-    hostname: test.keycloak.org
+    hostname: dev.xk8tre.org
