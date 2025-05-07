@@ -7,5 +7,6 @@ resources:
   - agnostics/cnpg.yaml
   - agnostics/keycloak-operator.yaml
   - agnostics/sealed-secrets.yaml
+  - identity/keycloak.yaml
   - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
