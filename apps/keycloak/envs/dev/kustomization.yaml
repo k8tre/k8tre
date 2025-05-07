@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - keycloak.yaml
   - postgres.yaml
+  - keycloak-db-sealedsecret.yaml
