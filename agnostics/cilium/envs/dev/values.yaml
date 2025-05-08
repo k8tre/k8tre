@@ -11,11 +11,24 @@ operator:
 
 # Enable Hubble for observability
 hubble:
-  ui:
-    enabled: true
-    service: 
-      type: NodePort
-      nodePort: 31235
+  enabled: true
+  metrics:
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - http
   relay:
     enabled: true
-  
+    prometheus:
+      enabled: true
+    service:
+      type: ClusterIP
+  ui:
+    enabled: true
+    service:
+      type: NodePort
+      nodePort: 31235
