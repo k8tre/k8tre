@@ -70,10 +70,3 @@ services:
 volumes:
   k3s-server: {}
   k8s-config: {}
-
-# networks:
-#   default:
-#     ipam:
-#       driver: default
-#       config:
-#         - subnet: "172.98.0.0/16"

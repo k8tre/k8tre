@@ -25,17 +25,16 @@ cat >> /home/vscode/.bashrc << EOF
 
 # K8TRE aliases
 alias k='kubectl'
-alias kns='kubens'
-alias kctx='kubectx'
 alias ksec='kubectl get secret'
 alias kpods='kubectl get pods'
 alias kdep='kubectl get deployments'
 alias ksvc='kubectl get services'
-alias start-k8tre='./.devcontainer/start-k8tre-dev.sh'
 EOF
 
 
-# Check if ArgoCD is already installed
+# Check if ArgoCD is already installed.
+# ToDo: In some instances, the namespace may exist but not the deployment. This check should be improved.
+
 if ! kubectl get namespace argocd &>/dev/null; then
   print_message "Installing ArgoCD..."
   
