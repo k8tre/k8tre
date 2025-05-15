@@ -1,6 +1,10 @@
 {
     "name": "K8TRE Development Environment",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "workspaceFolder": "/workspace",
+    "service": "devcontainer",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {
             "version": "latest",
@@ -12,23 +16,12 @@
             "helm": "latest",
             "kubectl": "latest"
         },
-        "ghcr.io/devcontainers/features/python:1": {
-            "version": "3.11",
-            "installTools": true
-        },
-        "ghcr.io/devcontainers-contrib/features/kustomize:1": {
-            "version": "latest"
-        },
-        "ghcr.io/dhoeric/features/k3s:1": {
-            "version": "v1.32.4+k3s1"
-        }
     },
     "customizations": {
         "vscode": {
             "extensions": [
                 "ms-kubernetes-tools.vscode-kubernetes-tools",
                 "redhat.vscode-yaml",
-                "ms-python.python",
                 "ms-azuretools.vscode-docker",
                 "GitHub.copilot",
                 "ms-vscode-remote.remote-containers"
@@ -51,7 +44,7 @@
         8080, // ArgoCD UI
         8443 // ArgoCD API Server
     ],
-    "postCreateCommand": "bash .devcontainer/post-create.sh && chmod +x .devcontainer/start-k8tre-dev.sh",
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
     "remoteUser": "vscode",
     "postAttachCommand": "echo 'K8TRE development environment ready! Run .devcontainer/start-k8tre-dev.sh to start the development environment.'",
     "mounts": [

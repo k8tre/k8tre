@@ -8,70 +8,12 @@ print_message() {
   echo "================================================================================"
 }
 
-# Install dependencies
-print_message "Installing system dependencies"
-sudo apt-get update
-sudo apt-get install -y \
-  curl \
-  git \
-  jq \
-  make \
-  wget \
-  unzip \
-  gnupg \
-  apt-transport-https \
-  ca-certificates \
-  software-properties-common \
-  lsb-release
-
-# Install Python dependencies
-print_message "Installing Python dependencies"
-pip install -r requirements.txt
-pip install -r dev-requirements.txt
-
-# Install ArgoCD CLI
-print_message "Installing ArgoCD CLI"
-VERSION=$(curl -s https://api.github.com/repos/argoproj/argo-cd/releases/latest | jq -r '.tag_name')
-curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-amd64
-chmod +x /usr/local/bin/argocd
-
-# Install Sealed Secrets CLI (kubeseal)
-print_message "Installing Sealed Secrets CLI (kubeseal)"
-KUBESEAL_VERSION=$(curl -s https://api.github.com/repos/bitnami-labs/sealed-secrets/releases/latest | jq -r '.tag_name')
-wget https://github.com/bitnami-labs/sealed-secrets/releases/download/${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION:1}-linux-amd64.tar.gz
-tar -xvzf kubeseal-${KUBESEAL_VERSION:1}-linux-amd64.tar.gz kubeseal
-install -m 755 kubeseal /usr/local/bin/kubeseal
-rm kubeseal kubeseal-${KUBESEAL_VERSION:1}-linux-amd64.tar.gz
 
 # Setup K3s configuration for development
 print_message "Setting up K3s development configuration"
 mkdir -p /home/vscode/.kube
-sudo tee /etc/rancher/k3s/config.yaml << EOF
-node-name: k8tre-dev
-tls-san:
-  - k8tre-dev
-cluster-init: true
-EOF
-
-# Add yq for YAML processing
-print_message "Installing yq"
-YQ_VERSION="v4.40.5"
-sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
-sudo chmod +x /usr/local/bin/yq
-
-# Install k9s for easier kubectl management
-print_message "Installing k9s"
-K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | jq -r '.tag_name')
-curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar -xz -C /tmp
-sudo install -m 755 /tmp/k9s /usr/local/bin/
-rm /tmp/k9s
-
-# Install kubectx and kubens
-print_message "Installing kubectx and kubens"
-git clone https://github.com/ahmetb/kubectx /tmp/kubectx
-sudo install -m 755 /tmp/kubectx/kubectx /usr/local/bin/
-sudo install -m 755 /tmp/kubectx/kubens /usr/local/bin/
-rm -rf /tmp/kubectx
+cp /kubeconfig/kubeconfig.yaml /home/vscode/.kube/config
+sed -i 's/127\.0\.0\.1/kubernetes.default.svc.cluster.local/g' /home/vscode/.kube/config
 
 # Set up environment variables
 print_message "Setting up environment variables"
@@ -92,5 +34,60 @@ alias ksvc='kubectl get services'
 alias start-k8tre='./.devcontainer/start-k8tre-dev.sh'
 EOF
 
+
+# Check if ArgoCD is already installed
+if ! kubectl get namespace argocd &>/dev/null; then
+  print_message "Installing ArgoCD..."
+  
+  # Install ArgoCD
+  # Create namespace
+  kubectl create namespace argocd
+
+  # Apply the customized resources
+  kubectl apply -k argocd/overlays
+  
+  # Wait for ArgoCD to become ready
+  print_message "Waiting for ArgoCD to start..."
+  kubectl wait --for=condition=available --timeout=300s deployment/argocd-server -n argocd
+  
+  # Get the initial admin password
+  INITIAL_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+  
+  print_message "ArgoCD is ready!"
+  echo "ArgoCD UI: http://localhost:8080"
+  echo "Username: admin"
+  echo "Password: $INITIAL_PASSWORD"
+  
+  # Port forward in background
+  print_message "Setting up port forwarding for ArgoCD UI..."
+  kubectl port-forward svc/argocd-server -n argocd 8080:80 &
+  echo "Port forwarding started for ArgoCD UI"
+else
+  print_message "ArgoCD is already installed"
+  
+  # Start port forwarding if not already running
+  if ! pgrep -f "kubectl port-forward svc/argocd-server" &>/dev/null; then
+    print_message "Setting up port forwarding for ArgoCD UI..."
+    kubectl port-forward svc/argocd-server -n argocd 8080:80 &
+    echo "Port forwarding started for ArgoCD UI"
+  fi
+  
+  # Check if the initial admin secret exists
+  if kubectl -n argocd get secret argocd-initial-admin-secret &>/dev/null; then
+    INITIAL_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+    echo "ArgoCD UI: http://localhost:8080"
+    echo "Username: admin"
+    echo "Password: $INITIAL_PASSWORD"
+  else
+    echo "ArgoCD UI: http://localhost:8080"
+    echo "Username: admin"
+    echo "Password: (initial admin secret has been removed, use your set password)"
+  fi
+fi
+
+
+print_message "K8TRE Development Environment Ready!"
+echo "To apply the K8TRE resources, use:"
+echo "  kubectl apply -f local/root-app-of-apps.yaml"
+
 print_message "DevContainer setup complete! 🎉"
-print_message "To start your development environment, run: ./.devcontainer/start-k8tre-dev.sh"
