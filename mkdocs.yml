@@ -38,10 +38,12 @@ nav:
   - Getting Started: getting-started.md
   - Architecture: architecture.md
   - Guides:
-    - Installation: guides/installation.md
-    - Configuration: guides/configuration.md
+      - Installation: guides/installation.md
+      - Configuration: guides/configuration.md
   - Development:
-    - Introduction: development/introduction.md
-    - MicroK8S: development/microk8s.md
+      - Introduction: development/introduction.md
+      - DevContainer: development/devcontainer.md
+      - K3s Dev: development/k3s-dev.md
+      - K3s: development/k3s.md
   - Reference: reference.md
   - Contributing: contributing.md

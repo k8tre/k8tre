@@ -36,18 +36,21 @@
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "yaml.schemas": {
                     "kubernetes": "*.yaml"
-                }
+                },
+                "vscode-kubernetes.kubectl-path-linux": "/usr/local/bin/kubectl",
+                "vscode-kubernetes.helm-path-linux": "/usr/local/bin/helm"
             }
         }
     },
     "forwardPorts": [
-        8080, // ArgoCD UI
-        8443 // ArgoCD API Server
+        8080 // ArgoCD UI
+        // 8443 // ArgoCD API Server
     ],
     "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "postStartCommand": "bash .devcontainer/post-start.sh",
     "remoteUser": "vscode",
-    "postAttachCommand": "echo 'K8TRE development environment ready! Run .devcontainer/start-k8tre-dev.sh to start the development environment.'",
     "mounts": [
-        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=${localWorkspaceFolder}/.devcontainer/argocd,target=/home/vscode/argocd,type=bind",
     ]
 }
