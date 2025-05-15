@@ -15,7 +15,7 @@
             "version": "latest",
             "helm": "latest",
             "kubectl": "latest"
-        },
+        }
     },
     "customizations": {
         "vscode": {
@@ -51,6 +51,6 @@
     "remoteUser": "vscode",
     "mounts": [
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-        "source=${localWorkspaceFolder}/.devcontainer/argocd,target=/home/vscode/argocd,type=bind",
+        "source=${localWorkspaceFolder}/.devcontainer/argocd,target=/home/vscode/argocd,type=bind"
     ]
 }
