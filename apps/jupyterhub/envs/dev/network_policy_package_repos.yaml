@@ -12,8 +12,8 @@ spec:
   egress:
     # Allow access to PyPI and CRAN
     - toFQDNs:
-        matchName: "cran.r-project.org"
-        matchPattern: "*.pypi.org"
+        - matchName: "cran.r-project.org"
+        - matchPattern: "*.pypi.org"
       toPorts:
         - ports:
             - port: "443"
