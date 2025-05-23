@@ -28,3 +28,6 @@ helmCharts:
       proxy:
         service:
           type: ClusterIP
+      singleuser:
+        cloudMetadata:
+          blockWithIptables: false
