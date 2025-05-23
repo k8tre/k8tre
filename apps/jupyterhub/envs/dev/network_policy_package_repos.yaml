@@ -10,19 +10,7 @@ spec:
       app: jupyterhub
       "app.kubernetes.io/component": singleuser-server
   egress:
-    # Allow access to PyPI
-    - toFQDNs:
-        matchNames:
-          - pypi.org
-          - pythonhosted.org
-          - pypi.python.org
-          - test.pypi.org
-          - upload.pypi.org
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
-    # Allow access to CRAN
+    # Allow access to PyPI and CRAN
     - toFQDNs:
         matchName: "cran.r-project.org"
         matchPattern: "*.pypi.org"
