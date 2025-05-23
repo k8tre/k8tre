@@ -8,26 +8,6 @@ spec:
   endpointSelector:
     matchLabels:
       app: jupyterhub
-      "app.kubernetes.io/component": singleuser-server
+      component: singleuser-server
   egress:
-    # Allow access to PyPI and CRAN
-    - toFQDNs:
-        - matchName: "cran.r-project.org"
-        - matchPattern: "*.pypi.org"
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
-    # Allow DNS resolution
-    - toEntities:
-        - world
-      toPorts:
-        - ports:
-            - port: "53"
-              protocol: UDP
-            - port: "53"
-              protocol: TCP
-    - toCIDR:
-        - 10.0.0.0/8
-        - 172.16.0.0/12
-        - 192.168.0.0/16
+    - {}
