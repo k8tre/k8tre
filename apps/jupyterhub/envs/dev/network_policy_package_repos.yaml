@@ -1,0 +1,41 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-jupyterhub-to-package-repos
+  namespace: jupyterhub
+spec:
+  description: "Allow JupyterHub pods to access CRAN and PyPI package repositories"
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      "app.kubernetes.io/component": singleuser-server
+  egress:
+    # Allow access to PyPI
+    - toFQDNs:
+        matchNames:
+          - pypi.org
+          - pythonhosted.org
+          - pypi.python.org
+          - test.pypi.org
+          - upload.pypi.org
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Allow access to CRAN
+    - toFQDNs:
+        matchName: "cran.r-project.org"
+        matchPattern: "*.pypi.org"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    # Allow DNS resolution
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
