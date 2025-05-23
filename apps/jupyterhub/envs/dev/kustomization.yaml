@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - netpol_singleuser_world.yaml
 
 helmCharts:
   - name: jupyterhub
@@ -31,3 +32,5 @@ helmCharts:
       singleuser:
         cloudMetadata:
           blockWithIptables: false
+        networkPolicy:
+          enabled: false
