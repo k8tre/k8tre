@@ -33,4 +33,4 @@ helmCharts:
         cloudMetadata:
           blockWithIptables: false
         networkPolicy:
-          enabled: true
+          enabled: false
