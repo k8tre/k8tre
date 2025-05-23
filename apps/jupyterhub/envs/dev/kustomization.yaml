@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - network_policy_package_repos.yaml
+  - netpol_singleuser_world.yaml
 
 helmCharts:
   - name: jupyterhub

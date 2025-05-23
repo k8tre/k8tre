@@ -1,23 +1,15 @@
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
-  name: allow-jupyterhub-to-package-repos
+  name: allow-access-singleuser-z2jh-policies
   namespace: jupyterhub
 spec:
-  description: "Allow JupyterHub pods to access CRAN and PyPI package repositories"
+  description: "Replacement for z2jh singleuser-server network policies"
   endpointSelector:
     matchLabels:
       app: jupyterhub
       component: singleuser-server
   egress:
-    # Allow access to PyPI and CRAN
-    - toFQDNs:
-        - matchName: "cran.r-project.org"
-        - matchPattern: "*.pypi.org"
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
     # Allow access to hub
     - toEndpoints:
         - matchLabels:
@@ -69,40 +61,28 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-    # Allow access to private IP ranges
-    # - toCIDR:
-    #     - 10.0.0.0/8
-    #     - 172.16.0.0/12
-    #     - 192.168.0.0/16
-    #   toPorts:
-    #     - ports:
-    #         - port: "53"
-    #           protocol: UDP
-    #         - port: "53"
-    #           protocol: TCP
-    # Allow DNS resolution
-    - toEntities:
-        - world
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": kube-system
+            "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # DNS resolution limited to DNS servers only; Sense check this
+    - toCIDR:
+        - 10.0.0.0/8 # Internal DNS servers should be here
+        - 172.16.0.0/12
+        - 192.168.0.0/16
       toPorts:
         - ports:
             - port: "53"
               protocol: UDP
             - port: "53"
               protocol: TCP
-    # Allow general internet access (except private IPs)
-    # - toEntities:
-    #     - world
-    #   toPorts:
-    #     - ports:
-    #         - port: "443"
-    #           protocol: TCP
-    #   toCIDRSet:
-    #     - cidr: 0.0.0.0/0
-    #       except:
-    #         - 10.0.0.0/8
-    #         - 172.16.0.0/12
-    #         - 192.168.0.0/16
-    #         - 169.254.169.254/32
   ingress:
     - fromEndpoints:
         - matchLabels:
