@@ -80,7 +80,7 @@ argocd login localhost:8080 --username=admin --password="$ARGOCD_PASSWORD" --ins
 Mark the current cluster as the ArgoCD dev environment
 
 ```bash
-argocd cluster set in-cluster --label environment=dev
+argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes
 argocd cluster get in-cluster
 ```
 
@@ -114,6 +114,12 @@ List CRDs
 kubectl get crd
 ```
 
+## Create secrets for use by External Secrets Operator
+
+```bash
+uv run ci/create-ci-secrets.py --context $(kubectl config current-context)
+```
+
 ## Deploy the app-of-apps
 
 Edit the app-of-apps to point to you GitHub fork `$GITHUB_REPOSITORY` and branch/commit `$GITHUB_SHA`
@@ -131,7 +137,7 @@ kubectl apply -f app_of_apps/root-app-of-apps.yaml
 Wait for app-of-apps to be created
 ```bash
 sleep 60
-kubectl -nargocd wait --for=jsonpath='{.status.health.status}'=Healthy application root-app-of-apps --timeout=300s
+kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application root-app-of-apps --timeout=300s
 ```
 
 ```bash
@@ -142,7 +148,7 @@ kubectl get applications -A
 
 Wait for applications in app-of-apps to be created
 ```bash
-kubectl -nargocd wait --for=jsonpath='{.status.health.status}'=Healthy application --all --timeout=300s
+kubectl -n argocd wait --for=jsonpath='{.status.health.status}'=Healthy application --all --timeout=300s
 ```
 
 ```bash
