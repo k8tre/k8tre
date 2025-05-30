@@ -22,8 +22,7 @@ helmCharts:
           name: lscsde/jupyterhub
           tag: 0.1.25
         extraEnv:
-          - name: WORKSPACE_MANAGER
-            value: lscsde
+          WORKSPACE_MANAGER: lscsde
         livenessProbe:
           initialDelaySeconds: 5
         networkPolicy:
