@@ -1,0 +1,36 @@
+apiVersion: xlscsde.nhs.uk/v1
+kind: AnalyticsWorkspace
+metadata:
+  name: demo-workspace
+spec:
+  displayName: Default Generic Workspace
+  description: |
+    Basic environment for testing with Python R and Julia.
+
+  validity:
+    availableFrom: "2022-01-01"
+    expires: "2030-01-01"
+
+  jupyterWorkspace:
+    image: lscsde/datascience-notebook-default:0.1.0
+    persistentVolumeClaim:
+      name: jupyter-demo-workspace
+
+---
+apiVersion: xlscsde.nhs.uk/v1
+kind: AnalyticsWorkspaceBinding
+metadata:
+  name: demo-workspace-admin
+spec:
+  workspace: demo-workspace
+  username: admin
+  expires: "2030-01-01"
+---
+apiVersion: xlscsde.nhs.uk/v1
+kind: AnalyticsWorkspaceBinding
+metadata:
+  name: demo-workspace-demo
+spec:
+  workspace: demo-workspace
+  username: demo
+  expires: "2030-01-01"

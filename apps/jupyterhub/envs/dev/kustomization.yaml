@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base
   - netpol_singleuser_world.yaml
+  - test_workspace.yaml
 
 helmCharts:
   - name: jupyterhub
@@ -16,6 +17,15 @@ helmCharts:
         hook:
           enabled: false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
       hub:
+        image:
+          pullPolicy: Always
+          name: lscsde/jupyterhub
+          tag: 0.1.25
+        extraEnv:
+          - name: WORKSPACE_MANAGER
+            value: lscsde
+        livenessProbe:
+          initialDelaySeconds: 5
         networkPolicy:
           egress:
             - ports:
