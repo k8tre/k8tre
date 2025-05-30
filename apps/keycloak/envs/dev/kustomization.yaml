@@ -5,7 +5,5 @@ resources:
   - ../../base
   - keycloak.yaml
   - postgres.yaml
-  # - keycloak-db-sealedsecret.yaml
   - keycloak-db-external-secret.yaml
-  # - keycloak-tls-sealed-secret.yaml
   - keycloak-tls-external-secret.yaml

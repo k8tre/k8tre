@@ -5,6 +5,7 @@ This directory contains ArgoCD ApplicationSet definitions that automatically cre
 ## Structure
 
 - `agnostics/` - ApplicationSets for platform agnostic components (Cilium, CNPG, Keycloak Operator)
+- `identity/` - Identity management (Keycloak)
 - `workspaces/` - ApplicationSets for workspace applications (JupyterHub and other user-facing tools)
 
 ApplicationSets enable K8TRE to maintain consistent configurations across development, staging, and production environments while allowing for environment-specific customizations.

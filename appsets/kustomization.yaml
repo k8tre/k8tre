@@ -5,7 +5,6 @@ namespace: argocd
 resources:
   - agnostics/cilium.yaml
   - agnostics/cnpg.yaml
-  # - agnostics/sealed-secrets.yaml
   - agnostics/external-secrets.yaml
   - agnostics/secret-store.yaml
   - identity/keycloak.yaml

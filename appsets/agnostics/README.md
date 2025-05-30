@@ -1,11 +1,12 @@
-# Agnostic ApplicationSets for K8TRE
+# Agnostic ApplicationSets
 
-This directory contains ArgoCD ApplicationSets for platform-agnostic infrastructure components that form the foundation of the K8TRE platform.
+ArgoCD ApplicationSets for platform-agnostic infrastructure components in K8TRE.
 
 ## Components
 
-- `cilium.yaml` - ApplicationSet for deploying Cilium for networking and network policies
-- `cnpg.yaml` - ApplicationSet for the Cloud Native PostgreSQL operator
-- `keycloak-operator.yaml` - ApplicationSet for the Keycloak identity management operator
+- **`cilium.yaml`** - Cilium CNI for networking and network policies
+- **`cnpg.yaml`** - Cloud Native PostgreSQL operator
+- **`external-secrets.yaml`** - External Secrets Operator for secret management
+- **`secret-store.yaml`** - Secret store configurations
 
-These ApplicationSets deploy the foundational components from the `/agnostics` directory across all K8TRE environments.
+These ApplicationSets deploy foundational components from the `/agnostics` directory across all K8TRE environments.
