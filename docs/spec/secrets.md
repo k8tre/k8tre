@@ -1,9 +1,10 @@
 ---
 topic: Secrets
 date: 2025-05-30
-discussion: link
+discussion: (https://github.com/orgs/k8tre/discussions/6)
 k8tre-statements:
   spec: Storing secrets unencrypted in etcd is not acceptable. 
+  refimpl: KMS provider and plugin the preferred solution for MVP.
 ---
 
 ### Secrets
@@ -16,5 +17,3 @@ k8tre-statements:
         - encrypt at rest using a KMS provider and plugin to encrypt etcd. 
         - use the [secrets-store-csi-driver](https://secrets-store-csi-driver.sigs.k8s.io/concepts.html) and supported provider to access external secrets store.
     2. Use existing organisation secrets manager where possible, enabling centralised management of credentials across an org.
-
-*K8TRE Reference Implementation Statement*: KMS provider and plugin the preferred solution for MVP.
