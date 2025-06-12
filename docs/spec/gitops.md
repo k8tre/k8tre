@@ -1,9 +1,10 @@
 ---
 topic: GitOps
 date: 2025-05-30
-discussion: link
+discussion: https://github.com/orgs/k8tre/discussions/7
 k8tre-statements:
-  spec:  
+  spec:
+  refimpl: K8TRE will follow GitOps principles and will use ArgoCD installed on a management cluster to manage nearly all resources on the child cluster(s) it manages. Here "nearly all" means ArgoCD will not be responsible for creating/destroying workspaces. 
 ---
 
 ## GitOps using ArgoCD
@@ -18,5 +19,3 @@ k8tre-statements:
         - deployment of K8TRE to dev/test/prod clusters from a single ArgoCD installation
         - deployment of one K8TRE per project or deployment of ephemeral K8TRE development environments for each developer.
     3. In the JupyterHub control plane model, JupyterHub is responsible for creating/destroying workspaces, not ArgoCD. ArgoCD will complain that JupyterHub is out-of-sync because of the new resources but there are ways of addressing this.
-
-*K8TRE Reference Implementation Statement*: K8TRE will follow GitOps principles and will use ArgoCD installed on a management cluster to manage nearly all resources on the child cluster(s) it manages. Here "nearly all" means ArgoCD will not be responsible for creating/destroying workspaces.
