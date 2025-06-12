@@ -1,9 +1,10 @@
 ---
 topic: Networking
 date: 2025-05-30
-discussion: link
+discussion: https://github.com/orgs/k8tre/discussions/4
 k8tre-statements:
-  spec: A K8TRE's CIDR/VPC/VNET is solely for in-cluster use; all external access to applications/services is via the ingress object/load-balancer. A K8TRE's CNI must have full support for K8S Network Policies.  
+  spec: A K8TRE's CIDR/VPC/VNET is solely for in-cluster use; all external access to applications/services is via the ingress object/load-balancer. A K8TRE's CNI must have full support for K8S Network Policies. 
+  refimpl: Cilium is the chosen CNI. All external access to applications/services is via the ingress object/load-balancer.
 ---
 
 ### Networking
@@ -17,6 +18,3 @@ k8tre-statements:
     1. Full support for K8S Network Policies? i.e. not AWS VPC CNI or Azure CNI..?
     2. Cilium vs Calico - Cilium preferred, used in ARC TRE and FRIDGE
     3. No. A K8TRE's CIDR/VPC/VNET is solely for in-cluster use only so all external access is via the ingress/load-balancer
-
-*K8TRE Reference Implementation Statement*: Cilium is the chosen CNI ? 
-All external access to applications/services is via the ingress object/load-balancer.
