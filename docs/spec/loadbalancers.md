@@ -1,9 +1,10 @@
 ---
 topic: Load Balancers
 date: 2025-05-30
-discussion: link
+discussion: https://github.com/orgs/k8tre/discussions/3
 k8tre-statements:
   spec: There must be an off-cluster ingress load balancer - but it does not have to be ingress controller-managed. Services must be used to expose applications/components running in your cluster behind a single outward-facing endpoint.  
+  refimpl: AWS = , Azure = , K3S = 
 ---
 
 ### Load Balancers
@@ -16,6 +17,4 @@ k8tre-statements:
 
     1. ? 
     2. ? Yes - as long as there is one..?
-    3. We should describe where load balancers are required in K8TRE. 
-
-*K8TRE Reference Implementation Statement*: AWS = , Azure = , K3S = ?
+    3. We should describe where load balancers are required in K8TRE.  
