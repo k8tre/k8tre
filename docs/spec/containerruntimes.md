@@ -1,9 +1,10 @@
 ---
 topic: Container Runtimes
 date: 2025-05-30
-discussion: link
+discussion: https://github.com/orgs/k8tre/discussions/12
 k8tre-statements:
   spec: 
+  refimpl:
 ---
 
 ## Container Runtimes
@@ -14,5 +15,3 @@ k8tre-statements:
 
     1. ?
     2. ?
-
-*K8TRE Reference Implementation Statement*:
