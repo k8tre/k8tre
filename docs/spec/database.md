@@ -1,9 +1,10 @@
 ---
 topic: Database
 date: 2025-05-30
-discussion: link
+discussion: https://github.com/orgs/k8tre/discussions/9
 k8tre-statements:
   spec: K8TRE Specification-conformant apps shall allow the use of the default DB. A K8TRE should integrate with an organisation's existing databases where appropriate.
+  refimpl: The K8TRE Reference Implementation includes a default Postgres DB, for the general use of apps. CloudNativePG used with ArgoCD to configure and manage this  on-cluster DB.
 ---
 
 ### Database
@@ -16,5 +17,3 @@ k8tre-statements:
     1. Databases should be attached resources, explicitly referenced
     2. PostrgeSQL DB needed on-cluster as part of default deployment
     3. Be very light-touch, non-prescriptive beyond best practice & decoupled/microservice architecture.
-
-*K8TRE Reference Implementation Statement*: The K8TRE Reference Implementation includes a default Postgres DB, for the general use of apps. CloudNativePG used with ArgoCD to configure and manage this  on-cluster DB.
