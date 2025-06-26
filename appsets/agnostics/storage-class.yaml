@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: secret-store
+  name: storage-class
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,18 +13,18 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/secret-store/kubernetes/envs/*
+                - path: agnostics/storage-class/*/envs/*
           - clusters:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
-                  secret-store: "{{index .path.segments 2}}"
+                  storage-class: "{{index .path.segments 2}}"
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
-        argocd.argoproj.io/sync-wave: "-9"
+        argocd.argoproj.io/sync-wave: "-10"
     spec:
       project: default
       source:
@@ -33,10 +33,9 @@ spec:
         path: "{{.path.path}}"
       destination:
         server: "{{.server}}"
-        namespace: "{{index .path.segments 1}}"
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=true
+          - CreateNamespace=false

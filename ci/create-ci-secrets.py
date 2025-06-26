@@ -4,7 +4,6 @@
 #   "kubernetes>=29.0.0",
 #   "typer>=0.16.0",
 #   "pyyaml>=6.0.0",
-#   "cryptography>=45.0.3",
 # ]
 # ///
 """
@@ -12,15 +11,22 @@ CI Secrets Management for External Secrets Operator
 
 This script creates Kubernetes secrets in a secret-store namespace for use with
 External Secrets Operator in CI environments. It reads configuration from
-secrets.yaml and generates necessary passwords and certificates automatically.
+secrets.yaml and generates necessary passwords and keys automatically.
+
+The script supports three modes:
+- Create new secrets (default): Only creates secrets that don't exist
+- Overwrite mode (--overwrite): Completely replaces existing secrets
+- Merge mode (--merge-keys): Adds new keys to existing secrets without overwriting existing keys
+
+Note: TLS secrets are now managed by cert-manager and are not created by this script.
 
 Usage:
     uv run create-ci-secrets.py --context k3d-dev [--dry-run] [--namespace secret-store]
-    python create-ci-secrets.py --context k3d-dev [--dry-run] [--namespace secret-store]
+    uv run create-ci-secrets.py --context k3d-dev --merge-keys [--dry-run]
+
 """
 
 import base64
-import datetime
 import secrets
 import string
 import sys
@@ -29,10 +35,6 @@ from typing import Annotated, Any, Dict
 
 import typer
 import yaml
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from rich.console import Console
@@ -42,7 +44,7 @@ console = Console()
 
 
 class SecretGenerator:
-    """Generates various types of secrets and certificates."""
+    """Generates various types of secrets like passwords and hex keys."""
 
     @staticmethod
     def generate_password(length: int = 16) -> str:
@@ -55,47 +57,6 @@ class SecretGenerator:
         """Generate a random hex key."""
         return secrets.token_hex(length)
 
-    @staticmethod
-    def generate_self_signed_cert(hostname: str, days: int = 365) -> tuple[str, str]:
-        """Generate a self-signed certificate and return (cert, key) as strings using cryptography."""
-
-        # Generate private key
-        key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-        )
-
-        subject = issuer = x509.Name(
-            [
-                x509.NameAttribute(NameOID.COUNTRY_NAME, "UK"),
-                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "CI Test"),
-                x509.NameAttribute(NameOID.COMMON_NAME, hostname),
-            ]
-        )
-
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(subject)
-            .issuer_name(issuer)
-            .public_key(key.public_key())
-            .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.datetime.now())
-            .not_valid_after(datetime.datetime.now() + datetime.timedelta(days=days))
-            .add_extension(
-                x509.SubjectAlternativeName([x509.DNSName(hostname)]),
-                critical=False,
-            )
-            .sign(key, hashes.SHA256())
-        )
-
-        cert_content = cert.public_bytes(serialization.Encoding.PEM).decode()
-        key_content = key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        ).decode()
-        return cert_content, key_content
-
 
 class CISecretsManager:
     """Manages creation of CI secrets for External Secrets Operator."""
@@ -106,16 +67,19 @@ class CISecretsManager:
         namespace: str = "secret-store",
         dry_run: bool = False,
         overwrite: bool = False,
+        merge_keys: bool = False,
     ):
         self.context = context
         self.namespace = namespace
         self.dry_run = dry_run
         self.overwrite = overwrite
+        self.merge_keys = merge_keys
         self.generator = SecretGenerator()
         self.generated_values = {}
         self.existing_secrets = []
         self.overwritten_secrets = []
         self.skipped_secrets = []
+        self.merged_secrets = []
 
         # Initialize Kubernetes client
         try:
@@ -194,94 +158,62 @@ class CISecretsManager:
                 return False
             raise
 
-    def create_tls_secret(self, secret_name: str, hostname: str) -> bool:
-        """Create a TLS secret with self-signed certificate."""
+    def get_existing_secret_data(self, secret_name: str) -> Dict[str, str]:
+        """Get the data from an existing secret."""
         try:
-            cert_content, key_content = self.generator.generate_self_signed_cert(
-                hostname
-            )
-
-            secret_exists = self.check_secret_exists(secret_name)
-            if secret_exists:
-                self.existing_secrets.append(secret_name)
-                if not self.overwrite:
-                    self.skipped_secrets.append(secret_name)
-                    console.print(
-                        f"[yellow]⚠[/yellow] Secret '{secret_name}' already exists and --overwrite is False. Skipping."
-                    )
-                    return True
-                else:
-                    self.overwritten_secrets.append(secret_name)
-
-            if self.dry_run:
-                action = "overwrite" if secret_exists and self.overwrite else "create"
-                console.print(
-                    f"[yellow]Would {action} TLS secret: {secret_name} for hostname: {hostname}[/yellow]"
-                )
-                return True
-
-            # Delete existing secret if it exists and overwrite is enabled
-            if secret_exists and self.overwrite:
-                try:
-                    self.v1.delete_namespaced_secret(
-                        name=secret_name, namespace=self.namespace
-                    )
-                    console.print(
-                        f"[yellow]Overwriting existing secret: {secret_name}[/yellow]"
-                    )
-                except ApiException as e:
-                    if e.status != 404:
-                        raise
-
-            # Create TLS secret
-            secret_body = client.V1Secret(
-                metadata=client.V1ObjectMeta(
-                    name=secret_name, namespace=self.namespace
-                ),
-                type="kubernetes.io/tls",
-                data={
-                    "tls.crt": base64.b64encode(cert_content.encode()).decode(),
-                    "tls.key": base64.b64encode(key_content.encode()).decode(),
-                },
-            )
-
-            self.v1.create_namespaced_secret(namespace=self.namespace, body=secret_body)
-            action = "Overwritten" if secret_exists and self.overwrite else "Created"
-            console.print(
-                f"[green]✓[/green] {action} TLS secret: {secret_name} for hostname: {hostname}"
-            )
-            return True
-
-        except Exception as e:
-            console.print(
-                f"[red]✗[/red] Failed to create TLS secret {secret_name}: {e}"
-            )
-            return False
+            secret = self.v1.read_namespaced_secret(name=secret_name, namespace=self.namespace)
+            if secret.data:
+                # Decode base64 values
+                return {k: base64.b64decode(v).decode() for k, v in secret.data.items()}
+            return {}
+        except ApiException as e:
+            if e.status == 404:
+                return {}
+            raise
 
     def create_generic_secret(self, secret_name: str, data: Dict[str, str]) -> bool:
         """Create a generic secret."""
         try:
             secret_exists = self.check_secret_exists(secret_name)
+            final_data = data.copy()
+            
             if secret_exists:
                 self.existing_secrets.append(secret_name)
-                if not self.overwrite:
+                
+                if self.merge_keys:
+                    # Merge with existing secret data
+                    existing_data = self.get_existing_secret_data(secret_name)
+                    # Start with existing data, then add/override with new data
+                    final_data = existing_data.copy()
+                    final_data.update(data)
+                    self.merged_secrets.append(secret_name)
+                    
+                    if self.dry_run:
+                        console.print(
+                            f"[yellow]Would merge keys into existing secret: {secret_name}[/yellow]"
+                        )
+                        console.print(f"[yellow]  Existing keys: {list(existing_data.keys())}[/yellow]")
+                        console.print(f"[yellow]  New/Updated keys: {list(data.keys())}[/yellow]")
+                        console.print(f"[yellow]  Final keys: {list(final_data.keys())}[/yellow]")
+                        return True
+                elif not self.overwrite:
                     self.skipped_secrets.append(secret_name)
                     console.print(
-                        f"[yellow]⚠[/yellow] Secret '{secret_name}' already exists and --overwrite is False. Skipping."
+                        f"[yellow]⚠[/yellow] Secret '{secret_name}' already exists. Use --overwrite to replace or --merge-keys to add new keys."
                     )
                     return True
                 else:
                     self.overwritten_secrets.append(secret_name)
 
-            if self.dry_run:
+            if self.dry_run and not (secret_exists and self.merge_keys):
                 action = "overwrite" if secret_exists and self.overwrite else "create"
                 console.print(
-                    f"[yellow]Would {action} generic secret: {secret_name} with keys: {list(data.keys())}[/yellow]"
+                    f"[yellow]Would {action} generic secret: {secret_name} with keys: {list(final_data.keys())}[/yellow]"
                 )
                 return True
 
-            # Delete existing secret if it exists and overwrite is enabled
-            if secret_exists and self.overwrite:
+            # Delete existing secret if it exists and we're overwriting (not merging)
+            if secret_exists and self.overwrite and not self.merge_keys:
                 try:
                     self.v1.delete_namespaced_secret(
                         name=secret_name, namespace=self.namespace
@@ -292,21 +224,38 @@ class CISecretsManager:
                 except ApiException as e:
                     if e.status != 404:
                         raise
+            elif secret_exists and self.merge_keys:
+                # Delete existing secret to recreate with merged data
+                try:
+                    self.v1.delete_namespaced_secret(
+                        name=secret_name, namespace=self.namespace
+                    )
+                    console.print(
+                        f"[cyan]Merging keys into existing secret: {secret_name}[/cyan]"
+                    )
+                except ApiException as e:
+                    if e.status != 404:
+                        raise
 
-            # Create generic secret
+            # Create generic secret with final data
             secret_body = client.V1Secret(
                 metadata=client.V1ObjectMeta(
                     name=secret_name, namespace=self.namespace
                 ),
                 type="Opaque",
                 data={
-                    k: base64.b64encode(v.encode()).decode() for k, v in data.items()
+                    k: base64.b64encode(v.encode()).decode() for k, v in final_data.items()
                 },
             )
 
             self.v1.create_namespaced_secret(namespace=self.namespace, body=secret_body)
-            action = "Overwritten" if secret_exists and self.overwrite else "Created"
-            console.print(f"[green]✓[/green] {action} generic secret: {secret_name}")
+            
+            if secret_exists and self.merge_keys:
+                console.print(f"[green]✓[/green] Merged keys into secret: {secret_name}")
+            elif secret_exists and self.overwrite:
+                console.print(f"[green]✓[/green] Overwritten secret: {secret_name}")
+            else:
+                console.print(f"[green]✓[/green] Created generic secret: {secret_name}")
             return True
 
         except Exception as e:
@@ -329,12 +278,14 @@ class CISecretsManager:
         if self.dry_run:
             console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]")
 
-        if not self.overwrite:
+        if not self.overwrite and not self.merge_keys:
             console.print(
-                "[blue]ℹ Existing secrets will be skipped (use --overwrite to replace them)[/blue]"
+                "[blue]ℹ Existing secrets will be skipped (use --overwrite to replace them or --merge-keys to add new keys)[/blue]"
             )
-        else:
+        elif self.overwrite and not self.merge_keys:
             console.print("[orange3]⚠ Existing secrets will be overwritten[/orange3]")
+        elif self.merge_keys:
+            console.print("[cyan]🔀 New keys will be merged into existing secrets[/cyan]")
 
         for secret_config in secrets_config:
             secret_name = secret_config.get("name")
@@ -344,14 +295,7 @@ class CISecretsManager:
                 f"\n[bold blue]=== Creating {secret_type} secret: {secret_name} ===[/bold blue]"
             )
 
-            if secret_type == "tls":
-                # Handle TLS secrets
-                tls_data = secret_config.get("data", {})
-                hostname = tls_data.get("hostname", "localhost")
-                if self.create_tls_secret(secret_name, hostname):
-                    success_count += 1
-
-            elif secret_type in ["generic", "opaque"]:
+            if secret_type in ["generic", "opaque"]:
                 # Handle generic/opaque secrets
                 data_list = secret_config.get("data", [])
                 processed_data = {}
@@ -364,6 +308,11 @@ class CISecretsManager:
 
                 if self.create_generic_secret(secret_name, processed_data):
                     success_count += 1
+            elif secret_type == "tls":
+                # TLS secrets are now managed by cert-manager, skipping
+                console.print(
+                    f"[yellow]⚠[/yellow] TLS secret '{secret_name}' is managed by cert-manager, skipping creation."
+                )
             else:
                 console.print(f"[red]✗[/red] Unsupported secret type: {secret_type}")
 
@@ -390,9 +339,16 @@ class CISecretsManager:
                 for secret in self.overwritten_secrets:
                     console.print(f"  - {secret}")
 
+            if self.merged_secrets:
+                console.print(
+                    f"\n[cyan]🔀 Merged keys into {len(self.merged_secrets)} existing secrets:[/cyan]"
+                )
+                for secret in self.merged_secrets:
+                    console.print(f"  - {secret}")
+
             if self.skipped_secrets:
                 console.print(
-                    f"\n[blue]⏭ Skipped {len(self.skipped_secrets)} existing secrets (use --overwrite to replace):[/blue]"
+                    f"\n[blue]⏭ Skipped {len(self.skipped_secrets)} existing secrets (use --overwrite to replace or --merge-keys to add new keys):[/blue]"
                 )
                 for secret in self.skipped_secrets:
                     console.print(f"  - {secret}")
@@ -446,6 +402,9 @@ def main(
     overwrite: Annotated[
         bool, typer.Option(help="Overwrite existing secrets (default: False)")
     ] = False,
+    merge_keys: Annotated[
+        bool, typer.Option(help="Merge new keys into existing secrets without overwriting existing keys (default: False)")
+    ] = False,
     config: Annotated[
         str,
         typer.Option(
@@ -460,14 +419,22 @@ def main(
       uv run create-ci-secrets.py --context k3d-dev
       uv run create-ci-secrets.py --context k3d-dev --dry-run
       uv run create-ci-secrets.py --context k3d-dev --overwrite
+      uv run create-ci-secrets.py --context k3d-dev --merge-keys
       uv run create-ci-secrets.py --context k3d-dev --namespace my-secret-store
 
       # Traditional python execution (requires virtual environment)
-      python create-ci-secrets.py --context k3d-dev --dry-run --overwrite
+      python create-ci-secrets.py --context k3d-dev --dry-run --merge-keys
     """
+    
+    # Validate conflicting options
+    if overwrite and merge_keys:
+        console.print("[red]Error: --overwrite and --merge-keys options are mutually exclusive.[/red]")
+        console.print("[yellow]Use --overwrite to completely replace existing secrets, or --merge-keys to add new keys to existing secrets.[/yellow]")
+        raise typer.Exit(code=1)
+    
     # Initialize secrets manager
     manager = CISecretsManager(
-        context=context, namespace=namespace, dry_run=dry_run, overwrite=overwrite
+        context=context, namespace=namespace, dry_run=dry_run, overwrite=overwrite, merge_keys=merge_keys
     )
 
     # Load configuration and create secrets

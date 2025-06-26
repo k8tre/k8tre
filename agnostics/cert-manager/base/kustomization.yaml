@@ -3,6 +3,4 @@ kind: Kustomization
 
 resources:
   - certificate.yaml
-  - netpol_singleuser.yaml
-  - network_policy.yaml
-  - patch-rolebinding.yaml
+  - clusterissuer.yaml

@@ -1,0 +1,21 @@
+postgresql:
+  enabled: false
+externalDatabase:
+  host: keycloak-postgres-cluster-rw
+  database: keycloak
+  port: 5432
+  existingSecret: keycloak-db-secret
+  existingSecretUserKey: username
+  existingSecretPasswordKey: password
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: keycloak.dev-xk8tre.org
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: keycloak.dev-xk8tre.org
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  tls: true
+  extraTls:
+    - secretName: dev-xk8tre-tls
+      hosts:
+        - keycloak.dev-xk8tre.org

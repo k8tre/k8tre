@@ -1,0 +1,35 @@
+prePuller:
+  hook:
+    enabled: false # Disable prePuller hook - see https://github.com/jupyterhub/zero-to-jupyterhub-k8s/issues/1621
+hub:
+  networkPolicy:
+    egress:
+      - ports:
+          - port: 6443
+          - port: 443
+  config:
+    JupyterHub:
+      admin_access: true
+      admin_users:
+        - admin
+proxy:
+  service:
+    type: ClusterIP
+singleuser:
+  cloudMetadata:
+    blockWithIptables: false
+  networkPolicy:
+    enabled: false
+ingress:
+  enabled: true
+  hosts:
+    - jupyter.dev-xk8tre.org
+  ingressClassName: nginx
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: jupyter.dev-xk8tre.org
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  tls:
+    - hosts:
+        - jupyter.dev-xk8tre.org
+      secretName: dev-xk8tre-tls
+

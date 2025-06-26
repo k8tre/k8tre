@@ -33,8 +33,5 @@ spec:
       owner: keycloak-user
       secret:
         name: keycloak-db-secret
-        key: password
       postInitApplicationSQL:
         - create schema if not exists keycloak;
-
-enableSuperuserAccess: true

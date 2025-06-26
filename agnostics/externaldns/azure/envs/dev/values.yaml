@@ -1,0 +1,18 @@
+
+provider: azure-private-dns
+azure:
+  resourceGroup: "<reseource-group-name>"
+  subscriptionId: "<azure-subscription-id>"
+  tenantId: "<azure-tenant-id>"
+  useWorkloadIdentityExtension: true
+domainFilters:
+  - dev-xk8tre.org
+policy: sync
+txtOwnerId: externaldns
+podLabels:
+  azure.workload.identity/use: "true"
+serviceAccount:
+  create: true
+  name: externaldns
+  annotations:
+    azure.workload.identity/client-id: "<azure-client-id>"

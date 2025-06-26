@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: secret-store
+  name: external-dns
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,18 +13,18 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/secret-store/kubernetes/envs/*
+                - path: agnostics/externaldns/*/envs/*
           - clusters:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
-                  secret-store: "{{index .path.segments 2}}"
+                  external-dns: "{{index .path.segments 2}}"
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
-        argocd.argoproj.io/sync-wave: "-9"
+        argocd.argoproj.io/sync-wave: "-5"
     spec:
       project: default
       source:

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: secret-store
+  name: cert-manager
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,18 +13,21 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/secret-store/kubernetes/envs/*
+                - path: agnostics/cert-manager/envs/*
           - clusters:
               selector:
                 matchLabels:
-                  environment: "{{index .path.segments 4}}"
-                  secret-store: "{{index .path.segments 2}}"
+                  environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-cert-manager
+                    operator: NotIn
+                    values: ["true"]
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
-        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
-        argocd.argoproj.io/sync-wave: "-9"
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+        argocd.argoproj.io/sync-wave: "-10"
     spec:
       project: default
       source:
@@ -33,10 +36,10 @@ spec:
         path: "{{.path.path}}"
       destination:
         server: "{{.server}}"
-        namespace: "{{index .path.segments 1}}"
+        namespace: cert-manager
       syncPolicy:
         automated:
-          prune: true
+          prune: false
           selfHeal: true
         syncOptions:
           - CreateNamespace=true

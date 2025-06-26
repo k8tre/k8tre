@@ -25,6 +25,7 @@ uv run create-ci-secrets.py --context <your-kubectl-context>
 
 This creates the following secrets in the `secret-store` namespace:
 - `keycloak-db-secret` - Database credentials
-- `keycloak-tls-secret` - TLS certificate
+
+**Note:** TLS certificates are now managed by cert-manager instead of being created by the CI script.
 
 External Secrets Operator synchronizes these from the `secret-store` namespace into the `keycloak` namespace.
