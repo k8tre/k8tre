@@ -21,6 +21,7 @@ node-name: k8tre-dev
 tls-san:
   - k8tre-dev
 cluster-init: true
+disable: traefik
 EOF
 
 curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.32.4+k3s1 sh -
