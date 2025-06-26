@@ -104,9 +104,16 @@ Create a new network in Virtual Machine Manager with static IP addresses:
 
 Install K3s on both VMs:
 
+Disable flannel and network policy as Cilium does this as part of k8tre.
+Diable traefik as k8tre uses nginx for ingress
+Disable servicelb as we will need metallb to provide an 'external loadbalancer'.
+
+However, note that metallb will not work on cloud providers.
+
+
 ```bash
 # On both VMs
-curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | sh - --flannel-backend=none --disable-network-policy --disable=traefik --disable=servicelb
 sudo usermod -aG docker $USER
 newgrp docker
 ```
@@ -118,15 +125,39 @@ Enable MetalLB and hostpath-storage on both VMs:
 
 ```bash
 # On both VMs
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
-kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.15.2/config/manifests/metallb-native.yaml
 kubectl apply -f https://raw.githubusercontent.com/helm/charts/master/stable/hostpath-provisioner/hostpath-provisioner.yaml
-
-# For MetalLB, provide an IP address range (adjust based on your network)
-kubectl patch configmap config -n metallb-system --type merge -p '{"data": {"config": "address-pools:\n- name: default\n  protocol: layer2\n  addresses:\n  - 192.168.123.50-192.168.123.100\n"}}'
 ```
 
-Learn more about [K3s add-ons](https://rancher.com/docs/k3s/latest/en/networking/#load-balancer).
+See https://metallb.universe.tf/configuration/ and https://metallb.universe.tf/configuration/k3s/ for more details on setting up metallb on k3s.
+
+Metallb needs to be configured with an IP address pool which needs to be _advertised'.
+
+For instance, 
+
+```yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool 
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.123.50-192.168.123.100
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-advertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - default-pool
+```
+
+Create a yaml file with the above configuration and apply to your cluster. 
+
+**This is a temporary workaround while we integrate this into the ArgoCD workflow for k3s.**
 
 ## Step 4: Export and Merge Kubeconfig
 

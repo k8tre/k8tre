@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: nginx
+  name: metallb
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,14 +13,14 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/nginx/*/envs/*
+                - path: agnostics/metallb/*/envs/*
           - clusters:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
                   vendor: "{{index .path.segments 2}}"
                 matchExpressions:
-                  - key: skip-nginx
+                  - key: skip-metallb
                     operator: NotIn
                     values: ["true"]
   template:
@@ -28,7 +28,7 @@ spec:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
-        argocd.argoproj.io/sync-wave: "-8" # Install after Cilium and Metallb
+        argocd.argoproj.io/sync-wave: "-9" # Install afer Cilium and before NGINX
     spec:
       project: default
       source:
@@ -37,7 +37,7 @@ spec:
         path: "{{.path.path}}"
       destination:
         server: "{{.server}}"
-        namespace: ingress-nginx
+        namespace: metallb-system
       syncPolicy:
         automated:
           prune: true

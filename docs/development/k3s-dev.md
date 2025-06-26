@@ -21,6 +21,11 @@ node-name: k8tre-dev
 tls-san:
   - k8tre-dev
 cluster-init: true
+flannel-backend: "none"
+disable-network-policy: true
+disable:
+  - traefik
+  - servicelb
 EOF
 
 curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.32.4+k3s1 sh -
@@ -35,31 +40,26 @@ sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config
 
 ### 3.2 Enable Required Add-ons
 
-Enable MetalLB and hostpath-storage on both VMs:
+Enable hostpath-storage:
 
 ```bash
-# kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
-# kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml
 # kubectl apply -f https://raw.githubusercontent.com/helm/charts/master/stable/hostpath-provisioner/hostpath-provisioner.yaml
 
-# # For MetalLB, provide an IP address range (adjust based on your network)
-# kubectl patch configmap config -n metallb-system --type merge -p '{"data": {"config": "address-pools:\n- name: default\n  protocol: layer2\n  addresses:\n  - 192.168.123.50-192.168.123.100\n"}}'
+# Metallb is now installed by Argocd
 ```
 
 
 ## Setup ArgoCD
 
 ```bash
+ARGOCD_VERSION=v3.0.6
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.14.11/manifests/install.yaml
-sleep 10
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
+sleep 60
+kubectl get events -n argocd
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
-```
 
-Install ArgoCD CLI
-
-```bash
-sudo curl -sfSL https://github.com/argoproj/argo-cd/releases/download/v2.14.11/argocd-linux-amd64 -o /usr/local/bin/argocd
+sudo curl -sfSL https://github.com/argoproj/argo-cd/releases/download/$ARGOCD_VERSION/argocd-linux-amd64 -o /usr/local/bin/argocd
 sudo chmod a+x /usr/local/bin/argocd
 ```
 
@@ -80,7 +80,7 @@ argocd login localhost:8080 --username=admin --password="$ARGOCD_PASSWORD" --ins
 Mark the current cluster as the ArgoCD dev environment
 
 ```bash
-argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes
+argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes --label vendor=k3s
 argocd cluster get in-cluster
 ```
 
