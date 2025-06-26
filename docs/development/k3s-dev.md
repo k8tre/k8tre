@@ -21,7 +21,7 @@ node-name: k8tre-dev
 tls-san:
   - k8tre-dev
 cluster-init: true
-flannel-backend: "none"
+# flannel-backend: "none"
 disable-network-policy: true
 disable:
   - traefik
@@ -80,7 +80,7 @@ argocd login localhost:8080 --username=admin --password="$ARGOCD_PASSWORD" --ins
 Mark the current cluster as the ArgoCD dev environment
 
 ```bash
-argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes --label vendor=k3s
+argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes --label vendor=k3s --label skip-cilium=true
 argocd cluster get in-cluster
 ```
 
