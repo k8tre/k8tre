@@ -43,13 +43,29 @@ sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config
 
 ### Setup Cilium CNI
 
-```
+https://docs.cilium.io/en/stable/installation/k3s/
+
+```bash
 CILIUM_VERSION=1.17.5
 CILIUM_CLI_VERSION=v0.18.4
 K3S_POD_CIDR=10.42.0.0/16
 
 curl -sfSL https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz | sudo tar -zxvf - -C /usr/local/bin/
-cilium install --version $CILIUM_VERSION --set=ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR"
+cilium install --version $CILIUM_VERSION --set=ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR" --set cni.chainingMode=portmap
+```
+
+Install portmap plugin for [hostport support](https://docs.cilium.io/en/v1.17/installation/cni-chaining-portmap/#k8s-install-portmap)
+
+```bash
+sudo mkdir -p /opt/cni/bin/
+curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-amd64-v1.7.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
+```
+
+Wait for Cilium to be ready, and optionally check Cilium it's working.
+```
+cilium status --wait
+# TODO: Remove this, takes several minutes to run
+cilium connectivity test
 ```
 
 ### 3.2 Enable Required Add-ons
@@ -93,7 +109,12 @@ argocd login localhost:8080 --username=admin --password="$ARGOCD_PASSWORD" --ins
 Mark the current cluster as the ArgoCD dev environment
 
 ```bash
-argocd cluster set in-cluster --label environment=dev --label secret-store=kubernetes --label vendor=k3s --label skip-cilium=true
+argocd cluster set in-cluster \
+  --label environment=dev \
+  --label secret-store=kubernetes \
+  --label vendor=k3s \
+  --label skip-cilium=true \
+  --label skip-metallb=true
 argocd cluster get in-cluster
 ```
 
