@@ -1,6 +1,6 @@
 - op: replace
   path: /spec/secretName
-  value: keycloak.dev.k8tre.internal-tls
+  value: keycloak-k8tre-tls
 - op: replace
   path: /spec/commonName
   value: keycloak.dev.k8tre.internal

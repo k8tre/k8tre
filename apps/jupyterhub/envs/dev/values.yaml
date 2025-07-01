@@ -33,5 +33,5 @@ ingress:
   tls:
     - hosts:
         - jupyter.dev.k8tre.internal
-      secretName: dev-k8tre-tls
+      secretName: jupyter-k8tre-tls
 

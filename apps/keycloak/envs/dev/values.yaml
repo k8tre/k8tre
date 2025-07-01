@@ -16,6 +16,6 @@ ingress:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
   tls: true
   extraTls:
-    - secretName: dev-k8tre-tls
+    - secretName: keycloak-k8tre-tls
       hosts:
         - keycloak.dev.k8tre.internal

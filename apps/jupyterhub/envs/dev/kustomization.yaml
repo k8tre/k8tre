@@ -17,4 +17,4 @@ patches:
   - path: certificate-patch.yaml
     target:
       kind: Certificate
-      name: k8tre-tls
+      name: jupyter-k8tre-tls

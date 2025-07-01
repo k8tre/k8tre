@@ -17,4 +17,4 @@ patches:
   - path: certificate-patch.yaml
     target:
       kind: Certificate
-      name: k8tre-tls
+      name: keycloak-k8tre-tls
