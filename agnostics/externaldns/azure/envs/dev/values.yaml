@@ -6,7 +6,7 @@ azure:
   tenantId: "<azure-tenant-id>"
   useWorkloadIdentityExtension: true
 domainFilters:
-  - dev-xk8tre.org
+  - dev.k8tre.internal
 policy: sync
 txtOwnerId: externaldns
 podLabels:

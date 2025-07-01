@@ -3,8 +3,8 @@ import requests
 
 
 INGRESS_HOST = os.getenv("INGRESS_HOST", "localhost")
-KEYCLOAK_HOST = os.getenv("KEYCLOAK_HOST", "keycloak.dev-xk8tre.org")
-JUPYTERHUB_HOST = os.getenv("JUPYTERHUB_HOST", "jupyter.dev-xk8tre.org")
+KEYCLOAK_HOST = os.getenv("KEYCLOAK_HOST", "keycloak.dev.k8tre.internal")
+JUPYTERHUB_HOST = os.getenv("JUPYTERHUB_HOST", "jupyter.dev.k8tre.internal")
 
 
 def test_web_ingress_keycloak():

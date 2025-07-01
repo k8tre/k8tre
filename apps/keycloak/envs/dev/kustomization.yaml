@@ -17,4 +17,4 @@ patches:
   - path: certificate-patch.yaml
     target:
       kind: Certificate
-      name: xk8tre-tls
+      name: k8tre-tls

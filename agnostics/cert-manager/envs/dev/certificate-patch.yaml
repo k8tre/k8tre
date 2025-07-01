@@ -1,6 +1,6 @@
 - op: replace
   path: /spec/commonName
-  value: dev-xk8tre.org
+  value: dev.k8tre.internal
 - op: replace
   path: /spec/dnsNames/0
-  value: dev-xk8tre.org
+  value: dev.k8tre.internal

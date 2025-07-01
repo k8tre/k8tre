@@ -78,7 +78,7 @@ Create a new network in Virtual Machine Manager with static IP addresses:
   </forward>
   <bridge name="virbr1" stp="on" delay="0"/>
   <mac address="52:54:00:4f:af:6c"/>
-  <domain name="xk8tre.org"/>
+  <domain name="k8tre.internal"/>
   <ip address="192.168.123.1" netmask="255.255.255.0">
     <dhcp>
       <range start="192.168.123.2" end="192.168.123.254"/>
@@ -238,7 +238,7 @@ Visit [https://localhost:8080](https://localhost:8080) to access the ArgoCD UI.
 argocd login localhost:8080
 
 # Or if you've set up /etc/hosts entries:
-argocd login mgmt.xk8tre.org:8080
+argocd login mgmt.k8tre.internal:8080
 ```
 
 ### 5.4 Register Development Cluster with ArgoCD
@@ -303,8 +303,8 @@ Add the following entries to `/etc/hosts` on your host machine:
 ```bash
 sudo bash -c 'cat << EOF >> /etc/hosts
 # VMs running K3s
-192.168.123.52 mgmt.xk8tre.org
-192.168.123.62 dev.xk8tre.org
+192.168.123.52 mgmt.k8tre.internal
+192.168.123.62 dev.k8tre.internal
 EOF'
 ```
 

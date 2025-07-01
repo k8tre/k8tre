@@ -1,15 +1,15 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: xk8tre-tls
+  name: k8tre-tls
   namespace: jupyterhub
 spec:
-  secretName: xk8tre-tls
+  secretName: k8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: jupyter.base-xk8tre.org
+  commonName: jupyter.base.k8tre.internal
   dnsNames:
-    - jupyter.base-xk8tre.org
+    - jupyter.base.k8tre.internal
   usages:
     - digital signature
     - key encipherment
