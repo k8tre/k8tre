@@ -36,6 +36,16 @@ jobs:
         run: |
           pip install -r dev-requirements.txt
 
+      - name: Modify hosts to resolve k8tre.internal URLs
+        run: |
+          h=$(grep "$(hostname -i) " /etc/hosts)
+          if [ -n "$h" ]; then
+            sudo sed -i -re "s/$h/$h jupyter.dev.k8tre.internal keycloak.dev.k8tre.internal/" /etc/hosts
+          else
+            echo $(hostname -i) {jupyter,keycloak}.dev.k8tre.internal | sudo tee -a /etc/hosts
+          fi
+          cat /etc/hosts
+
       - name: Install deployment
         run: |
           ./ci/run_codeblocks.py docs/development/k3s-dev.md --run
