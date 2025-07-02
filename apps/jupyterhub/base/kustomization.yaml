@@ -5,4 +5,9 @@ resources:
   - certificate.yaml
   - netpol_singleuser.yaml
   - network_policy.yaml
-  - patch-rolebinding.yaml
+
+patches:
+  - path: patch-rolebinding.yaml
+    target:
+      kind: RoleBinding
+      name: hub
