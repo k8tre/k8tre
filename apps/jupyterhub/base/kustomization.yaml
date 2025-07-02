@@ -1,8 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: jupyterhub
+
 resources:
   - certificate.yaml
   - netpol_singleuser.yaml
   - network_policy.yaml
-  - patch-rolebinding.yaml
