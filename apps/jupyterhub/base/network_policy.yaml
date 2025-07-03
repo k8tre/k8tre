@@ -41,3 +41,26 @@ spec:
       app: jupyterhub
       component: continuous-image-puller
 
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-hub-to-keycloak
+  namespace: jupyterhub
+spec:
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keycloak
+            app.kubernetes.io/component: keycloak
+            app.kubernetes.io/instance: keycloak
+            app.kubernetes.io/name: keycloak
+      toPorts:
+        - ports:
+            # This is the pod not the service port
+            - port: "8080"
+              protocol: TCP
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: hub
