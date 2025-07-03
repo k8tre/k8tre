@@ -17,6 +17,10 @@ theme:
     - content.code.copy
     - content.tabs.link
 
+plugins:
+  - search
+  - macros
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -47,3 +51,8 @@ nav:
       - K3s: development/k3s.md
   - Reference: reference.md
   - Contributing: contributing.md
+  - Specification:
+      - The K8TRE Specification: 
+          - BYO Software : spec/byosoftware.md
+          - Container Runitimes: spec/containerruntimes.md
+          - Databases : spec/database.md
