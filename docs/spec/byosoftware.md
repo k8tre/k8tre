@@ -1,15 +1,19 @@
 ---
 topic: BYO Software
-date: 2025-05-30
+last_updated: 2025-05-30
 discussion: link
-k8tre-statements:
-  spec: K8TRE supports both "bring-your-own" software and code curated software models, but it should be up to the TRE administrators to determine what can be run.
+k8tre_statements:
+  spec: K8TRE supports both "bring-your-own software" and code curated software models, but it should be up to the TRE administrators to determine what can be run.
   refimpl: 
 ---
 
-## BYO Software 
+{% extends "spec.md" %}
 
-*Questions*: 
+{% block ourcontent %}
+*Questions*:
+<br>
 1. What is K8TRE's stance on allowing researchers to ingress "bring-your-own software" and code, versus a curated software model? Will it allow both?
 
-    1. If it's software that runs inside the researcher's VM/workspace, it should be up to the TRE administrators to determine what can be run. If it's software that requires additional infrastructure, then this is a different question regarding compliant interfaces and prerequisites for arbitrary infrastructure interacting with a K8TRE instance.
+   1. If it's software that runs inside the researcher's VM/workspace, it should be up to the TRE administrators to determine what can be run. If it's software that requires additional infrastructure, then this is a different question regarding compliant interfaces and prerequisites for arbitrary infrastructure interacting with a K8TRE instance.
+
+{% endblock %}
