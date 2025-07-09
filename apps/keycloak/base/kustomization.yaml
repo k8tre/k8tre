@@ -6,4 +6,5 @@ namespace: keycloak
 # See https://www.keycloak.org/operator/installation#_installing_multiple_operators
 resources:
   - certificate.yaml
+  - keycloak-admin-secret.yaml
   - keycloak-db-external-secret.yaml

@@ -18,3 +18,23 @@ patches:
     target:
       kind: Certificate
       name: keycloak-k8tre-tls
+
+  # Change host for Keycloak
+  - target:
+      kind: Ingress
+      name: keycloak
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: keycloak.k8tre-dev.trevolution.dev.hic.dundee.ac.uk
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: keycloak.k8tre-dev.trevolution.dev.hic.dundee.ac.uk
+  - target:
+      kind: ConfigMap
+      name: keycloak-env-vars
+    # https://github.com/bitnami/charts/blob/keycloak/24.7.4/bitnami/keycloak/templates/configmap-env-vars.yaml#L37-L50
+    patch: |-
+      - op: replace
+        path: /data/KEYCLOAK_HOSTNAME
+        value: https://keycloak.k8tre-dev.trevolution.dev.hic.dundee.ac.uk

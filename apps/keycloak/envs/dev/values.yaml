@@ -19,3 +19,10 @@ ingress:
     - secretName: keycloak-k8tre-tls
       hosts:
         - keycloak.dev.k8tre.internal
+auth:
+  adminUser: admin
+  existingSecret: keycloak-admin-secret
+  passwordSecretKey: admin-password
+
+logging:
+  level: DEBUG

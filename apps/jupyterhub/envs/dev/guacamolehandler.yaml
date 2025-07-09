@@ -1,0 +1,52 @@
+image:
+  repository: ghcr.io/manics/jupyterhub-guacamole-handler
+  tag: 0.1.0
+  # tag: dev
+  # repository: docker.io/manics/jupyterhub-guacamole-handler
+  pullPolicy: Always
+
+command:
+  - python
+  - /opt/guacamole_handler/guacamole_handler.py
+
+args:
+  - --log-level=debug
+
+service:
+  port: 8040
+
+envDict:
+  GUACAMOLE_HOST: "http://guacamole:8080"
+  GUACAMOLE_PUBLIC_HOST: "https://guacamole.dev.k8tre.internal"
+  JUPYTERHUB_API_URL: http://hub:8081/hub/api
+  JUPYTERHUB_BASE_URL: /
+  JUPYTERHUB_CLIENT_ID: service-guacamole
+  JUPYTERHUB_SERVICE_PREFIX: /services/guacamole
+  # JUPYTERHUB_SERVICE_NAME: guacamole
+  # Disable clipboard copy, allow paste
+  DISABLE_CLIPBOARD: copy
+
+env:
+  # Secrets
+  - name: JSON_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: guacamole-json-secret
+        key: GUACAMOLE_JSON_SECRET_KEY
+  - name: JUPYTERHUB_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: jupyterhub-secret
+        key: hub.services.guacamole.apiToken
+
+nameOverride: guacamolehandler
+
+livenessProbe:
+  httpGet:
+    path: /health
+readinessProbe:
+  httpGet:
+    path: /health
+
+podLabels:
+  hub.jupyter.org/network-access-hub: "true"

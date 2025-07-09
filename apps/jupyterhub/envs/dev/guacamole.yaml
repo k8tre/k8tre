@@ -1,0 +1,31 @@
+guacamole:
+  env:
+    - name: JSON_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: guacamole-json-secret
+          key: GUACAMOLE_JSON_SECRET_KEY
+
+# guacd:
+#   podLabels:
+#     # Allow access to Z2JH singleuser pods
+#     hub.jupyter.org/network-access-singleuser: "true"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/
+    # Default is 1m
+    nginx.ingress.kubernetes.io/proxy-body-size: 8m
+    # Increase for websockets (default is 60s)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: guacamole.dev.k8tre.internal
+      pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - guacamole.dev.k8tre.internal
+      secretName: guacamole-k8tre-tls
+

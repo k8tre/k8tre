@@ -1,0 +1,27 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-singleuser-services
+  namespace: jupyterhub
+spec:
+  description: Allow Guacamole to access singleuser-server
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: singleuser-server
+      app.kubernetes.io/instance: jupyterhub
+      app.kubernetes.io/managed-by: kubespawner
+      app.kubernetes.io/name: jupyterhub
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: jupyterhub
+            app.kubernetes.io/component: guacd
+            app.kubernetes.io/instance: guacamole
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: guacamole
+      toPorts:
+        - ports:
+            - port: "3389"
+              protocol: TCP
+            - port: "5901"
+              protocol: TCP

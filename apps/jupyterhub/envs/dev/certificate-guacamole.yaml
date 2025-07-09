@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: guacamole-k8tre-tls
+  namespace: jupyterhub
+spec:
+  secretName: guacamole-k8tre-tls
+  privateKey:
+    rotationPolicy: Always
+  commonName: guacamole.dev.k8tre.internal
+  dnsNames:
+    - guacamole.dev.k8tre.internal
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

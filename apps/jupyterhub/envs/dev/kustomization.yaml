@@ -8,9 +8,27 @@ helmCharts:
     releaseName: jupyterhub
     namespace: jupyterhub
     valuesFile: values.yaml
-      
+
+  - name: guacamole
+    repo: https://www.manicstreetpreacher.co.uk/helm-guacamole/
+    version: 0.1.2
+    releaseName: guacamole
+    namespace: jupyterhub
+    valuesFile: guacamole.yaml
+
+  - name: generic-webservice
+    repo: https://www.manicstreetpreacher.co.uk/helm-generic-webservice/
+    version: 0.1.5
+    releaseName: guacamolehandler
+    namespace: jupyterhub
+    valuesFile: guacamolehandler.yaml
+
 resources:
   - ../../base
+  - certificate-guacamole.yaml
+  - guacamole-json-secret.yaml
+  - jupyterhub-secret.yaml
+  - netpol-singleuser.yaml
   # - netpol_singleuser_world.yaml
 
 patches:
@@ -18,3 +36,24 @@ patches:
     target:
       kind: Certificate
       name: jupyter-k8tre-tls
+
+  # Change host for JupyterHub
+  # TODO: This doesn't work, need to override in value.yaml instead 😢
+  - target:
+      kind: Ingress
+      name: jupyterhub
+      namespace: jupyterhub
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: jupyter.k8tre.internal.THIS.DOESNT.WORK
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: jupyter.k8tre.internal.THIS.DOESNT.WORK
+
+
+configMapGenerator:
+  - name: jupyterhub-extraconfig
+    files:
+      # Kustomize will create a ConfigMap with the contents of this file
+      - jupyterhub_extraconfig.py
