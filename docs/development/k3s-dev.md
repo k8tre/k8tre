@@ -191,6 +191,20 @@ kubectl get daemonset -A
 kubectl get crd
 ```
 
+## Setup Keycloak
+
+
+```bash
+# Get the initial admin password
+KEYCLOAK_PASSWORD=$(kubectl -nkeycloak get secret keycloak -o jsonpath='{.data.admin-password}' | base64 -d)
+
+ci/ci-setup-keycloak.py \
+  --keycloak-admin=user \
+  --keycloak-password="$KEYCLOAK_PASSWORD" \
+  --verify=false
+```
+
+
 TODO:
 - Check all references to `k8tre/k8tre` and `main` are changed in all applications
 - Check number of applications is as expected
