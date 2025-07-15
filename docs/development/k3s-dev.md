@@ -64,8 +64,8 @@ curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.7
 Wait for Cilium to be ready, and optionally check Cilium it's working.
 ```
 cilium status --wait
-# TODO: Remove this, takes several minutes to run
-cilium connectivity test
+# Uncomment if you need to verify cilium is working
+# cilium connectivity test
 ```
 
 ### 3.2 Enable Required Add-ons
