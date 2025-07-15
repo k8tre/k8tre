@@ -45,10 +45,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r dev-requirements.txt
+          playwright install
 
       - name: Modify hosts to resolve k8tre.internal URLs
         run: |
-          K8TRE_SUBDOMAINS="jupyter.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN"
+          K8TRE_SUBDOMAINS="jupyter.$K8TRE_DOMAIN guacamole.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN"
           h=$(grep "$(hostname -i) " /etc/hosts)
           if [ -n "$h" ]; then
             sudo sed -i -re "s/$h/$h $K8TRE_SUBDOMAINS/" /etc/hosts
@@ -61,9 +62,21 @@ jobs:
         run: |
           ./ci/run_codeblocks.py docs/development/k3s-dev.md --run
 
-      - name: Run tests
+      - name: Run tests (not UI)
         run: |
-          python -m pytest -v -s --color=yes
+          python -m pytest -v -s --color=yes -m "not ui"
+
+      - name: Run tests (UI)
+        run: |
+          python -m pytest -v -s --color=yes -m ui
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots/*
+          if-no-files-found: error
 
       - name: Get ArgoCD logs, including on failure
         if: always()
