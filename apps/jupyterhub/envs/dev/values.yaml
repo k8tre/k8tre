@@ -116,7 +116,7 @@ singleuser:
     # name: ghcr.io/manics/jupyter-desktop-winxp
     # tag: latest
     name: ghcr.io/manics/jupyterhub-singleuser-static-redirector
-    tag: main
+    tag: 0.1.0
     pullPolicy: Always
   # Use default entrypoint
   cmd:
