@@ -126,7 +126,7 @@ singleuser:
   extraContainers:
     - name: ubuntu-mate
       # Set by kubespawner_override, but this will automatically pull it
-      image: "ghcr.io/manics/ubuntu-mate-vncrdp:main"
+      image: "ghcr.io/manics/ubuntu-mate-vncrdp:2025-07-16"
       command:
         # Set by modify_pod_hook
         - "false"

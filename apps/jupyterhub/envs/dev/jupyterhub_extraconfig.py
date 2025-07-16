@@ -163,7 +163,7 @@ async def custom_options_form(spawner):
                     "kubespawner_override": {
                         **common_overrides,
                         "desktop_connection": "rdp",
-                        "desktop_image": "ghcr.io/manics/ubuntu-mate-vncrdp:main",
+                        "desktop_image": "ghcr.io/manics/ubuntu-mate-vncrdp:2025-07-16",
                         # "desktop_image": "ghcr.io/manics/ubuntu-mate-vncrdp:dev",
                         "desktop_username": "ubuntu",
                         "desktop_command": ["start-xrdp.sh"],
@@ -177,7 +177,7 @@ async def custom_options_form(spawner):
                     "kubespawner_override": {
                         **common_overrides,
                         "desktop_connection": "vnc",
-                        "desktop_image": "ghcr.io/manics/ubuntu-mate-vncrdp:main",
+                        "desktop_image": "ghcr.io/manics/ubuntu-mate-vncrdp:2025-07-16",
                         "desktop_username": "ubuntu",
                         "desktop_command": ["start-tigervnc.sh"],
                     },
