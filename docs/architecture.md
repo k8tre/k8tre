@@ -8,7 +8,7 @@
 
 ### Container Runtimes
 
-The K8TRE Reference implementation uses X as a high-level runtime, and Y as the OCI runtime.
+The K8TRE Reference Implementation uses the default high- and low-level container runtimes in the EKS, AKS, K3S Kubernetes implementations. 
 
 ### Databases
 
