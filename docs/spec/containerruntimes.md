@@ -14,7 +14,7 @@ k8tre-statements:
 
 1. **What container runtimes should a K8TRE implementation use, and why?**
 
-    ?
+    A K8TRE implementation may use the default CRI- and OCI-compliant container runtimes of their chosen Kubernetes distribution, or where a TRE operator's risk appetite is low enough that the container breakout risk using these runtimes is unacceptable, more secure OCI-compliant runtimes may be used e.g. Kata Containers, gVisor.
 
 2. **What statements about container runtimes must the K8TRE Specification make, pertaining to the capabilities that must be implemented by the underlying K8S platform?**
 
