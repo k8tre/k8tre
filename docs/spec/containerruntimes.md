@@ -8,8 +8,6 @@ k8tre-statements:
 
 {{ spec_content(page.meta) }}
 
-## Container Runtimes
-
 **Questions**: 
 
 1. **What container runtimes should the K8TRE Reference Implementation use, and why?**
