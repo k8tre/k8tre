@@ -16,4 +16,4 @@ k8tre-statements:
 
 2. **What statements about container runtimes must the K8TRE Specification make, pertaining to the capabilities that must be implemented by the underlying K8S platform?**
 
-    A K8TRE implementation's underlying Kubernetes platform needs to provide suitable project isolation for the TRE operator's risk appetite. The K8TRE Specification therefore needs to allow TRE operators to chose runtimes with increased security (allowing increased confidence in project isolation) should their preferences require it. However, the Specification must allow less risk averse operators to use the default CRI and OCI-compliant runtimes for EKS, AKS, and K3S.
+    A K8TRE implementation's underlying Kubernetes platform needs to provide suitable project isolation for the TRE operator's risk appetite. The K8TRE Specification therefore needs to allow TRE operators to choose runtimes with increased security (allowing increased confidence in project isolation) should their preferences require it. However, the Specification must allow less risk averse operators to use the default CRI and OCI-compliant runtimes for EKS, AKS, and K3S.
