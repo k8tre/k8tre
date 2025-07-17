@@ -12,7 +12,7 @@ k8tre-statements:
 
 **Questions**: 
 
-1. **What container runtimes should the K8TRE Reference Implementation use, and why?**
+1. **What container runtimes should a K8TRE implementation use, and why?**
 
     ?
 
