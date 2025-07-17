@@ -8,7 +8,7 @@
 
 ### Container Runtimes
 
-The K8TRE Reference Implementation uses the default high- and low-level container runtimes in the EKS, AKS, K3S Kubernetes implementations. 
+The K8TRE Reference Implementation uses the default high- and low-level container runtimes in the EKS, AKS, K3S Kubernetes distributions. 
 
 ### Databases
 
