@@ -1,6 +1,6 @@
 # In this folder
 
-Each markdown file in this folder contains K8TRE Specification and K8TRE Reference Implementation statements, formatted using YAML front matter. They have been derived from the [k8tre GitHub Org Discussions](https://github.com/orgs/k8tre/discussions). The status of these statements is reflected in the table below:
+Each markdown file in this folder contains K8TRE Specification statements, formatted using YAML front matter. They have been derived from the [k8tre GitHub Org Discussions](https://github.com/orgs/k8tre/discussions) and further review by Pull Request. The status of these statements is reflected in the table below:
 
 | Topic                                       | Discussion Link                              | Status |
 |---------------------------------------------|----------------------------------------------|--------|
