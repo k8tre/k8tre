@@ -12,6 +12,8 @@ The K8TRE Reference Implementation uses the default high- and low-level containe
 
 ### Databases
 
+The K8TRE Reference Implementation includes a default Postgres DB, for the general use of apps. CloudNativePG is used with ArgoCD to configure and manage this on-cluster DB.
+
 ### DNS
 
 ### GitOps
