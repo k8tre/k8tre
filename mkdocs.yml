@@ -56,3 +56,4 @@ nav:
           - BYO Software : spec/byosoftware.md
           - Container Runitimes: spec/containerruntimes.md
           - Databases : spec/database.md
+          - DNS : spec/dns.md

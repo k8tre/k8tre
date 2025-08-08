@@ -14,6 +14,8 @@ The K8TRE Reference Implementation uses the default high- and low-level containe
 
 ### DNS
 
+For in-cluster services, the Kubernetes default CoreDNS will be used, so clients can access services by servicename.namespace without a separate DNS server.
+
 ### GitOps
 
 ### Load Balancers
