@@ -6,5 +6,6 @@
 .idea/
 /local
 __pycache__/
+.venv/
 
 screenshots/

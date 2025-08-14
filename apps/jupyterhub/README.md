@@ -5,9 +5,6 @@ This directory contains the Kubernetes manifests for deploying JupyterHub within
 ## Structure
 
 - `base/` - Contains the base Kubernetes manifests for JupyterHub deployment
-  - `kustomization.yaml` - Base kustomization configuration
-  - `network_policy.yaml` - Network policies for JupyterHub
-  - `patch-rolebinding.yaml` - Role binding configurations
 - `envs/` - Environment-specific configurations
   - `dev/` - Development environment configuration
   - `prod/` - Production environment configuration with production-specific values

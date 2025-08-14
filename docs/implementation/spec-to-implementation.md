@@ -1,8 +1,9 @@
-# K8TRE Architecture
+# K8TRE Specification To Implementation
 
-![High-Level K8TRE Architecture](img/K8TRE-high-level.png)
+This page documents the relationship between the K8TRE specification and the K8TRE reference implementation. 
 
-## How the K8TRE Reference Implementation meets the K8TRE Specification
+_Work in Progress_
+
 
 ### BYO Software
 

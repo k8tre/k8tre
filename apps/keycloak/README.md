@@ -1,6 +1,6 @@
 # Keycloak for K8TRE
 
-Keycloak deployment for identity and access management in K8TRE. Uses the Keycloak Operator with PostgreSQL backend and External Secrets Operator for secret management.
+Keycloak deployment for identity and access management in K8TRE. Uses the Keycloak Bitnami Chart with PostgreSQL backend and External Secrets Operator for secret management.
 
 ## Structure
 
@@ -9,7 +9,6 @@ Keycloak deployment for identity and access management in K8TRE. Uses the Keyclo
 
 ## Dependencies
 
-- [Keycloak Operator](https://www.keycloak.org/guides#operator)
 - [CNPG Operator](https://cloudnative-pg.io/) for PostgreSQL
 - [External Secrets Operator](https://external-secrets.io/) for secret synchronization
 

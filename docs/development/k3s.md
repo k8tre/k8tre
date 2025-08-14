@@ -1,7 +1,12 @@
-# Setting up K3s Development Environment
+# Setting up K3S Development Environment
 
-This documentation guides you through creating a development environment using K3s.
-Alternative approaches include KinD, vCluster, and others.
+!!! danger
+
+    This documentation has not been updated recently. 
+    Please follow the instructions for [single cluster dev setup](k3s-dev.md) to get started instead.
+    This page will be updated with instructions for a multi-cluster setup where a management cluster with ArgoCD can 
+    manage K8TRE deployments across development, staging and production environments.
+
 
 ## Overview
 
