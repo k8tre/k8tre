@@ -4,8 +4,7 @@ controller:
   admissionWebhooks:
     enabled: false
 
-  # Use hostport for ingress so we don't need a LoadBalancer
   hostPort:
-    enabled: true
+    enabled: false
   service:
-    type: ClusterIP
+    type: LoadBalancer
