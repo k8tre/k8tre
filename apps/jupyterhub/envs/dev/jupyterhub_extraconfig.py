@@ -183,19 +183,19 @@ async def custom_options_form(spawner):
                     },
                 }
             )
-            # spawner.profile_list.append(
-            #     {
-            #         "display_name": f"{groupname}-winxp",
-            #         "slug": f"{groupname}-winxp",
-            #         "kubespawner_override": {
-            #             **common_overrides,
-            #             "desktop_connection": "vnc",
-            #             "desktop_image": "ghcr.io/manics/jupyter-desktop-winxp:latest",
-            #             "desktop_username": "ubuntu",
-            #             "desktop_command": ["start-tigervnc.sh"],
-            #         },
-            #     }
-            # )
+            spawner.profile_list.append(
+                {
+                    "display_name": f"{groupname}-winxp",
+                    "slug": f"{groupname}-winxp",
+                    "kubespawner_override": {
+                        **common_overrides,
+                        "desktop_connection": "vnc",
+                        "desktop_image": "ghcr.io/manics/jupyter-desktop-winxp:latest",
+                        "desktop_username": "ubuntu",
+                        "desktop_command": ["start-tigervnc.sh"],
+                    },
+                }
+            )
 
     #         if groupname == egress_admin_groupname:
     #             spawner.log.info(f"Adding {groupname} readonly storage for {username}.")
