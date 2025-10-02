@@ -5,6 +5,13 @@ namespace: keycloak
 
 # See https://www.keycloak.org/operator/installation#_installing_multiple_operators
 resources:
+  # Operator CRDs
+  - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.4.0/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+  - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.4.0/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+  # Operator
+  - https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.4.0/kubernetes/kubernetes.yml
+  # Other resources
   - certificate.yaml
   - keycloak-admin-secret.yaml
   - keycloak-db-external-secret.yaml
+  - keycloak.yaml
