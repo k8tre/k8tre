@@ -14,3 +14,15 @@ resources:
   - identity/keycloak.yaml
   - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
+
+patches:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/#allow-temporarily-toggling-auto-sync
+  - target:
+      kind: ApplicationSet
+    patch: |-
+      - op: add
+        path: /spec/ignoreApplicationDifferences
+        value:
+          - jsonPointers:
+              - /spec/syncPolicy
+              - /spec/source/targetRevision
