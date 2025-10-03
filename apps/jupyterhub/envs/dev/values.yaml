@@ -19,8 +19,8 @@ hub:
       oauth_callback_url: https://jupyter.dev.k8tre.internal/hub/oauth_callback
       authorize_url: https://keycloak.dev.k8tre.internal/realms/master/protocol/openid-connect/auth
       # Internal to the cluster: svc=keycloak ns=keycloak
-      token_url: http://keycloak-service.keycloak/realms/master/protocol/openid-connect/token
-      userdata_url: http://keycloak-service.keycloak/realms/master/protocol/openid-connect/userinfo
+      token_url: http://keycloak-service.keycloak.svc.cluster.local/realms/master/protocol/openid-connect/token
+      userdata_url: http://keycloak-service.keycloak.svc.cluster.local/realms/master/protocol/openid-connect/userinfo
       scope:
         - openid
         # The custom scope name
