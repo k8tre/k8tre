@@ -1,0 +1,8 @@
+controller:
+  service:
+    annotations:
+      # https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.14/guide/ingress/annotations/
+      # alb.ingress.kubernetes.io/scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+
