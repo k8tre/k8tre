@@ -7,6 +7,7 @@ resources:
   - agnostics/cnpg.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
+  - agnostics/loadbalancer.yaml
   - agnostics/metallb.yaml
   - agnostics/nginx.yaml
   - agnostics/secret-store.yaml
