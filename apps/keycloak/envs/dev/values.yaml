@@ -1,3 +1,12 @@
+# Workaround for https://github.com/bitnami/containers/issues/83267
+image:
+  repository: bitnamilegacy/keycloak
+# Needed because we're overriding image above
+# https://github.com/bitnami/charts/issues/30850
+global:
+  security:
+    allowInsecureImages: true
+
 postgresql:
   enabled: false
 externalDatabase:
