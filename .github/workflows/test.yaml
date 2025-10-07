@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 20
 
     env:
-      K8TRE_DOMAIN: dev.k8tre.internal
+      K8TRE_DOMAIN: k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
 
     steps:
 

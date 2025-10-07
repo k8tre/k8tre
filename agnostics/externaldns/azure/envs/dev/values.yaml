@@ -6,7 +6,7 @@ azure:
   tenantId: "<azure-tenant-id>"
   useWorkloadIdentityExtension: true
 domainFilters:
-  - dev.k8tre.internal
+  - k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
 policy: sync
 txtOwnerId: externaldns
 podLabels:
