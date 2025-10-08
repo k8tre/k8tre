@@ -49,10 +49,15 @@ metadata:
   namespace: jupyterhub
 spec:
   egress:
-    - toServices:
-        - k8sService:
-            namespace: keycloak
-            serviceName: keycloak-service
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: keycloak
+            app: keycloak
+            app.kubernetes.io/instance: keycloak
+      toPorts:
+        - ports:
+          - port: "8443"
+            protocol: TCP
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: jupyterhub
