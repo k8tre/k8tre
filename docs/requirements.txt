@@ -67,7 +67,7 @@ pathspec==0.12.1
     # via
     #   mkdocs
     #   mkdocs-macros-plugin
-platformdirs==4.4.0
+platformdirs==4.5.0
     # via mkdocs-get-deps
 pygments==2.19.2
     # via mkdocs-material
