@@ -4,9 +4,11 @@ namespace: argocd
 
 resources:
   - agnostics/cert-manager.yaml
+  - agnostics/cluster-autoscaler.yaml
   - agnostics/cnpg.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
+  - agnostics/loadbalancer.yaml
   - agnostics/metallb.yaml
   - agnostics/nginx.yaml
   - agnostics/secret-store.yaml

@@ -1,7 +1,7 @@
 
 - op: replace
   path: /spec/commonName
-  value: jupyter.dev.k8tre.internal
+  value: jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
 - op: replace
   path: /spec/dnsNames/0
-  value: jupyter.dev.k8tre.internal
+  value: jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk

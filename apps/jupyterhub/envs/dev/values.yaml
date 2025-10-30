@@ -16,8 +16,8 @@ hub:
       client_id: jupyterhub
       client_secret: jupyterhub-client-secret
       # Accessed externally by the user
-      oauth_callback_url: https://jupyter.dev.k8tre.internal/hub/oauth_callback
-      authorize_url: https://keycloak.dev.k8tre.internal/realms/master/protocol/openid-connect/auth
+      oauth_callback_url: https://jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk/hub/oauth_callback
+      authorize_url: https://keycloak.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk/realms/master/protocol/openid-connect/auth
       # Internal to the cluster: svc=keycloak ns=keycloak
       token_url: http://keycloak.keycloak/realms/master/protocol/openid-connect/token
       userdata_url: http://keycloak.keycloak/realms/master/protocol/openid-connect/userinfo
@@ -121,7 +121,7 @@ singleuser:
   # Use default entrypoint
   cmd:
   extraEnv:
-    STATIC_REDIRECTOR_DESTINATION: https://jupyter.dev.k8tre.internal/services/guacamole/
+    STATIC_REDIRECTOR_DESTINATION: https://jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk/services/guacamole/
     STATIC_REDIRECTOR_AUTOREDIRECT: "true"
   extraContainers:
     - name: ubuntu-mate
@@ -177,14 +177,14 @@ singleuser:
 ingress:
   enabled: true
   hosts:
-    - jupyter.dev.k8tre.internal
+    - jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
   ingressClassName: nginx
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: jupyter.dev.k8tre.internal
+    external-dns.alpha.kubernetes.io/hostname: jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
   tls:
     - hosts:
-        - jupyter.dev.k8tre.internal
+        - jupyter.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
       secretName: jupyter-k8tre-tls
 
 debug:

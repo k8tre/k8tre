@@ -7,9 +7,9 @@ spec:
   secretName: guacamole-k8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: guacamole.dev.k8tre.internal
+  commonName: guacamole.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
   dnsNames:
-    - guacamole.dev.k8tre.internal
+    - guacamole.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
   usages:
     - digital signature
     - key encipherment

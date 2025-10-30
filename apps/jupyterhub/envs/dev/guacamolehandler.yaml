@@ -17,7 +17,7 @@ service:
 
 envDict:
   GUACAMOLE_HOST: "http://guacamole:8080"
-  GUACAMOLE_PUBLIC_HOST: "https://guacamole.dev.k8tre.internal"
+  GUACAMOLE_PUBLIC_HOST: "https://guacamole.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk"
   JUPYTERHUB_API_URL: http://hub:8081/hub/api
   JUPYTERHUB_BASE_URL: /
   JUPYTERHUB_CLIENT_ID: service-guacamole
