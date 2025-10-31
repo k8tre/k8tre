@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: externaldns
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/k8tre/k8tre.git
+              revision: main
+              directories:
+                - path: agnostics/externaldns/*/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: "{{index .path.segments 4}}"
+                  vendor: "{{index .path.segments 2}}"
+                matchExpressions:
+                  - key: skip-externaldns
+                    operator: NotIn
+                    values: ["true"]
+  template:
+    metadata:
+      name: "externaldns-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "externaldns-{{index .path.segments 4}}"
+        argocd.argoproj.io/sync-wave: "-7" # Install after kare-dns
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{index .path.segments 4}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
+      destination:
+        server: "{{.server}}"
+        namespace: externaldns
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

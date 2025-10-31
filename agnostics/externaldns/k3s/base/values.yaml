@@ -1,0 +1,23 @@
+provider: coredns
+env:
+  - name: ETCD_URLS
+    value: "http://etcd.kare-dns.svc.cluster.local:2379"
+domainFilters:
+  - ${ENVIRONMENT}.${DOMAIN}
+policy: sync
+txtOwnerId: externaldns
+sources:
+  - service
+  - gateway-httproute
+  - gateway-grpcroute
+logLevel: info
+serviceAccount:
+  create: true
+  name: externaldns
+rbac:
+  create: true
+  additionalPermissions:
+    - apiGroups: ["gateway.networking.k8s.io"]
+      resources: ["httproutes", "grpcroutes", "gateways"]
+      verbs: ["get", "watch", "list"]
+interval: 30s

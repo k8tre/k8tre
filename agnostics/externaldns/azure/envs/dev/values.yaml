@@ -1,0 +1,31 @@
+fullnameOverride: external-dns
+
+serviceAccount:
+  create: true
+  name: externaldns
+  labels:
+    azure.workload.identity/use: "true"
+  annotations:
+    azure.workload.identity/client-id: "da830846-717d-4957-8315-e260999e743f"
+
+podLabels:
+  azure.workload.identity/use: "true"
+
+extraVolumes:
+  - name: azure-config-file
+    secret:
+      secretName: external-dns-azure
+
+extraVolumeMounts:
+  - name: azure-config-file
+    mountPath: /etc/kubernetes
+    readOnly: true
+
+provider:
+  name: azure-private-dns
+
+policy: sync
+txtOwnerId: externaldns
+
+domainFilters:
+  - dev.karectl.org
