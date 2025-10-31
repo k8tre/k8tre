@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - guacamole-secrets.yaml
+  - gateway-route.yaml
+  - guacamole-auth-proxy.yaml
+
+helmCharts:
+  - name: guacamole
+    repo: https://www.manicstreetpreacher.co.uk/helm-guacamole/
+    version: 0.1.2
+    releaseName: guacamole
+    namespace: jupyterhub
+    valuesFile: guacamole-values.yaml
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: guacamole

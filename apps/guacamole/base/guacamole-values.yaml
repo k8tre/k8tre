@@ -1,0 +1,15 @@
+guacamole:
+  image:
+    repository: ghcr.io/alwin-k-thomas/guacamole-json
+    tag: "dev"
+    pullPolicy: Always
+  env:
+    - name: GUACAMOLE_HOME
+      value: /etc/guacamole
+    - name: GUACD_HOSTNAME
+      value: guacamole-guacd
+    - name: GUACD_PORT
+      value: "4822"
+
+ingress:
+  enabled: false
