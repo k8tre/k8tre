@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: awms
+  namespace: argocd
+spec:
+  # Enable Go templating for dynamic field generation
+  goTemplate: true
+  # Configure template behavior - fail if a key is missing
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - matrix:
+        generators:
+          - git:
+              # Repository containing the application definitions
+              repoURL: https://github.com/k8tre/k8tre.git
+              # Use HEAD to always track the latest commit on the default branch
+              revision: main
+              # Pattern to match directories for app discovery
+              directories:
+                # Matches any directory under apps/awms/envs/
+                - path: apps/awms/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  # This will match the environment from the path segment
+                  environment: "{{index .path.segments 3}}"
+  template:
+    metadata:
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: awms
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
