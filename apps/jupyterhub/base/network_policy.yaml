@@ -1,0 +1,57 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-hub-to-api-server
+  namespace: jupyterhub
+spec:
+  egress:
+  - toEntities:
+    - kube-apiserver
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: hub
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-user-scheduler-to-api-server
+  namespace: jupyterhub
+spec:
+  egress:
+  - toEntities:
+    - kube-apiserver
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: user-scheduler
+
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-image-puller-to-api-server
+  namespace: jupyterhub
+spec:
+  egress:
+  - toEntities:
+    - kube-apiserver
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: continuous-image-puller
+---
+# TODO: Define more restrictive policy to avoid dropped hairpin traffic
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: allow-pod-to-pod-via-gateway
+spec:
+  endpointSelector: {}
+  egress:
+  - toEntities:
+    - cluster
+  ingress:
+  - fromEntities:
+    - cluster
+    - world

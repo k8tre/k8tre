@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: jupyterhub
+    repo: https://hub.jupyter.org/helm-chart/
+    version: 4.2.0
+    releaseName: jupyterhub
+    namespace: jupyterhub
+    valuesFile: ../../base/values.yaml
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: jupyterhub-config
+    files:
+    - ../../base/config/authenticator.py
+    - ../../base/config/spawner.py
+    - ../../base/config/hooks.py
+    - ../../base/config/profile-form.html

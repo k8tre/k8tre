@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: patch-hub-rolebinding
+  namespace: jupyterhub
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 600
+  restartPolicy: OnFailure
+  template:
+    spec:
+      containers:
+        - name: kubectl
+          command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl -n jupyterhub patch rolebinding hub --type=json -p='[{"op": "replace", "path": "/subjects/0/namespace", "value": "jupyterhub"}]'

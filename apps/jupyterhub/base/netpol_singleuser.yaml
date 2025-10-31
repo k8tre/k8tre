@@ -1,0 +1,93 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-access-singleuser-z2jh-policies
+  namespace: jupyterhub
+spec:
+  description: "Replacement for z2jh singleuser-server network policies"
+  endpointSelector:
+    matchLabels:
+      app: jupyterhub
+      component: singleuser-server
+  egress:
+    # Allow access to hub
+    - toEndpoints:
+        - matchLabels:
+            app: jupyterhub
+            component: hub
+            release: jupyterhub
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+    # Allow access to proxy
+    - toEndpoints:
+        - matchLabels:
+            app: jupyterhub
+            component: proxy
+            release: jupyterhub
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+    # Allow access to autohttps
+    - toEndpoints:
+        - matchLabels:
+            app: jupyterhub
+            component: autohttps
+            release: jupyterhub
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+            - port: "8443"
+              protocol: TCP
+    # Allow access to metadata server
+    - toCIDR:
+        - 169.254.169.254/32
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Allow access to kube-system namespace
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": kube-system
+            "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"
+    # DNS resolution limited to DNS servers only; Sense check this
+    - toCIDR:
+        - 10.0.0.0/8 # Internal DNS servers should be here
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            hub.jupyter.org/network-access-singleuser: "true"
+      toPorts:
+        - ports:
+            - port: "notebook-port"
+              protocol: TCP
