@@ -1,0 +1,84 @@
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: asthma
+spec:
+  description: "Asthma parent group"
+  projects:
+    - asthma
+  subgroups:
+    - asthma-admin
+    - asthma-analyst
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: asthma-admin
+spec:
+  description: "Admins of asthma"
+  projects:
+    - asthma 
+  members:
+    - alwin
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: asthma-analyst
+spec:
+  description: "Analysts of asthma"
+  projects:
+    - asthma  
+  members:
+    - test
+    - alwin
+    - karectl-user
+---
+# Diabetes Groups
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: diabetes
+spec:
+  description: "Diabetes parent group"
+  projects:
+    - diabetes
+  subgroups:
+    - diabetes-admin
+    - diabetes-analyst
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: diabetes-admin
+spec:
+  description: "Admins of diabetes project"
+  projects:
+    - diabetes
+  members:
+    - alwin
+    - karectl-user
+---
+# Hypertension Groups
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: hypertension
+spec:
+  description: "Hypertension parent group"
+  projects:
+    - hypertension
+  subgroups:
+    - hypertension-admin
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: Group
+metadata:
+  name: hypertension-admin
+spec:
+  description: "Admins of hypertension project"
+  projects:
+    - hypertension
+  members:
+    - alwin
+    - karectl-user

@@ -1,0 +1,87 @@
+apiVersion: identity.karectl.io/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: jupyterhub
+  namespace: keycloak
+spec:
+  clientId: jupyterhub
+  name: JupyterHub OIDC Client
+  secretRef:
+    name: jupyterhub-oidc-credentials
+    key: client-secret
+  enabled: true
+  redirectUris:
+    - https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub/oauth_callback
+  webOrigins:
+    - https://jupyter.${ENVIRONMENT}.${DOMAIN}
+  defaultClientScopes:
+    - openid 
+    - web-origins
+    - roles
+    - profile
+    - email
+    - offline_access
+  protocolMappers:
+    - name: groups
+      protocol: openid-connect
+      protocolMapper: oidc-group-membership-mapper
+      consentRequired: false
+      config:
+        full.path: "true"
+        id.token.claim: "true"
+        access.token.claim: "true"
+        claim.name: "groups"
+        userinfo.token.claim: "true"
+    - name: audience
+      protocol: openid-connect
+      protocolMapper: oidc-audience-mapper
+      consentRequired: false
+      config:
+        included.client.audience: jupyterhub
+        id.token.claim: "false"
+        access.token.claim: "true"
+        user.info.claim: "false"
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: backend
+  namespace: keycloak
+spec:
+  clientId: backend
+  name: FastAPI Backend OIDC Client
+  secretRef:
+    name: backend-oidc-credentials
+    key: client-secret
+  enabled: true
+  redirectUris:
+    - https://backend.${ENVIRONMENT}.${DOMAIN}/auth/callback
+  webOrigins:
+    - https://backend.${ENVIRONMENT}.${DOMAIN}
+  defaultClientScopes:
+    - openid
+    - web-origins
+    - roles
+    - profile
+    - email
+    - offline_access
+  protocolMappers:
+    - name: groups
+      protocol: openid-connect
+      protocolMapper: oidc-group-membership-mapper
+      consentRequired: false
+      config:
+        full.path: "true"
+        id.token.claim: "true"
+        access.token.claim: "true"
+        claim.name: "groups"
+        userinfo.token.claim: "true"
+    - name: audience
+      protocol: openid-connect
+      protocolMapper: oidc-audience-mapper
+      consentRequired: false
+      config:
+        included.client.audience: backend
+        id.token.claim: "false"
+        access.token.claim: "true"
+        user.info.claim: "false"
