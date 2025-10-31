@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: internal-dns-updater-script
+  namespace: kare-dns
+data:
+  update-internal-dns.sh: |-
+    #!/bin/sh
+    set -e
+
+    echo "Starting internal DNS updater..."
+    # Get gateway ClusterIP
+    GATEWAY_IP=$(kubectl get service cilium-gateway-internal-gateway -n gateway -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+
+    if [ -z "$GATEWAY_IP" ]; then
+      echo "ERROR: Could not find gateway service ClusterIP"
+      exit 1
+    fi
+
+    ETCD_POD=$(kubectl get pods -n kare-dns -l app.kubernetes.io/name=etcd -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+    if [ -z "$ETCD_POD" ]; then
+      echo "ERROR: Could not find etcd pod"
+      exit 1
+    fi
+
+    # Get all HTTPRoutes and extract unique hostnames
+    echo "Discovering HTTPRoutes in the cluster..."
+    HOSTNAMES=$(kubectl get httproute -A -o jsonpath='{range .items[*]}{.spec.hostnames[0]}{"\n"}{end}' 2>/dev/null | grep -v "^$" || echo "")
+
+    if [ -z "$HOSTNAMES" ]; then
+      echo "WARNING: No HTTPRoutes found in the cluster"
+      exit 0
+    fi
+
+    echo "$HOSTNAMES" | while read -r hostname; do
+      if [ -z "$hostname" ]; then
+        continue
+      fi
+
+      # e.g., keycloak.stg.karectl.org -> keycloak
+      SUBDOMAIN=$(echo "$hostname" | cut -d'.' -f1)
+
+      # e.g., keycloak.stg.karectl.org -> /skydns/org/karectl/stg/keycloak
+      REVERSED_PATH=$(echo "$hostname" | awk -F'.' '{for(i=NF;i>0;i--) printf "/%s", $i}')
+      KEYS=$(kubectl exec -n kare-dns $ETCD_POD -- etcdctl get "${REVERSED_PATH}/" --prefix --keys-only 2>/dev/null | grep -v "^$" || echo "")
+
+      for key in $KEYS; do
+        if echo "$key" | grep -q "/a-${SUBDOMAIN}/"; then
+          echo "  Skipping TXT record: $key"
+          continue
+        fi
+        echo "  Deleting old entry: $key"
+        kubectl exec -n kare-dns $ETCD_POD -- etcdctl del "$key"
+      done
+
+      # Create new internal entry with ClusterIP
+      kubectl exec -n kare-dns $ETCD_POD -- etcdctl put "${REVERSED_PATH}/internal" "{\"host\":\"$GATEWAY_IP\",\"targetstrip\":1}"
+    done
+
+    echo "Internal DNS entries updated"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: internal-dns-updater
+  namespace: kare-dns
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  template:
+    spec:
+      serviceAccountName: coredns
+      containers:
+      - name: dns-updater
+        image: alpine/k8s:1.31.1
+        command: ["/bin/sh", "/scripts/update-internal-dns.sh"]
+        volumeMounts:
+        - name: updater-script
+          mountPath: /scripts
+          readOnly: true
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      volumes:
+      - name: updater-script
+        configMap:
+          name: internal-dns-updater-script
+          defaultMode: 0755
+      restartPolicy: OnFailure
+  backoffLimit: 5
