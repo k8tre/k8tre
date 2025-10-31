@@ -1,0 +1,49 @@
+site_name: K8TRE
+site_description: SATRE-Compliant TRE implementation on Kubernetes
+site_author: K8TRE Team
+repo_url: https://github.com/k8tre/k8tre
+repo_name: k8tre/k8tre
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Guides:
+      - Installation: guides/installation.md
+      - Configuration: guides/configuration.md
+  - Development:
+      - Introduction: development/introduction.md
+      - DevContainer: development/devcontainer.md
+      - K3s Dev: development/k3s-dev.md
+      - K3s: development/k3s.md
+  - Reference: reference.md
+  - Contributing: contributing.md

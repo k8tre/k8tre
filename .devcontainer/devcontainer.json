@@ -1,0 +1,56 @@
+{
+    "name": "K8TRE Development Environment",
+    "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+    "workspaceFolder": "/workspace",
+    "service": "devcontainer",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "version": "latest",
+            "enableNonRootDocker": "true",
+            "moby": "true"
+        },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest",
+            "helm": "latest",
+            "kubectl": "latest"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-kubernetes-tools.vscode-kubernetes-tools",
+                "redhat.vscode-yaml",
+                "ms-azuretools.vscode-docker",
+                "GitHub.copilot",
+                "ms-vscode-remote.remote-containers"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash"
+                    }
+                },
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "yaml.schemas": {
+                    "kubernetes": "*.yaml"
+                },
+                "vscode-kubernetes.kubectl-path-linux": "/usr/local/bin/kubectl",
+                "vscode-kubernetes.helm-path-linux": "/usr/local/bin/helm"
+            }
+        }
+    },
+    "forwardPorts": [
+        8080 // ArgoCD UI
+        // 8443 // ArgoCD API Server
+    ],
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
+    "postStartCommand": "bash .devcontainer/post-start.sh",
+    "remoteUser": "vscode",
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=${localWorkspaceFolder}/.devcontainer/argocd,target=/home/vscode/argocd,type=bind"
+    ]
+}

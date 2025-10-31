@@ -1,0 +1,86 @@
+# This is an ArgoCD Application manifest that serves as a parent application
+# for managing multiple child applications. It is designed to be used with
+# the ApplicationSet controller, which allows for dynamic generation of
+# applications based on a set of parameters or templates.
+# This manifest is part of a GitOps workflow, where the desired state of
+# applications is defined in Git repositories.
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-app-of-apps # Name of the application
+  namespace: argocd # The namespace where ArgoCD is installed
+spec:
+  # Use the default project for this application
+  project: default # ToDo: Consider creating a dedicated project for better organization
+
+  # Source configuration defines where to find the application manifests
+  source:
+    # The Git repository containing all application definitions
+    repoURL: https://github.com/karectl/karectl.git
+    # The branch or tag to use - typically the main branch
+    # Create a copy of this tile and change this to a feature branch for development
+    # Use kubectl apply -k root-app-of-apps.yaml to deploy the application in your development environment
+    targetRevision: main
+    # The directory within the repository containing ApplicationSet definitions
+    path: appsets
+    kustomize:
+      commonLabels:
+        app.kubernetes.io/managed-by: argocd
+      commonAnnotations:
+        app.kubernetes.io/part-of: karectl
+      patches:
+        # Common patches for all ApplicationSets - update git repo and revision for generators
+        - target:
+            kind: ApplicationSet
+          patch: |-
+            - op: replace
+              path: /spec/generators/0/matrix/generators/0/git/repoURL
+              value: https://github.com/karectl/karectl.git
+            - op: replace
+              path: /spec/generators/0/matrix/generators/0/git/revision
+              value: main
+        # Patch for ApplicationSets with multiple sources (using label selector)
+        - target:
+            kind: ApplicationSet
+            labelSelector: "karectl.io/source-type=multiple"
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/sources/1/repoURL
+              value: https://github.com/karectl/karectl.git
+            - op: replace
+              path: /spec/template/spec/sources/1/targetRevision
+              value: main
+        # Patch for ApplicationSets with single source (using negative label selector)
+        - target:
+            kind: ApplicationSet
+            labelSelector: "karectl.io/source-type!=multiple"
+          patch: |-
+            - op: replace
+              path: /spec/template/spec/source/repoURL
+              value: https://github.com/karectl/karectl.git
+            - op: replace
+              path: /spec/template/spec/source/targetRevision
+              value: main
+
+  # Destination defines where to deploy the manifests
+  destination:
+    # Target the same cluster where ArgoCD is running (in-cluster deployment)
+    # This is for the root application only.
+    # Child applications will be deployed to their respective clusters.
+    server: https://kubernetes.default.svc
+    # Deploy resources to the ArgoCD namespace
+    namespace: argocd
+
+  # Sync policy controls how ArgoCD manages this application
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true # Automatically create namespaces if they don't exist
+    automated:
+      prune: true # Automatically delete resources that are no longer defined in Git
+      selfHeal: true # Automatically sync when drift is detected between Git and cluster state
+  info:
+    - name: karectl App of Apps
+      value: "https://github.com/karectl/karectl"
+    - name: karectl Documentation
+      value: "https://karectl.github.io/karectl/"

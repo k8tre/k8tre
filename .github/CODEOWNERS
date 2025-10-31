@@ -1,0 +1,12 @@
+# CODEOWNERS file for protecting production environments
+# For more information about CODEOWNERS, see:
+# https://docs.github.com/en/repositories/managing-your-codebase-in-github/about-code-owners
+
+# Protect all directories and files that have 'prd' in their path
+**/prd/** @k8tre/k8tre-admin
+
+# Default owners for everything else in the repo
+* @k8tre/k8tre-developers
+
+# Protect the CODEOWNERS file
+/.github/CODEOWNERS @k8tre/k8tre-admin

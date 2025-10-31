@@ -1,0 +1,72 @@
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: devcontainer.Dockerfile
+
+    container_name: k8tre-devcontainer
+    volumes:
+      - ..:/workspace:cached
+      - k8s-config:/kubeconfig:cached 
+    command: /bin/sh -c "while sleep 1000; do :; done"  
+
+    user: vscode
+    links:
+      - k3s-server:kubernetes.default.svc.cluster.local
+#     networks:
+#       - devcontainer_network
+  k3s-server:
+    image: "rancher/k3s:${K3S_VERSION:-latest}"
+    command: server
+    tmpfs:
+    - /run
+    - /var/run
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+    privileged: true
+    restart: always
+    environment:
+    - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
+    - K3S_KUBECONFIG_MODE=666
+    volumes:
+    - k3s-server:/var/lib/rancher/k3s
+    # This is just so that we get the kubeconfig file out
+    - k8s-config:/output 
+    expose:
+      - 6443 # Kubernetes API Server
+      - 80 # Ingress controller port 80 - not used at the moment
+      - 443 # Ingress controller port 443 - not used at the moment
+      - 8080 # ArgoCD UI
+      - 8443 # ArgoCD API
+    
+    ports:
+    - 6443:6443  # Kubernetes API Server
+    # - 80:80      # Ingress controller port 80
+    # - 443:443    # Ingress controller port 443
+    - 8080:8080  # ArgoCD UI
+    - 8443:8443  # ArgoCD API
+
+  # k3s-agent:
+  #   image: "rancher/k3s:${K3S_VERSION:-latest}"
+  #   tmpfs:
+  #   - /run
+  #   - /var/run
+  #   ulimits:
+  #     nproc: 65535
+  #     nofile:
+  #       soft: 65535
+  #       hard: 65535
+  #   privileged: true
+  #   restart: always
+  #   environment:
+  #   - K3S_URL=https://k3s-server:6443
+  #   # - K3S_TOKEN=${K3S_TOKEN:?err}
+  #   volumes:
+  #   - k3s-agent:/var/lib/rancher/k3s
+
+volumes:
+  k3s-server: {}
+  k8s-config: {}
