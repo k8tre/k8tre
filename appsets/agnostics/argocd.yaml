@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/karectl/karectl.git
+              revision: main
+              directories:
+                - path: agnostics/argocd/base
+          - clusters:
+              selector:
+                matchLabels:
+                  argocd.argoproj.io/secret-type: cluster
+  template:
+    metadata:
+      name: argocd-{{.name}}
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/karectl/karectl.git
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
