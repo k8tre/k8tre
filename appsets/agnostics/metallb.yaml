@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: metallb
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/k8tre/k8tre.git
+              revision: main
+              directories:
+                - path: agnostics/metallb/*/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: "{{index .path.segments 4}}"
+                  vendor: "{{index .path.segments 2}}"
+                matchExpressions:
+                  - key: skip-metallb
+                    operator: NotIn
+                    values: ["true"]
+  template:
+    metadata:
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
+        argocd.argoproj.io/sync-wave: "-9" # Install afer Cilium and before NGINX
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: metallb-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
