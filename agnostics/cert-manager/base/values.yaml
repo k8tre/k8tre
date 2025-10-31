@@ -1,0 +1,14 @@
+crds:
+  enabled: true
+config:
+  apiVersion: "controller.config.cert-manager.io/v1alpha1"
+  enableGatewayAPI: true
+  kind: "ControllerConfiguration"
+podLabels:
+  azure.workload.identity/use: "true"
+serviceAccount:
+  labels:
+    azure.workload.identity/use: "true"
+extraArgs:
+  - --dns01-recursive-nameservers=8.8.8.8:53,1.1.1.1:53
+  - --dns01-recursive-nameservers-only
