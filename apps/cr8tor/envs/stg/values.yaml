@@ -1,0 +1,125 @@
+approvalService:
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-approval-service:0.1.63"
+  volumes:
+  - name: secrets-store-inline
+    projected:
+      defaultMode: 0444
+      sources:
+      - secret:
+          name: cr8tor-microserviceapikey-secret
+      - secret:
+          name: cr8tor-secret
+      - secret:
+          name: opal-resource-db-secret
+      - secret:
+          name: datashield-secrets
+  env:
+    - name: ENVIRONMENT
+      value: "${ENVIRONMENT}"
+
+metadataService:
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-metadata-service:0.1.63"
+  volumes:
+  - name: secrets-store-inline
+    projected:
+      defaultMode: 0444
+      sources:
+      - secret:
+          name: cr8tor-microserviceapikey-secret
+      - secret:
+          name: cr8tor-secret
+      - secret:
+          name: opal-resource-db-secret
+      - secret:
+          name: datashield-secrets
+  env:
+    - name: ENVIRONMENT
+      value: "${ENVIRONMENT}"
+
+publishService:
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-publish-service:0.1.63"
+  volumes:
+  - name: secrets-store-inline
+    projected:
+      defaultMode: 0444
+      sources:
+      - secret:
+          name: cr8tor-microserviceapikey-secret
+      - secret:
+          name: cr8tor-secret
+      - secret:
+          name: opal-resource-db-secret
+      - secret:
+          name: datashield-secrets
+  env:
+    - name: ENVIRONMENT
+      value: "${ENVIRONMENT}"
+
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect : "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect : "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 64m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "1860"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
+  className: nginx
+  host: cr8tor.${ENVIRONMENT}.${DOMAIN}
+  tls:
+    secretName: xk8tre-tls
+
+storage: 
+  k8tre:
+    env: TARGET_STORAGE_ACCOUNT_K8TRE_SDE_MNT_PATH
+    mountPath: /home/appuser/outputs/k8tre
+    pvcs:
+      staging:
+        name: k8tre-staging
+        create: true
+        storageClassName: cr8tor-k8tre-staging
+        accessModes:
+        - ReadWriteMany
+
+      production:
+        name: k8tre-prod
+        create: true
+        storageClassName: cr8tor-k8tre-prod
+        accessModes:
+        - ReadWriteMany
+    lsc:
+      env: TARGET_STORAGE_ACCOUNT_LSC_SDE_MNT_PATH
+      mountPath: /home/appuser/outputs/lsc
+      pvcs:
+        staging:
+          name: lsc-staging
+          create: true
+          storageClassName: cr8tor-lsc-staging
+          accessModes:
+          - ReadWriteMany
+
+        production:
+          name: lsc-prod
+          create: true
+          storageClassName: cr8tor-lsc-prod
+          accessModes:
+          - ReadWriteMany
+  nw:
+    env: TARGET_STORAGE_ACCOUNT_NW_SDE_MNT_PATH
+    mountPath: /home/appuser/outputs/nw
+    pvcs:
+      staging:
+        name: nw-staging
+        create: true
+        storageClassName: cr8tor-nw-staging
+        accessModes:
+        - ReadWriteMany
+
+      production:
+        name: nw-prod
+        create: true
+        storageClassName: cr8tor-nw-prod
+        accessModes:
+        - ReadWriteMany
+
+    

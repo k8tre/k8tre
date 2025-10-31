@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cr8tor-config
+  namespace: cr8tor
+data:
+  # Environment configuration
+  ENVIRONMENT: "${ENVIRONMENT}"
+
+  # PostgreSQL configuration (non-sensitive)
+  DESTINATION_POSTGRESQL_HOST: "datashield-postgres-cluster-rw.datashield.svc.cluster.local"
+  DESTINATION_POSTGRESQL_PORT: "5432"
+  DESTINATION_POSTGRESQL_DATABASE: "opal-resource-db"
+  DESTINATION_POSTGRESQL_USERNAME: "opal-user"
+  DESTINATION_POSTGRESQL_PASSWORD_SECRET_NAME: "opal-resource-db-password"
+
+  # Opal configuration
+  DESTINATION_OPAL_HOST: "https://opal.${ENVIRONMENT}.${DOMAIN}"
+  DESTINATION_OPAL_NO_SSL_VERIFY: "true"
+  DESTINATION_OPAL_USERNAME: "administrator"
+  DESTINATION_OPAL_PASSWORD_SECRET_NAME: "opal-administrator-password"
+
+  # Opal readonly configuration
+  DESTINATION_POSTGRESQL_OPAL_READONLY_USERNAME: "opal-user"
+  DESTINATION_POSTGRESQL_OPAL_READONLY_PASSWORD_SECRET_NAME: "opal-resource-db-password"

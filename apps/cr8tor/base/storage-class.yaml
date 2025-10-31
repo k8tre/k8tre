@@ -1,0 +1,156 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-k8tre-staging
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: k8tre-staging
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-k8tre-prod
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: k8tre-production
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-lsc-staging
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: lsc-staging
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-lsc-prod
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: lsc-production
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-nw-staging
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: nw-staging
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cr8tor-nw-prod
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+  shareName: nw-production
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=1000
+  - gid=1000
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+---
