@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: karectl-backend
+  namespace: backend
+  labels:
+    app: karectl-backend
+    component: rbac
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: karectl-backend-reader
+  labels:
+    app: karectl-backend
+    component: rbac
+rules:
+  - apiGroups: ["identity.karectl.io"]
+    resources: ["users", "groups"]
+    verbs: ["get", "list"]
+  - apiGroups: ["research.karectl.io"]
+    resources: ["projects"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["karectl.io"]
+    resources: ["vdiinstances"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: karectl-backend-reader
+  labels:
+    app: karectl-backend
+    component: rbac
+subjects:
+  - kind: ServiceAccount
+    name: karectl-backend
+    namespace: backend
+roleRef:
+  kind: ClusterRole
+  name: karectl-backend-reader
+  apiGroup: rbac.authorization.k8s.io

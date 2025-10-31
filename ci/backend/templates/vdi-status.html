@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launching Desktop - KareCTL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .status-container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            border-radius: 6px;
+        }
+
+        .logo-text {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .project-name {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .status-message {
+            font-size: 18px;
+            color: #4a5568;
+            margin: 20px 0 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 30px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-details {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .retry-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        .retry-button:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="logo">
+            <img src="/static/favicon.png" alt="KARECTL Logo" width="40" height="40">
+            <span class="logo-text">KARECTL</span>
+        </div>
+        <h1>Launching <span class="project-name">{{ project }}</span> Desktop</h1>
+        <div class="status-message" id="statusMessage">Preparing your virtual desktop environment...</div>
+
+        <div class="spinner" id="spinner"></div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="status-details" id="statusDetails">
+            <strong>Status:</strong> <span id="phaseText">Initializing</span>
+        </div>
+
+        <div id="errorContainer" style="display: none;">
+            <div class="error-message" id="errorMessage"></div>
+            <button class="retry-button" onclick="location.reload()">Retry</button>
+        </div>
+    </div>
+
+    <script>
+        const username = "{{ username }}";
+        const project = "{{ project }}";
+        const vdiName = `${username}-${project}`;
+        let checkCount = 0;
+        const maxChecks = 120; // 2 minutes with 1s interval
+        let readyDetectedTime = null;
+
+        const statusMessages = {
+            'Pending': 'Creating your desktop environment...',
+            'Creating': 'Setting up virtual machine...',
+            'Starting': 'Starting desktop services...',
+            'Running': 'Desktop is ready! Connecting...',
+            'Ready': 'Desktop is ready! Connecting...',
+            'Failed': 'Failed to start desktop environment',
+            'Unknown': 'Checking desktop status...'
+        };
+
+        const progressMap = {
+            'Pending': 20,
+            'Creating': 40,
+            'Starting': 60,
+            'Running': 80,
+            'Ready': 100
+        };
+
+        async function checkVDIStatus() {
+            try {
+                checkCount++;
+
+                if (checkCount > maxChecks) {
+                    showError('Desktop startup is taking longer than expected. Please try again...');
+                    return;
+                }
+
+                const response = await fetch(`/api/vdi/status/${username}/${project}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const phase = data.phase || 'Unknown';
+                    const hasPassword = data.has_password || false;
+                    const isReady = data.is_ready || false;
+
+                    // Update UI
+                    document.getElementById('statusMessage').textContent = statusMessages[phase] || statusMessages['Unknown'];
+                    document.getElementById('phaseText').textContent = phase;
+                    document.getElementById('progressFill').style.width = (progressMap[phase] || 10) + '%';
+
+                    // Check if VDI is running
+                    if ((phase === 'Running' || phase === 'Ready') && hasPassword) {
+                        if (isReady) {
+                            if (!readyDetectedTime) {
+                                readyDetectedTime = Date.now();
+                            }
+                            const secondsSinceReady = (Date.now() - readyDetectedTime) / 1000;
+                            if (secondsSinceReady >= 2) {
+                                document.getElementById('progressFill').style.width = '100%';
+                                document.getElementById('statusMessage').textContent = 'Connecting to your desktop...';
+                                setTimeout(() => {
+                                    window.location.href = `/api/vdi/connect/${username}/${project}`;
+                                }, 1000);
+                                return;
+                            } else {
+                                document.getElementById('statusMessage').textContent = 'Desktop is ready, finalising connection...';
+                                document.getElementById('progressFill').style.width = '95%';
+                                setTimeout(checkVDIStatus, 1000);
+                                return;
+                            }
+                        } else {
+                            document.getElementById('statusMessage').textContent = 'Desktop services starting...';
+                            document.getElementById('progressFill').style.width = '90%';
+                            setTimeout(checkVDIStatus, 1000);
+                            return;
+                        }
+                    }
+
+                    if (phase === 'Failed') {
+                        showError('Desktop environment failed to start. Please try again.');
+                        return;
+                    }
+
+                    setTimeout(checkVDIStatus, 1000);
+
+                } else {
+                    showError(data.error || 'Failed to check desktop status');
+                }
+
+            } catch (error) {
+                console.error('Error checking VDI status:', error);
+                showError('Network error while checking desktop status. Please check your connection.');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('errorContainer').style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        checkVDIStatus();
+    </script>
+</body>
+</html>
