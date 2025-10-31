@@ -1,0 +1,22 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: k8tre-file-core
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false" 
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecoredev 
+  resourceGroup: rg-k8tre-dev-uks-aks 
+  skuName: Standard_LRS
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
