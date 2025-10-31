@@ -1,0 +1,112 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gitea-oauth-config
+  namespace: gitea
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "3" # After keycloak job
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: gitea-oauth-config
+    spec:
+      serviceAccountName: gitea-oauth-config
+      restartPolicy: OnFailure
+      containers:
+        - name: config
+          image: curlimages/curl:8.6.0
+          env:
+            - name: GITEA_URL
+              value: "http://gitea-http.gitea.svc.cluster.local:3000"
+            - name: GITEA_ADMIN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-secret
+                  key: username
+            - name: GITEA_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-secret
+                  key: password
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-oidc-credentials
+                  key: client-id
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-oidc-credentials
+                  key: client-secret
+            - name: KEYCLOAK_BASE_URL
+              value: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
+            - name: KEYCLOAK_REALM
+              value: "karectl-app"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for Gitea API..."
+              for i in $(seq 1 60); do
+                if curl -fsS "${GITEA_URL}/api/v1/version" >/dev/null; then
+                  echo "✓ Gitea is ready"
+                  break
+                fi
+                sleep 5
+              done
+
+              echo "Checking existing auth sources..."
+              AUTH_JSON=$(curl -fsS -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}" \
+                "${GITEA_URL}/api/v1/admin/auth" || echo "[]")
+
+              if echo "$AUTH_JSON" | grep -q '"name":"keycloak"'; then
+                echo "✓ Keycloak OAuth source already exists"
+                exit 0
+              fi
+
+              DISCOVERY_URL="${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration"
+              echo "Creating Keycloak OAuth2 source..."
+
+              RESP=$(curl -s -w "\n%{http_code}" -X POST "${GITEA_URL}/api/v1/admin/auth" \
+                -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "type": "oauth2",
+                  "name": "keycloak",
+                  "cfg": {
+                    "provider": "openidConnect",
+                    "clientID": "'"${OIDC_CLIENT_ID}"'",
+                    "clientSecret": "'"${OIDC_CLIENT_SECRET}"'",
+                    "autoDiscoverURL": "'"${DISCOVERY_URL}"'",
+                    "scopes": ["openid","profile","email","groups"],
+                    "groupClaimName": "groups",
+                    "skipLocalTwoFA": false
+                  }
+                }')
+
+              CODE=$(echo "$RESP" | tail -n1)
+              BODY=$(echo "$RESP" | head -n-1)
+              if [ "$CODE" = "201" ] || [ "$CODE" = "200" ]; then
+                echo "✓ OAuth2 source created"
+              else
+                echo "✗ Failed (HTTP $CODE)"
+                echo "$BODY"
+                exit 1
+              fi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            runAsNonRoot: true
+            runAsUser: 65534
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitea-oauth-config
+  namespace: gitea
