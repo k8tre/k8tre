@@ -1,0 +1,93 @@
+global:
+  storageClass: opal-file
+podSecurityContext:
+  runAsUser: 10041
+  runAsGroup: 10041
+  fsGroup: 10041
+  fsGroupChangePolicy: "OnRootMismatch"
+securityContext:
+  runAsUser: 10041
+  runAsGroup: 10041
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+mongodb:
+  enabled: false
+opal:
+  image:
+    repository: obiba/opal
+    tag: "5.1.5"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  demo:
+    enabled: false
+  config:
+    csrfAllowed: "*.${ENVIRONMENT}.${DOMAIN}, *.${ENVIRONMENT}.${DOMAIN}"
+    existingSecret: datashield-secrets
+  # Run directly as opal user since security context is configured
+  # command: ["/bin/bash"]
+  # args: 
+  #   - "-c"
+  #   - |
+  #     /opt/opal/bin/start.sh
+  livenessProbe: null
+  readinessProbe: null
+rock:
+  image:
+    repository: datashield/rock-base
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  config:
+    administratorName: administrator
+    existingSecret: datashield-secrets
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  livenessProbe: null
+  readinessProbe: null
+  # Run directly as rock user since security context is configured
+  # Replicate the entrypoint logic without gosu, ensuring we pass 'app' as first argument
+  command: ["/bin/bash"]
+  args: 
+    - "-c"
+    - |
+      set -e
+      echo [Info] ROCK_HOME=/srv
+      export ROCK_ADMINISTRATOR_NAME=administrator
+      export ROCK_ADMINISTRATOR_PASSWORD=password
+      # Replicate the 'app' argument logic from entrypoint
+      # Make sure conf folder is available
+      if [ ! -d /srv/conf ]; then
+        mkdir -p /srv/conf
+        cp -r /usr/share/rock/conf/* /srv/conf
+        # reinstating init script
+        if [ -f /opt/obiba/bin/first_run.sh.done ]; then
+          mv /opt/obiba/bin/first_run.sh.done /opt/obiba/bin/first_run.sh
+        fi
+      fi
+      chown -R rock /srv
+      
+      if [ -f /opt/obiba/bin/first_run.sh ]; then
+        echo "First run setup..."
+        /opt/obiba/bin/first_run.sh
+        mv /opt/obiba/bin/first_run.sh /opt/obiba/bin/first_run.sh.done
+      fi
+      
+      # Skip AppArmor commands as they won't work in container
+      # exec gosu rock /opt/obiba/bin/start.sh -> replaced with direct exec
+      exec /opt/obiba/bin/start.sh
+ingress:
+  enabled: false
+  host: opal.${ENVIRONMENT}.${DOMAIN}
+  # tls:
+  #   - secretName: xk8tre-tls
+
