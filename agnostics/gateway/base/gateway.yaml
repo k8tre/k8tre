@@ -1,0 +1,30 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: internal-gateway
+  namespace: gateway
+  labels:
+    app.kubernetes.io/name: cluster-ingress
+    app.kubernetes.io/component: gateway
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned
+spec:
+  gatewayClassName: cilium
+  listeners:
+  - name: http
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    hostname: "*.${ENVIRONMENT}.${DOMAIN}"
+    port: 443
+    protocol: HTTPS
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      certificateRefs:
+        - name: gw-tls
