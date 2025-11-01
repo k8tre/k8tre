@@ -71,7 +71,7 @@ jobs:
           python -m pytest -v -s --color=yes -m ui
 
       - name: Upload screenshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: screenshots
