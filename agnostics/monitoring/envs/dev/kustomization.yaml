@@ -1,0 +1,52 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The k8s-monitoring Helm chart won't install alloy-crd in ArgoCD
+# https://github.com/grafana/alloy-operator/issues/45#issuecomment-3312883656
+# so we need to install it separately, and we need to patch it to force Argocd
+# to deploy it before the k8s-monitoring chart
+resources:
+  - https://raw.githubusercontent.com/grafana/alloy-operator/alloy-crd-1.0.0/charts/alloy-crd/crds/collectors.grafana.com_alloy.yaml
+  - ../../base
+
+patches:
+  - path: alloy-crd-sync-patch.yaml
+    target:
+      kind: CustomResourceDefinition
+      name: alloys.collectors.grafana.com
+
+  - path: certificate-patch.yaml
+    target:
+      kind: Certificate
+      name: grafana-k8tre-tls
+
+
+helmCharts:
+
+  - name: prometheus
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 27.42.0
+    releaseName: prometheus
+    namespace: monitoring
+    valuesFile: prometheus.yaml
+
+  - name: loki
+    repo: https://grafana.github.io/helm-charts
+    version: 6.44.0
+    releaseName: loki
+    namespace: monitoring
+    valuesFile: loki.yaml
+
+  - name: k8s-monitoring
+    repo: https://grafana.github.io/helm-charts
+    version: 3.5.5
+    releaseName: alloy-k8s-monitoring
+    namespace: monitoring
+    valuesFile: alloy-k8s-monitoring.yaml
+
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    version: 10.1.4
+    releaseName: grafana
+    namespace: monitoring
+    valuesFile: grafana.yaml

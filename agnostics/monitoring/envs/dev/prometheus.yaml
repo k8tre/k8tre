@@ -1,0 +1,12 @@
+---
+# server:
+#   ingress:
+#     enabled: true
+#     hosts:
+#       - prometheus.
+
+prometheus-pushgateway:
+  enabled: false
+alertmanager:
+  enabled: false
+
