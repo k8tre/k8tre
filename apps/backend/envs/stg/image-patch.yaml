@@ -7,4 +7,4 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/alwin-k-thomas/karectl-backend:vdi-dev
+          image: ghcr.io/k8tre/k8tre-backend:v1.0.0

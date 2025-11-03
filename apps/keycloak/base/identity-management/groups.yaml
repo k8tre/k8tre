@@ -1,4 +1,4 @@
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: asthma
@@ -10,7 +10,7 @@ spec:
     - asthma-admin
     - asthma-analyst
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: asthma-admin
@@ -21,21 +21,22 @@ spec:
   members:
     - alwin
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: asthma-analyst
 spec:
   description: "Analysts of asthma"
   projects:
-    - asthma  
+    - asthma
   members:
     - test
     - alwin
-    - karectl-user
+    - k8tre-user
+    - trevolution
 ---
 # Diabetes Groups
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: diabetes
@@ -47,7 +48,7 @@ spec:
     - diabetes-admin
     - diabetes-analyst
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: diabetes-admin
@@ -57,10 +58,11 @@ spec:
     - diabetes
   members:
     - alwin
-    - karectl-user
+    - k8tre-user
+    - trevolution
 ---
 # Hypertension Groups
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: hypertension
@@ -71,7 +73,7 @@ spec:
   subgroups:
     - hypertension-admin
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: Group
 metadata:
   name: hypertension-admin
@@ -81,4 +83,4 @@ spec:
     - hypertension
   members:
     - alwin
-    - karectl-user
+    - k8tre-user

@@ -7,7 +7,7 @@ It can also be used to create realms, clients, client scopes, and client roles.
 #to configure the Keycloak admin API.
 # export KC_URL="http://localhost:8081"       
 # export KC_ADMIN="user"                     
-# export KC_REALM="karectl-app
+# export KC_REALM="k8tre-app
 # export KC_PASSWORD="your-admin-password" 
 
 import cmd
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     url = os.environ.get("KC_URL", "http://localhost:8080")
     admin = os.environ.get("KC_ADMIN", "admin")
     pw = os.environ.get("KC_PASSWORD", "admin")
-    realm = os.environ.get("KC_REALM", "karectl-app")
+    realm = os.environ.get("KC_REALM", "k8tre-app")
     shell = KeycloakShell(url, admin, pw, realm)
    
     try:

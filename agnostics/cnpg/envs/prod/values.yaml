@@ -1,3 +1,3 @@
 # This is a placeholder file for use when nested matrix generators work properly.
-operatorVersion: cnpg-1.23.6.yaml
+operatorVersion: cnpg-1.27.1.yaml
 targetRevision: release-1.23

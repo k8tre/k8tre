@@ -146,6 +146,13 @@ class CISecretsManager:
                 generated = self.generator.generate_password(length)
                 self.generated_values[f"{secret_name}.{key}"] = generated
                 return generated
+            elif value.startswith("{{ generate_hex_key("):
+                # Extract length parameter
+                length_str = value.split("(")[1].split(")")[0]
+                length = int(length_str)
+                generated = self.generator.generate_hex_key(length)
+                self.generated_values[f"{secret_name}.{key}"] = generated
+                return generated
         return str(value)
 
     def check_secret_exists(self, secret_name: str) -> bool:

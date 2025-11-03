@@ -142,7 +142,7 @@
     <div class="status-container">
         <div class="logo">
             <img src="/static/favicon.png" alt="KARECTL Logo" width="40" height="40">
-            <span class="logo-text">KARECTL</span>
+            <span class="logo-text">K8TRE</span>
         </div>
         <h1>Launching <span class="project-name">{{ project }}</span> Desktop</h1>
         <div class="status-message" id="statusMessage">Preparing your virtual desktop environment...</div>
@@ -166,10 +166,15 @@
     <script>
         const username = "{{ username }}";
         const project = "{{ project }}";
+        const autoConnect = {{ 'true' if auto_connect else 'false' }};
         const vdiName = `${username}-${project}`;
         let checkCount = 0;
         const maxChecks = 120; // 2 minutes with 1s interval
         let readyDetectedTime = null;
+
+        if (autoConnect) {
+            document.getElementById('statusMessage').textContent = 'Reconnecting to your desktop...';
+        }
 
         const statusMessages = {
             'Pending': 'Creating your desktop environment...',

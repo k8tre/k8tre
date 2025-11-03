@@ -6,10 +6,10 @@ import urllib.parse
 
 
 KARECTL_ENV = os.environ.get("KARECTL_ENV", "stg")
-KARECTL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "karectl.org")
+KARECTL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "k8tre.org")
 BACKEND_URL = os.environ.get(
     "KARECTL_BACKEND_URL",
-    f"https://backend.{KARECTL_ENV}.{KARECTL_DOMAIN}"
+    f"https://portal.{KARECTL_ENV}.{KARECTL_DOMAIN}"
 )
 
 def logout_hook(user):
@@ -49,11 +49,37 @@ async def pre_spawn_hook(spawner):
     # Debug
     headers = dict(spawner.handler.request.headers)
     spawner.log.info(f"Incoming headers for pre_spawn_hook: {headers}")
-    auth_user = headers.get("X-Auth-User") or "anonymous"
 
+    # Extract project from scoped username
+    username = spawner.user.name
+    # Parse project from username
+    if '-' in username:
+        parts = username.rsplit('-', 1)
+        base_user = parts[0]
+        project = parts[1]
+        spawner.log.info(f"Extracted base_user: {base_user}, project: {project}")
+    else:
+        base_user = username
+        project = None
+        spawner.log.warning(f"Username '{username}' is not project-scoped!")
+
+    # Validate project from headers
+    header_project = headers.get("X-Auth-Project", "")
+    if header_project and project:
+        if header_project != project:
+            raise ValueError(f"Project context mismatch: header={header_project}, username={project}")
+        spawner.log.info(f"Project validation passed: {project}")
+    elif not project:
+        spawner.log.warning("No project context in username")
+
+    # Set environment variables
     spawner.environment = spawner.environment or {}
-    spawner.environment["KARECTL_USER"] = auth_user
-    spawner.environment["SELECTED_PROJECT"] = get_project_from_query(spawner) or ""
+    spawner.environment["KARECTL_USER"] = base_user
+    spawner.environment["KARECTL_BASE_USER"] = base_user
+    spawner.environment["KARECTL_PROJECT"] = project or ""
+    spawner.environment["SELECTED_PROJECT"] = project or ""
+
+    spawner.log.info(f"Spawner environment set: USER={base_user}, PROJECT={project}")
 
 # Configure JupyterHub settings
 c.JupyterHub.bind_url = "http://:8081"

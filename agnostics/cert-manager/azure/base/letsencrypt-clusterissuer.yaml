@@ -12,7 +12,7 @@ spec:
     solvers:
     - dns01:
         azureDNS:
-          hostedZoneName: karectl.org
+          hostedZoneName: k8tre.org
           resourceGroupName: rg-kare-con-uks-dns
           subscriptionID: 443fc06f-050e-4794-83d8-eaeee691d453
           managedIdentity:

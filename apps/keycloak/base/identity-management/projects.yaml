@@ -1,4 +1,4 @@
-apiVersion: research.karectl.io/v1alpha1
+apiVersion: research.k8tre.io/v1alpha1
 kind: Project
 metadata:
   name: asthma
@@ -23,12 +23,12 @@ spec:
       description: "A TRE workspace for federated analysis with Python"
       slug: "asthma-ws1"
       kubespawner_override:
-        image: "ghcr.io/karectl/datashield-workspace:c2bdae836ac9bf91713531bb8160fbd8c15157eb"
+        image: "ghcr.io/k8tre/marimo-notebook-workspace:latest"
         env:
           PROJECT_NAME: "asthma"
           WORKSPACE: "/asthma/ws1"
 ---
-apiVersion: research.karectl.io/v1alpha1
+apiVersion: research.k8tre.io/v1alpha1
 kind: Project
 metadata:
   name: diabetes
@@ -58,7 +58,7 @@ spec:
           PROJECT_NAME: "diabetes"
           WORKSPACE: "/diabetes/ws1"
 ---
-apiVersion: research.karectl.io/v1alpha1
+apiVersion: research.k8tre.io/v1alpha1
 kind: Project
 metadata:
   name: hypertension
@@ -73,7 +73,7 @@ spec:
         quota: "2CPU"
     - name: guacamole
       type: vdi
-      url: "https://guacamole.dev-karectl.org"
+      url: "https://guacamole.dev-k8tre.org"
       config:
         protocol: rdp
         resolution: "1920x1080"
@@ -83,7 +83,7 @@ spec:
       description: "A TRE workspace for federated analysis with Python"
       slug: "hypertension-ws1"
       kubespawner_override:
-        image: "ghcr.io/karectl/datashield-workspace:c2bdae836ac9bf91713531bb8160fbd8c15157eb"
+        image: "ghcr.io/k8tre/marimo-notebook-workspace:latest"
         env:
           PROJECT_NAME: "hypertension"
           WORKSPACE: "/hypertension/ws1"

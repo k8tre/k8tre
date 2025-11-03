@@ -45,7 +45,7 @@ def get_session_domain():
 
 
 GUACAMOLE_HOST = os.environ.get("GUACAMOLE_HOST", build_service_url("guacamole"))
-KARECTL_BACKEND = os.environ.get("KARECTL_BACKEND", build_service_url("backend"))
+KARECTL_BACKEND = os.environ.get("KARECTL_BACKEND", build_service_url("portal"))
 
 JSON_SECRET_KEY = os.environ["JSON_SECRET_KEY"]
 AUTH_SIG_SECRET = os.environ.get("AUTH_SIG_SECRET", "change-me")
@@ -85,7 +85,7 @@ app = FastAPI()
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("SESSION_SECRET", "dev-secret-key"),
-    session_cookie="karectl-session",
+    session_cookie="k8tre-session",
     same_site="lax",
     https_only=False,
     max_age=86400 * 2
@@ -111,7 +111,7 @@ keycloak_internal_url = os.environ.get(
     "http://keycloak.keycloak"
 )
 keycloak_external_url = os.environ.get("KEYCLOAK_EXTERNAL_URL", build_service_url("keycloak"))
-keycloak_realm = os.environ.get("KEYCLOAK_REALM", "karectl-app")
+keycloak_realm = os.environ.get("KEYCLOAK_REALM", "k8tre-app")
 
 internal_base = f"{keycloak_internal_url}/realms/{keycloak_realm}"
 external_base = f"{keycloak_external_url}/realms/{keycloak_realm}"
@@ -188,7 +188,7 @@ def _build_connections_for_user(username):
     """
     conns = {}
     crd = k8s_api.list_namespaced_custom_object(
-        group="karectl.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
+        group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
     )
 
     for vdi in crd.get("items", []):
@@ -198,27 +198,31 @@ def _build_connections_for_user(username):
         v_proj = spec.get("project")
         pwd = status.get("password")
         phase = status.get("phase", "Unknown")
+        # Get unique linux username
+        linux_user = status.get("linuxUser", "ubuntu")
         vdi_name = vdi.get("metadata", {}).get("name", "unknown")
-        print(f"Checking VDI {vdi_name}: user={v_user}, project={v_proj}, phase={phase}, has_password={bool(pwd)}", flush=True)
+        print(f"Checking VDI {vdi_name}: user={v_user}, project={v_proj}, linux_user={linux_user}, phase={phase}, has_password={bool(pwd)}", flush=True)
         if v_user == username and pwd and phase in ("Ready", "Running"):
             conn_id = f"{v_proj}-desktop"
-            print(f"Adding connection: {conn_id} for VDI {vdi_name}", flush=True)
+            print(f"Adding connection: {conn_id} for VDI {vdi_name} with Linux user: {linux_user}", flush=True)
             hostname = f"vdi-{v_user}-{v_proj}.jupyterhub.svc.cluster.local"
             conns[conn_id] = {
                 "protocol": "rdp",
                 "parameters": {
                     "hostname": hostname,
                     "port": "3389",
-                    "username": "ubuntu",
+                    "username": linux_user,
                     "password": pwd,
                     "ignore-cert": "true",
                     "security": "any",
                     "resize-method": "reconnect",
-                    "enable-drive": "true",
-                    "create-drive-path": "true",
+                    "enable-drive": "false",
+                    "create-drive-path": "false",
                     "console": "true",
                     "disable-auth": "true",
                     "color-depth": "32",
+                    "disable-copy": "true",
+                    "disable-paste": "true",
                 },
             }
     return conns
@@ -232,17 +236,190 @@ def _sign(user, project, audience):
     signature = hmac.new(AUTH_SIG_SECRET.encode(), payload, hashlib.sha256).hexdigest()
     return stamp, signature, audience
 
-
-async def refresh_access_token(request: Request):
-    """ Refresh access token using refresh token
+def _is_user_authorised_project(username, project):
+    """ Check if user has access to a project via their groups
     """
-    refresh_token = request.session.get("refresh_token")
+    try:
+        user_cr = k8s_api.get_namespaced_custom_object(
+            "identity.k8tre.io", "v1alpha1", NAMESPACE, "users", username
+        )
+        user_groups = user_cr['spec'].get('groups', [])
+
+        # Check if user has access to this project
+        for group_name in user_groups:
+            try:
+                group_cr = k8s_api.get_namespaced_custom_object(
+                    "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups", group_name
+                )
+                group_projects = group_cr['spec'].get('projects', [])
+                if project in group_projects:
+                    print(f"User {username} authorised for project {project} via group {group_name}", flush=True)
+                    return True
+            except Exception:
+                continue
+
+        print(f"User {username} not authorised for project {project}", flush=True)
+        return False
+
+    except Exception as e:
+        print(f"Authorisation failed for user {username}: {e}", flush=True)
+        return False
+
+def _is_user_vdi(username, project):
+    """ Check if user has a VDI instance running for the project
+    """
+    try:
+        vdi_name = f"{username}-{project}".lower()
+        vdi_cr = k8s_api.get_namespaced_custom_object(
+            group="k8tre.io",
+            version="v1alpha1",
+            namespace="jupyterhub",
+            plural="vdiinstances",
+            name=vdi_name
+        )
+
+        status = vdi_cr.get("status", {})
+        phase = status.get("phase", "Unknown")
+        if phase in ("Running", "Ready"):
+            print(f"VDI context detected: {username}/{project} (phase: {phase})", flush=True)
+            return True
+        else:
+            print(f"VDI exists but not running: {username}/{project} (phase: {phase})", flush=True)
+            return False
+
+    except Exception as e:
+        print(f"No running VDI found for {username}/{project}: {e}", flush=True)
+        return False
+
+def _get_client_ip(request: Request):
+    """ Get client IP from request headers.
+    """
+    # Check X-Forwarded-For
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+
+    # Check X-Real-IP
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+
+    # Check request
+    if request.client:
+        return request.client.host
+
+    return "unknown"
+
+def _is_request_vdi_pod(request: Request, username: str):
+    """ Detect if the request is coming from a VDI pod.
+    """
+    client_ip = _get_client_ip(request)
+    try:
+        # Get all VDI instances for this user
+        all_vdis = k8s_api.list_namespaced_custom_object(
+            group="k8tre.io",
+            version="v1alpha1",
+            namespace="jupyterhub",
+            plural="vdiinstances"
+        )
+        v1 = client.CoreV1Api()
+        for vdi in all_vdis.get("items", []):
+            spec = vdi.get("spec", {})
+            status = vdi.get("status", {})
+            vdi_user = spec.get("user")
+            vdi_project = spec.get("project")
+            phase = status.get("phase", "Unknown")
+
+            # Check running VDIs
+            if vdi_user != username or phase not in ("Running", "Ready"):
+                continue
+
+            # Get the pod IP for this VDI
+            try:
+                pod_name = f"vdi-{username}-{vdi_project}".lower()
+                pod = v1.read_namespaced_pod(name=pod_name, namespace="jupyterhub")
+                pod_ip = pod.status.pod_ip
+                if pod_ip and client_ip == pod_ip:
+                    print(f"Request from inside VDI pod: {pod_name} (IP: {pod_ip})", flush=True)
+                    return True, vdi_project
+
+            except Exception as e:
+                print(f"Error checking pod IP for {pod_name}: {e}", flush=True)
+                continue
+
+        return False, None
+
+    except Exception as e:
+        print(f"Error detecting VDI context from IP: {e}", flush=True)
+        return False, None
+
+
+def get_project_tokens(request: Request):
+    """ Get project-scoped tokens from session.
+    """
+    return request.session.get("project_tokens", {})
+
+
+def get_project_refresh_tokens(request: Request):
+    """ Get project-scoped refresh tokens from session.
+    """
+    return request.session.get("project_refresh_tokens", {})
+
+
+def set_project_token(request: Request, project, token, refresh_token=None):
+    """ Store tokens for a specific project in session.
+    """
+    if "project_tokens" not in request.session:
+        request.session["project_tokens"] = {}
+    request.session["project_tokens"][project] = token
+
+    if refresh_token:
+        if "project_refresh_tokens" not in request.session:
+            request.session["project_refresh_tokens"] = {}
+        request.session["project_refresh_tokens"][project] = refresh_token
+
+    print(f"Stored tokens for project: {project}", flush=True)
+
+
+def get_token_for_project(request: Request, project):
+    """ Get access token for a specific project.
+    """
+    project_tokens = get_project_tokens(request)
+    return project_tokens.get(project)
+
+
+def clear_project_token(request: Request, project):
+    """ Remove tokens for a specific project.
+    """
+    project_tokens = request.session.get("project_tokens", {})
+    project_refresh_tokens = request.session.get("project_refresh_tokens", {})
+
+    if project in project_tokens:
+        del project_tokens[project]
+    if project in project_refresh_tokens:
+        del project_refresh_tokens[project]
+
+    print(f"Cleared tokens for project: {project}", flush=True)
+
+
+async def refresh_access_token(request: Request, project=None):
+    """ Refresh access token using refresh token.
+    """
+    if project:
+        project_refresh_tokens = get_project_refresh_tokens(request)
+        refresh_token = project_refresh_tokens.get(project)
+        if not refresh_token:
+            print(f"No refresh token for project {project}, falling back to global", flush=True)
+            refresh_token = request.session.get("refresh_token")
+    else:
+        refresh_token = request.session.get("refresh_token")
+
     if not refresh_token:
         print("No refresh token available", flush=True)
         return None
-    
+
     try:
-        print("Attempting to refresh access token...", flush=True)
+        print(f"Attempting to refresh access token{' for project ' + project if project else ''}...", flush=True)
         async with httpx.AsyncClient(verify=False) as client:
             response = await client.post(
                 f"{internal_base}/protocol/openid-connect/token",
@@ -254,26 +431,32 @@ async def refresh_access_token(request: Request):
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"}
             )
-        
+
         if response.status_code == 200:
             token_data = response.json()
-            # Update session with new tokens
-            request.session["token"] = token_data["access_token"]
-            if "refresh_token" in token_data:
-                request.session["refresh_token"] = token_data["refresh_token"]
-            
+            new_access_token = token_data["access_token"]
+            new_refresh_token = token_data.get("refresh_token", refresh_token)
+
+            # Store tokens per project
+            if project:
+                set_project_token(request, project, new_access_token, new_refresh_token)
+            else:
+                # Legacy way
+                request.session["token"] = new_access_token
+                request.session["refresh_token"] = new_refresh_token
+
             # Update user information
             if "id_token" in token_data:
                 request.session["id_token"] = token_data["id_token"]
-            
-            print("Token refreshed successfully", flush=True)
-            return token_data["access_token"]
+
+            print(f"Token refreshed successfully{' for project ' + project if project else ''}", flush=True)
+            return new_access_token
         else:
             print(f"Token refresh failed: {response.status_code} - {response.text}", flush=True)
-            
+
     except Exception as e:
         print(f"Token refresh error: {e}", flush=True)
-    
+
     return None
 
 def check_token_expiry(token):
@@ -297,20 +480,27 @@ def check_token_expiry(token):
         print(f"Token expiry check failed: {e}", flush=True)
         return True, 0
 
-async def ensure_valid_token(request: Request):
-    """ Ensure we have a valid access token, refresh if needed
+async def ensure_valid_token(request: Request, project=None):
+    """ Ensure we have a valid access token, refresh if needed.
     """
-    token = request.session.get("token")
-    
+    # Get project-specific token
+    if project:
+        token = get_token_for_project(request, project)
+        if not token:
+            print(f"No token for project {project}, trying global token", flush=True)
+            token = request.session.get("token")
+    else:
+        token = request.session.get("token")
+
     if not token:
-        print("No token in session", flush=True)
+        print(f"No token in session{' for project ' + project if project else ''}", flush=True)
         return None
-    
+
     expires_soon, time_left = check_token_expiry(token)
-    
+
     if expires_soon:
         print(f"Token expires in {time_left} seconds, refreshing...", flush=True)
-        new_token = await refresh_access_token(request)
+        new_token = await refresh_access_token(request, project=project)
         if new_token:
             return new_token
         else:
@@ -372,10 +562,10 @@ async def login_options():
 
 @app.get("/login")
 async def login(request: Request):
-    """ Main route to login with the backend service.
+    """ Main route to login with the portal service.
     """
     request.session.clear()
-    redirect_uri = build_service_url("backend", "/auth/callback")
+    redirect_uri = build_service_url("portal", "/auth/callback")
     print(f"Login redirect URI: {redirect_uri}", flush=True)
 
     return await oauth.keycloak.authorize_redirect(request, redirect_uri)
@@ -403,11 +593,25 @@ async def auth_callback(request: Request):
             user = response.json()
             username = user.get('preferred_username', 'unknown')
             print(f"User authenticated: {username}", flush=True)
-            
+
             request.session["user"] = dict(user)
             request.session["token"] = access_token
             request.session["refresh_token"] = refresh_token
             request.session["session_created"] = int(time.time())
+
+            # Check if request coming from VDI pod
+            is_from_vdi, vdi_project = _is_request_vdi_pod(request, username)
+
+            if is_from_vdi and vdi_project:
+                # restrict to that project only
+                request.session["vdi_context"] = True
+                request.session["vdi_project"] = vdi_project
+                print(f"User {username} logged in using VDI (project: {vdi_project})", flush=True)
+            else:
+                # full portal access
+                request.session["vdi_context"] = False
+                request.session.pop("vdi_project", None)
+                print(f"User {username} logged in using host", flush=True)
 
             # Store session info for cleanup
             active_user_sessions[username] = {
@@ -416,6 +620,23 @@ async def auth_callback(request: Request):
                 "session_id": request.session.get("_session_id", "unknown")
             }
             print(f"Session after storing user: {dict(request.session)}", flush=True)
+
+            # Post login action
+            post_login_action = request.session.get("post_login_action")
+            post_login_project = request.session.get("post_login_project")
+
+            if post_login_action == "vdi_connect" and post_login_project:
+                request.session.pop("post_login_action", None)
+                request.session.pop("post_login_project", None)
+
+                # Store token with project
+                set_project_token(request, post_login_project, access_token, refresh_token)
+                request.session["current_project"] = post_login_project
+                print(f"Post-login VDI connect for {username}/{post_login_project}", flush=True)
+
+                # Redirect with auto-connect
+                return RedirectResponse(f"/vdi/status/{username}/{post_login_project}?auto_connect=true")
+
             return RedirectResponse("/")
         else:
             raise Exception(f"Userinfo request failed: {response.status_code} - {response.text}")
@@ -445,7 +666,7 @@ async def logout(request: Request):
     
     await revoke_user_tokens(username, token, refresh_token)
     response = RedirectResponse("/logged-out")
-    response.delete_cookie("karectl-session")
+    response.delete_cookie("k8tre-session")
     return response
 
 @app.get("/logged-out", response_class=HTMLResponse)
@@ -520,7 +741,7 @@ def api_context(
 
     try:
         user_cr = k8s_api.get_namespaced_custom_object(
-            "identity.karectl.io", "v1alpha1", NAMESPACE, "users", username)
+            "identity.k8tre.io", "v1alpha1", NAMESPACE, "users", username)
     except Exception as e:
         return JSONResponse({"error": f"User CR not found: {e}"}, status_code=404)
 
@@ -529,12 +750,12 @@ def api_context(
     for group_name in groups:
         try:
             group_cr = k8s_api.get_namespaced_custom_object(
-                "identity.karectl.io", "v1alpha1", NAMESPACE, "groups", group_name)
+                "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups", group_name)
 
             for proj in group_cr['spec'].get('projects', []):
                 if proj not in projects:
                     proj_cr = k8s_api.get_namespaced_custom_object(
-                        "research.karectl.io", "v1alpha1", NAMESPACE, "projects", proj)
+                        "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", proj)
                     projects[proj] = {
                         "name": proj,
                         "description": proj_cr['spec'].get('description', ''),
@@ -555,7 +776,7 @@ async def auth_validate(request: Request):
         login information.
 
         This is the main important function which decides the overall flow and control on how each application
-        behaves and works with backend service.
+        behaves and works with portal service.
     """
     o_param = request.query_params.get("orig")
 
@@ -599,7 +820,7 @@ async def auth_validate(request: Request):
 
     project = q.get("project", [None])[0]
     if not project:
-        project = request.cookies.get("karectl-project", "")
+        project = request.cookies.get("k8tre-project", "")
     
     if not token and path.startswith("/hub/login") and "next" in q:
         np = urllib.parse.urlparse(q["next"][0])
@@ -648,24 +869,49 @@ async def auth_validate(request: Request):
                     key, value = cookie_pair.split('=', 1)
                     cookies[key.strip()] = value.strip()
 
-            # Look for auth token
-            if not token and 'karectl-auth-token' in cookies:
-                auth_cookie = cookies['karectl-auth-token']
+            # Get project if possible
+            if not project and 'k8tre-project' in cookies:
+                project = cookies['k8tre-project']
+                print(f"Found project from cookie: {project}", flush=True)
+
+            # Get project-specific auth token
+            if not token and project:
+                project_token_cookie = f'k8tre-auth-token-{project}'
+                if project_token_cookie in cookies:
+                    auth_cookie = cookies[project_token_cookie]
+                    try:
+                        claims = verify_token(f"Bearer {auth_cookie}")
+                        username = claims.get("preferred_username")
+                        if username:
+                            token = auth_cookie
+                            print(f"Using project-specific token for {username} in project {project}", flush=True)
+                    except Exception as e:
+                        print(f"Project-specific cookie auth token verification failed: {e}", flush=True)
+
+            # Fallback to global auth token
+            if not token and 'k8tre-auth-token' in cookies:
+                auth_cookie = cookies['k8tre-auth-token']
                 try:
                     claims = verify_token(f"Bearer {auth_cookie}")
                     username = claims.get("preferred_username")
                     if username:
                         token = auth_cookie
+                        print(f"Using global token for {username} (backward compat)", flush=True)
                 except Exception as e:
                     print(f"Cookie auth token verification failed: {e}", flush=True)
 
-            # Look for project
-            if not project and 'karectl-project' in cookies:
-                project = cookies['karectl-project']
-
     # If not available, try from server side session via cookie
     if not token:
-        token = request.session.get("token")
+        if project:
+            token = get_token_for_project(request, project)
+            if token:
+                print(f"Using session project-specific token for project {project}", flush=True)
+
+        # Fallback to global session token
+        if not token:
+            token = request.session.get("token")
+            if token:
+                print("Using global session token (backward compat)", flush=True)
 
     if not token:
         referer = request.headers.get("referer", "")
@@ -699,33 +945,8 @@ async def auth_validate(request: Request):
 
     # Authorization check: Verify user has access to the requested project
     if project:
-        try:
-            user_cr = k8s_api.get_namespaced_custom_object(
-                "identity.karectl.io", "v1alpha1", NAMESPACE, "users", username
-            )
-            user_groups = user_cr['spec'].get('groups', [])
-
-            # Check if user has access
-            authorised = False
-            for group_name in user_groups:
-                try:
-                    group_cr = k8s_api.get_namespaced_custom_object(
-                        "identity.karectl.io", "v1alpha1", NAMESPACE, "groups", group_name
-                    )
-                    group_projects = group_cr['spec'].get('projects', [])
-                    if project in group_projects:
-                        authorised = True
-                        print(f"User {username} authorised for project {project} via group {group_name}", flush=True)
-                        break
-                except Exception:
-                    continue
-
-            if not authorised:
-                print(f"AUTHORISATION DENIED: User {username} attempted to access project {project} without permission", flush=True)
-                return Response(status_code=403)
-
-        except Exception as e:
-            print(f"Authorisation check failed for user {username}: {e}", flush=True)
+        if not _is_user_authorised_project(username, project):
+            print(f"AUTHORISATION DENIED: User {username} attempted to access project {project} without permission", flush=True)
             return Response(status_code=403)
 
     # Creating all the headers that we needed for nginx annotations and authentication.
@@ -809,25 +1030,34 @@ def get_projects(request: Request, user=Depends(require_user)):
     username = user["preferred_username"]
     try:
         user_cr = k8s_api.get_namespaced_custom_object(
-            "identity.karectl.io", "v1alpha1", NAMESPACE, "users", username)
+            "identity.k8tre.io", "v1alpha1", NAMESPACE, "users", username)
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": f"User CR not found: {e}"})
+
+    # Checks for vdi context
+    vdi_context = request.session.get("vdi_context", False)
+    vdi_project = request.session.get("vdi_project")
 
     groups = user_cr['spec'].get('groups', [])
     projects = set()
     for group_name in groups:
         try:
             group_cr = k8s_api.get_namespaced_custom_object(
-                "identity.karectl.io", "v1alpha1", NAMESPACE, "groups", group_name)
+                "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups", group_name)
             projects.update(group_cr['spec'].get('projects', []))
         except Exception:
             continue
+
+    # Filter projects if in VDI context
+    if vdi_context and vdi_project:
+        projects = {vdi_project} if vdi_project in projects else set()
+        print(f"VDI context detected, filtering to project: {vdi_project}", flush=True)
 
     project_objs = []
     for proj in projects:
         try:
             project = k8s_api.get_namespaced_custom_object(
-                "research.karectl.io", "v1alpha1", NAMESPACE, "projects", proj)
+                "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", proj)
             project_objs.append({
                 "name": proj,
                 "description": project['spec'].get('description', '')
@@ -837,7 +1067,7 @@ def get_projects(request: Request, user=Depends(require_user)):
 
     return templates.TemplateResponse(
         "projects.html",
-        {"request": request, "projects": project_objs}
+        {"request": request, "projects": project_objs, "vdi_context": vdi_context}
     )
 
 @app.get("/projects/{project}/apps", response_class=HTMLResponse)
@@ -846,13 +1076,23 @@ def get_apps(project: str, request: Request, user=Depends(require_user)):
         Eg: Asthma project supports Jupyerhuab and guacamole, but
             Diabetes project supports only Jupyterhub instance and not vdi
     """
+    # Check if accessing from VDI context and access a different project
+    vdi_context = request.session.get("vdi_context", False)
+    vdi_project = request.session.get("vdi_project")
+    if vdi_context and vdi_project and project != vdi_project:
+        print(f"BLOCKED: User in VDI context (project: {vdi_project}) attempting to view apps for project: {project}", flush=True)
+        return templates.TemplateResponse(
+            "project-restricted.html",
+            {"request": request, "vdi_project": vdi_project, "requested_project": project}
+        )
+
     try:
         project_cr = k8s_api.get_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects", project)
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", project)
         apps = project_cr['spec'].get('apps', [])
         return templates.TemplateResponse(
             "apps.html",
-            {"request": request, "project": project, "apps": apps}
+            {"request": request, "project": project, "apps": apps, "vdi_context": vdi_context}
         )
 
     except Exception as e:
@@ -866,7 +1106,7 @@ def get_profiles_internal(project: str):
     try:
         print(f"Fetching profiles for project: {project}", flush=True)
         project_cr = k8s_api.get_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects", project
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", project
         )
         profiles = project_cr['spec'].get('profiles', [])
         print(f"Profiles for project '{project}': {profiles}", flush=True)
@@ -881,6 +1121,7 @@ def get_profiles_internal(project: str):
 
 @app.get("/auth/sso")
 async def sso_redirect(
+    request: Request,
     token: str = Query(...),
     project: str = Query(...),
     app: str = Query(default="jupyter")
@@ -893,19 +1134,42 @@ async def sso_redirect(
 
         print(f"SSO authentication for user: {username}, project: {project}, app: {app}", flush=True)
 
+        # Verify user access
+        if not _is_user_authorised_project(username, project):
+            print(f"AUTHORISATION DENIED: User {username} attempted SSO to project {project} without permission", flush=True)
+            raise HTTPException(status_code=403, detail=f"Access denied to project {project}")
+
+        # Store token in session for project
+        set_project_token(request, project, token)
+
+        # Check if request coming from VDI pod
+        is_from_vdi, detected_project = _is_request_vdi_pod(request, username)
+
+        if is_from_vdi and detected_project:
+            # Restrict to that project only
+            request.session["vdi_context"] = True
+            request.session["vdi_project"] = detected_project
+            print(f"SSO: User {username} accessing from inside VDI (project: {detected_project})", flush=True)
+        else:
+            # Full portal access
+            request.session["vdi_context"] = False
+            request.session.pop("vdi_project", None)
+            print(f"SSO: User {username} accessing from host", flush=True)
+
         # Build redirect URL based on app
         if app == "jupyter":
             redirect_url = build_service_url("jupyter", "/hub")
         elif app == "guacamole":
             redirect_url = build_service_url("guacamole", "/guacamole/")
         else:
-            redirect_url = build_service_url("backend", "/")
+            redirect_url = build_service_url("portal", "/")
 
         response = RedirectResponse(redirect_url)
         cookie_domain = get_session_domain()
 
+        # Set project cookie
         response.set_cookie(
-            "karectl-project",
+            "k8tre-project",
             project,
             samesite="lax",
             secure=False,
@@ -914,8 +1178,9 @@ async def sso_redirect(
             path="/"
         )
 
+        # Set project-scoped auth token
         response.set_cookie(
-            "karectl-auth-token",
+            f"k8tre-auth-token-{project}",
             token,
             samesite="lax",
             secure=False,
@@ -925,7 +1190,7 @@ async def sso_redirect(
             path="/"
         )
 
-        print(f"SSO cookies set for {username}, redirecting to {redirect_url}", flush=True)
+        print(f"SSO cookies set for {username} project {project}, redirecting to {redirect_url}", flush=True)
         return response
 
     except Exception as e:
@@ -934,34 +1199,55 @@ async def sso_redirect(
 
 @app.get("/launch/{project}/{app}")
 async def launch_app(project: str, app: str, request: Request, user=Depends(require_user)):
-    """ To launch an application from the backend service
+    """ To launch an application from the portal service
     """
     username = user["preferred_username"]
     email = user.get("email", "")
-    print(f"Session user: {request.session.get('user', 'NO SESSION USER')}", flush=True)
+    print(f"Launching {app} for user {username} in project {project}", flush=True)
 
-    valid_token = await ensure_valid_token(request)
+    # Prevent VDI from VDI
+    vdi_context = request.session.get("vdi_context", False)
+    vdi_project = request.session.get("vdi_project")
+    if vdi_context and app in ["vdi", "guacamole"]:
+        print(f"WARNING: User attempting to launch VDI from within VDI (project: {vdi_project})", flush=True)
+        return templates.TemplateResponse(
+            "vdi-warning.html",
+            {"request": request, "project": vdi_project}
+        )
+
+    # Prevent access to other projects
+    if vdi_context and vdi_project and project != vdi_project:
+        print(f"BLOCKED: User in VDI context (project: {vdi_project}) attempting to access different project: {project}", flush=True)
+        return templates.TemplateResponse(
+            "project-restricted.html",
+            {"request": request, "vdi_project": vdi_project, "requested_project": project}
+        )
+
+    # Get or refresh project token
+    valid_token = await ensure_valid_token(request, project=project)
     if not valid_token:
-        print("No valid token available, redirecting to login", flush=True)
+        print(f"No valid token available for project {project}, redirecting to login", flush=True)
         return RedirectResponse("/login")
 
-    request.session["token"] = valid_token
+    # Get project refresh token
+    project_refresh_tokens = get_project_refresh_tokens(request)
+    refresh_token = project_refresh_tokens.get(project) or request.session.get("refresh_token")
+    set_project_token(request, project, valid_token, refresh_token)
     request.session["current_project"] = project
     request.session["user"] = user
+
     try:
         project_cr = k8s_api.get_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects", project)
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", project)
         app_cfg = next((a for a in project_cr['spec'].get('apps', []) if a['name'] == app), None)
 
         if not app_cfg:
             raise HTTPException(status_code=404, detail="App not found for this project")
 
         if app_cfg["type"] == "vdi":
-            refresh_token = request.session.get("refresh_token")
-
             vdi_name = f"{username}-{project}"
             vdi_spec = {
-                "apiVersion": "karectl.io/v1alpha1",
+                "apiVersion": "k8tre.io/v1alpha1",
                 "kind": "VDIInstance",
                 "metadata": {
                     "name": vdi_name,
@@ -970,14 +1256,14 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                 "spec": {
                     "user": username,
                     "project": project,
-                    "image": "ghcr.io/alwin-k-thomas/vdi-mate:latest",
+                    "image": "ghcr.io/karectl/vdi-mate:v1.0.0-light",
                     "connection": "rdp",
                     "env": [
                         {"name": "KARECTL_TOKEN", "value": valid_token},
                         {"name": "KARECTL_REFRESH_TOKEN", "value": refresh_token},
                         {"name": "KARECTL_PROJECT", "value": project},
                         {"name": "KARECTL_USER", "value": username},
-                        {"name": "KARECTL_BACKEND_URL", "value": build_service_url("backend")},
+                        {"name": "KARECTL_BACKEND_URL", "value": build_service_url("portal")},
                         {"name": "KARECTL_SESSION_ID", "value": request.session.get("_session_id", "")},
                         {"name": "KARECTL_ENVIRONMENT", "value": KARECTL_ENV},
                         {"name": "KARECTL_DOMAIN", "value": KARECTL_EXTERNAL_DOMAIN}
@@ -989,7 +1275,7 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
             vdi_created = False
             try:
                 crd_client.create_namespaced_custom_object(
-                    group="karectl.io",
+                    group="k8tre.io",
                     version="v1alpha1",
                     namespace="jupyterhub",
                     plural="vdiinstances",
@@ -1004,26 +1290,23 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                     raise
 
             # Redirect to status page - it will wait for VDI to be ready
-            status_url = build_service_url("backend", f"/vdi/status/{username}/{project}")
+            status_url = build_service_url("portal", f"/vdi/status/{username}/{project}")
             print(f"Redirecting to status page: {status_url}", flush=True)
             return RedirectResponse(status_url)
 
+        # For Jupyter and other apps
+        login_url = build_service_url("jupyter", "/hub/login")
 
-        original_host = request.headers.get("x-original-host", "")
-        x_forwarded_host = request.headers.get("x-forwarded-host", "")
-        referer = request.headers.get("referer", "")
-
-        app_url = build_service_url("jupyter", "/hub")
-
-        # Get user's token from session and add to URL
-        separator = "&" if "?" in app_url else "?"
-        app_url = f"{app_url}{separator}token={valid_token}&project={project}"
+        # Add token and project to login URL
+        separator = "&" if "?" in login_url else "?"
+        final_url = f"{login_url}{separator}token={valid_token}&project={project}&auto=1"
 
         cookie_domain = get_session_domain()
+        resp = RedirectResponse(final_url)
 
-        resp = RedirectResponse(app_url)
+        # Set project context cookie
         resp.set_cookie(
-            "karectl-project",
+            "k8tre-project",
             project,
             samesite="lax",
             secure=False,
@@ -1032,8 +1315,9 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
             path="/"
         )
 
+        # Set project-scoped auth token
         resp.set_cookie(
-            "karectl-auth-token",
+            f"k8tre-auth-token-{project}",
             valid_token,
             samesite="lax",
             secure=False,
@@ -1043,6 +1327,12 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
             path="/"
         )
 
+        # Clear JupyterHub session cookies to force re-authentication
+        resp.delete_cookie("jupyterhub-hub-login", domain=cookie_domain, path="/hub/")
+        resp.delete_cookie("jupyterhub-session-id", domain=cookie_domain, path="/")
+        resp.delete_cookie("_xsrf", domain=cookie_domain, path="/")
+
+        print(f"Redirecting for project {project} with scoped token", flush=True)
         return resp
 
     except Exception as e:
@@ -1051,31 +1341,38 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
         raise HTTPException(status_code=404, detail=f"Project/app not found: {e}")
 
 @app.get("/api/projects")
-def get_projects_json(user=Depends(require_user)):
+def get_projects_json(request: Request, user=Depends(require_user)):
     """ Get the list of projects from the CRD
     """
     username = user["preferred_username"]
     try:
         user_cr = k8s_api.get_namespaced_custom_object(
-            "identity.karectl.io", "v1alpha1", NAMESPACE, "users", username)
+            "identity.k8tre.io", "v1alpha1", NAMESPACE, "users", username)
     except Exception as e:
         return JSONResponse({"error": f"User CR not found: {e}"}, status_code=404)
 
+    vdi_context = request.session.get("vdi_context", False)
+    vdi_project = request.session.get("vdi_project")
     groups = user_cr['spec'].get('groups', [])
     projects = set()
     for group_name in groups:
         try:
             group_cr = k8s_api.get_namespaced_custom_object(
-                "identity.karectl.io", "v1alpha1", NAMESPACE, "groups", group_name)
+                "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups", group_name)
             projects.update(group_cr['spec'].get('projects', []))
         except Exception:
             continue
+
+    # Filter projects if in VDI context
+    if vdi_context and vdi_project:
+        projects = {vdi_project} if vdi_project in projects else set()
+        print(f"API: VDI context detected, filtering to project: {vdi_project}", flush=True)
 
     project_objs = []
     for proj in projects:
         try:
             project = k8s_api.get_namespaced_custom_object(
-                "research.karectl.io", "v1alpha1", NAMESPACE, "projects", proj)
+                "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", proj)
             project_objs.append({
                 "name": proj,
                 "description": project['spec'].get('description', '')
@@ -1083,16 +1380,26 @@ def get_projects_json(user=Depends(require_user)):
         except Exception:
             continue
 
-    return {"projects": project_objs}
+    return {"projects": project_objs, "vdi_context": vdi_context}
 
 @app.get("/api/projects/{project}/apps")
-def get_apps_json(project: str, user=Depends(require_user)):
+def get_apps_json(project: str, request: Request, user=Depends(require_user)):
     """ Get the list of all apps supported by a project
     """
+    vdi_context = request.session.get("vdi_context", False)
+    vdi_project = request.session.get("vdi_project")
+
+    if vdi_context and vdi_project and project != vdi_project:
+        print(f"API BLOCKED: User in VDI context (project: {vdi_project}) attempting to access apps for project: {project}", flush=True)
+        return JSONResponse(
+            {"error": f"Cannot access project '{project}' from within VDI session for project '{vdi_project}'"},
+            status_code=403
+        )
+
     try:
         project_cr = k8s_api.get_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects", project)
-        return {"apps": project_cr['spec'].get('apps', [])}
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", project)
+        return {"apps": project_cr['spec'].get('apps', []), "vdi_context": vdi_context}
     except Exception as e:
         return JSONResponse({"error": f"Project not found: {e}"}, status_code=404)
 
@@ -1103,7 +1410,7 @@ def get_all_groups():
     groups = []
     try:
         group_cr_list = k8s_api.list_namespaced_custom_object(
-            "identity.karectl.io", "v1alpha1", NAMESPACE, "groups"
+            "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups"
         )
         for group_cr in group_cr_list.get("items", []):
             groups.append(group_cr["metadata"]["name"])
@@ -1113,8 +1420,54 @@ def get_all_groups():
     return {"groups": groups}
 
 
+@app.get("/vdi/reconnect", response_class=HTMLResponse)
+async def vdi_reconnect_helper(request: Request, project: str = Query(None)):
+    """ Detects project and redirects to logout endpoint
+    """
+    return templates.TemplateResponse(
+        "guacamole-redirect-helper.html",
+        {"request": request, "project": project}
+    )
+
+
+@app.get("/vdi/logout")
+async def vdi_logout(request: Request, project: str = Query(None)):
+    """ Process logout/disconnect
+        - session valid: redirect to VDI status with auto-connect
+        - session expired: redirect to keycloak login then auto-connect
+    """
+    user = request.session.get("user")
+    username = user.get("preferred_username") if user else None
+
+    # Get from session
+    if not project:
+        project = request.session.get("current_project")
+
+    # Get user and project from session
+    # Check token validity
+    if username and project:
+        valid_token = await ensure_valid_token(request, project=project)
+
+        if valid_token:
+            # Valid and redirection
+            print(f"VDI logout: Session valid for {username}/{project}, redirecting to status page", flush=True)
+            status_url = build_service_url("portal", f"/vdi/status/{username}/{project}?auto_connect=true")
+            return RedirectResponse(status_url)
+
+    # Expired/invalid session
+    # Redirect to login with return path
+    print(f"VDI logout: Session invalid or expired, redirecting to login", flush=True)
+
+    if username and project:
+        request.session["post_login_action"] = "vdi_connect"
+        request.session["post_login_project"] = project
+
+    login_url = build_service_url("portal", "/login")
+    return RedirectResponse(login_url)
+
+
 @app.get("/vdi/status/{username}/{project}", response_class=HTMLResponse)
-async def vdi_status_page(username: str, project: str, request: Request, user=Depends(require_user)):
+async def vdi_status_page(username: str, project: str, request: Request, auto_connect: bool = Query(False), user=Depends(require_user)):
     """ VDI status page
     """
     current_user = user.get("preferred_username")
@@ -1123,7 +1476,7 @@ async def vdi_status_page(username: str, project: str, request: Request, user=De
 
     return templates.TemplateResponse(
         "vdi-status.html",
-        {"request": request, "username": username, "project": project}
+        {"request": request, "username": username, "project": project, "auto_connect": auto_connect}
     )
 
 
@@ -1139,7 +1492,7 @@ async def get_vdi_status(username: str, project: str, user=Depends(require_user)
 
     try:
         vdi_cr = k8s_api.get_namespaced_custom_object(
-            group="karectl.io",
+            group="k8tre.io",
             version="v1alpha1",
             namespace="jupyterhub",
             plural="vdiinstances",
@@ -1236,7 +1589,7 @@ def delete_vdi_instance(username: str = Path(...), project: str = Path(...)):
     instance_name = f"{username}-{project}".lower()
     try:
         k8s_api.delete_namespaced_custom_object(
-            group="karectl.io",
+            group="k8tre.io",
             version="v1alpha1",
             namespace="jupyterhub",
             plural="vdiinstances",
@@ -1267,7 +1620,7 @@ def get_vdi_instances(request: Request, user=Depends(require_user)):
         # Get all VDI instances for this user
         vdi_instances = []
         crd = k8s_api.list_namespaced_custom_object(
-            group="karectl.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
+            group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
         )
         
         for vdi in crd.get("items", []):
@@ -1371,4 +1724,4 @@ async def refresh_token_api(
 async def health_check():
     """ Health end point if it is reachable.
     """
-    return {"status": "healthy", "service": "karectl-backend"}
+    return {"status": "healthy", "service": "k8tre-portal"}

@@ -1,3 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: etcd-data
+  namespace: kare-dns
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -35,7 +48,8 @@ spec:
           mountPath: /etcd-data
       volumes:
       - name: etcd-data
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: etcd-data
 ---
 apiVersion: v1
 kind: Service

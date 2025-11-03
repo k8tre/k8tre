@@ -35,7 +35,7 @@ class JWTDirectAuthenticator(Authenticator):
     """ Custom authenticator that works with nginx-ingress auth validation
         Headers are set by your backend after JWT validation
     """
-    
+
     async def authenticate(self, handler, data):
         """ This method is called for every login attempt
         """
@@ -62,12 +62,22 @@ class JWTDirectAuthenticator(Authenticator):
         if user_hdr:
             if _valid_signed_headers(user_hdr, proj, stamp, sig, aud):
                 auth_email = headers.get('X-Auth-Email', '')
-                self.log.info(f"Signed headers valid for user '{user_hdr}', project '{proj}', aud '{aud}'")
+
+                # Making username project scoped to session leakage.
+                if proj:
+                    scoped_username = f"{user_hdr}-{proj}"
+                    self.log.info(f"Using project-scoped username: '{scoped_username}'")
+                else:
+                    scoped_username = user_hdr
+                    self.log.warning(f"No project available, using username without scope: '{scoped_username}'")
+
                 return {
-                    'name': user_hdr,
+                    'name': scoped_username,
                     'auth_model': {
                         'email': auth_email,
-                        'auth_method': 'signed_headers'
+                        'auth_method': 'signed_headers',
+                        'project': proj,
+                        'base_user': user_hdr
                     }
                 }
             else:
@@ -76,20 +86,30 @@ class JWTDirectAuthenticator(Authenticator):
         # Method 2: Fallback to JWT token in query parameters
         try:
             token_param = handler.get_argument('token', None)
+            project_param = handler.get_argument('project', None)
+
             if token_param:
                 self.log.info("Found token in query parameters, attempting decode...")
                 # Decode without signature verification (backend already validated)
                 decoded = jwt.decode(token_param, options={"verify_signature": False})
                 username = decoded.get('preferred_username')
                 email = decoded.get('email')
-                
+
                 if username:
-                    self.log.info(f"Extracted username from query token: '{username}' with email: '{email}'")
+                    if project_param:
+                        scoped_username = f"{username}-{project_param}"
+                        self.log.info(f"Using project-scoped username: '{scoped_username}'")
+                    else:
+                        scoped_username = username
+                        self.log.warning(f"No project available, using username without scope: '{scoped_username}'")
+
                     return {
-                        'name': username,
+                        'name': scoped_username,
                         'auth_model': {
                             'email': email,
-                            'auth_method': 'jwt_query_param'
+                            'auth_method': 'jwt_query_param',
+                            'project': project_param,
+                            'base_user': username
                         }
                     }
         except Exception as e:
@@ -100,19 +120,36 @@ class JWTDirectAuthenticator(Authenticator):
         if auth_header.startswith('Bearer '):
             token = auth_header.split(' ', 1)[1]
             self.log.info("Found Bearer token in Authorization header")
-            
+
+            # Get project from params or X-Auth-Project header
+            try:
+                project_param = handler.get_argument('project', None)
+            except:
+                project_param = None
+            if not project_param:
+                project_param = proj
+
             try:
                 decoded = jwt.decode(token, options={"verify_signature": False})
                 username = decoded.get('preferred_username')
                 email = decoded.get('email')
-                
+
                 if username:
-                    self.log.info(f"Extracted username from Authorization header: '{username}' with email: '{email}'")
+                    # Making username project scoped to prevent session leakage.
+                    if project_param:
+                        scoped_username = f"{username}-{project_param}"
+                        self.log.info(f"Using project-scoped username: '{scoped_username}'")
+                    else:
+                        scoped_username = username
+                        self.log.warning(f"No project available, using username without scope: '{scoped_username}'")
+
                     return {
-                        'name': username,
+                        'name': scoped_username,
                         'auth_model': {
                             'email': email,
-                            'auth_method': 'jwt_auth_header'
+                            'auth_method': 'jwt_auth_header',
+                            'project': project_param,
+                            'base_user': username
                         }
                     }
             except Exception as e:
@@ -124,16 +161,41 @@ class JWTDirectAuthenticator(Authenticator):
     
     def get_handlers(self, app):
         """
-        Override to prevent default login form handlers
+        Override to prevent default login form
         This forces all authentication to go through our authenticate() method
         """
-        self.log.info("=== GETTING CUSTOM HANDLERS - No default login form ===")
-        return []
+        from jupyterhub.handlers import BaseHandler
+
+        class AutoLoginHandler(BaseHandler):
+            """ Auto-login handler that immediately triggers authentication
+            """
+            async def get(self):
+                auto = self.get_argument('auto', None)
+
+                if auto:
+                    self.log.info("Auto-login triggered, authenticating immediately...")
+                    # Trigger authentication
+                    user = await self.login_user()
+                    if user:
+                        self.log.info(f"Auto-login successful for {user.name}")
+                        self.redirect(self.hub.base_url + 'spawn')
+                    else:
+                        self.log.error("Auto-login failed, showing error")
+                        self.redirect(self.hub.base_url + 'login')
+                else:
+                    user = await self.login_user()
+                    if user:
+                        self.redirect(self.hub.base_url + 'home')
+
+        self.log.info("Auto-login enabled")
+        return [
+            (r'/login', AutoLoginHandler),
+        ]
 
 # Configure the authenticator
 c.JupyterHub.authenticator_class = JWTDirectAuthenticator
 c.JupyterHub.admin_access = True
-c.JupyterHub.shutdown_on_logout = True
+c.JupyterHub.shutdown_on_logout = False
 c.Authenticator.enable_auth_state = True
 c.Authenticator.admin_users = ["admin"]
 c.Authenticator.allow_all = True

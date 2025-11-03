@@ -36,7 +36,7 @@ data:
         # backend validate logic
         location = /_auth {
           internal;
-          proxy_pass http://backend.backend.svc.cluster.local/auth/validate;
+          proxy_pass http://portal.backend.svc.cluster.local/auth/validate;
           proxy_ssl_verify off;
           proxy_set_header X-Original-URI $request_uri;
           proxy_set_header X-Original-URL $scheme://$host$request_uri;
@@ -50,8 +50,8 @@ data:
           proxy_set_header Referer $http_referer;
           proxy_set_header Origin $http_origin;
           proxy_set_header Cookie $http_cookie;
-          proxy_set_header X-Auth-Token-Cookie $cookie_karectl_auth_token;
-          proxy_set_header X-Project-Cookie $cookie_karectl_project;
+          proxy_set_header X-Auth-Token-Cookie $cookie_k8tre_auth_token;
+          proxy_set_header X-Project-Cookie $cookie_k8tre_project;
 
           proxy_buffer_size 256k;
           proxy_buffers 16 256k;
@@ -245,7 +245,7 @@ data:
           add_header 'Access-Control-Allow-Origin' $cors_origin always;
           add_header 'Access-Control-Allow-Credentials' 'true' always;
 
-          return 302 https://backend.$ENVIRONMENT.$DOMAIN/login?redirect=$scheme://$host$request_uri;
+          return 302 https://portal.$ENVIRONMENT.$DOMAIN/login?redirect=$scheme://$host$request_uri;
         }
 
         location @error403 {
@@ -275,7 +275,7 @@ spec:
     spec:
       initContainers:
       - name: template-nginx-config
-        image: bhgedigital/envsubst:latest
+        image: alpine:3.19
         env:
         - name: DOMAIN
           value: ${DOMAIN}
@@ -285,6 +285,7 @@ spec:
         - sh
         - -c
         - |
+          apk add --no-cache gettext
           envsubst '$DOMAIN $ENVIRONMENT' < /templates/nginx.conf.template > /config/nginx.conf
           echo "Generated nginx config"
           cat /config/nginx.conf

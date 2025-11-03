@@ -6,27 +6,37 @@ on:
   push:
     branches:
       - main
+      - "dev-*"
   workflow_dispatch:
 
 jobs:
   # pre-commit:
   #   runs-on: ubuntu-24.04
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v5
+  #     - uses: actions/checkout@v5
+  #     - uses: actions/setup-python@v6
   #     - uses: pre-commit/action@v3.0.1
 
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
+    env:
+      K8TRE_DOMAIN: dev.k8tre.internal
+
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Free up disk space on GitHub runner
+        uses: manics/action-free-disk-space@1.0.0
+        with:
+          desired-space: 40000
+
+      - uses: actions/checkout@v5
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           cache: pip
@@ -35,16 +45,40 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r dev-requirements.txt
+          playwright install
+
+      - name: Modify hosts to resolve k8tre.internal URLs
+        run: |
+          K8TRE_SUBDOMAINS="jupyter.$K8TRE_DOMAIN guacamole.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN"
+          h=$(grep "$(hostname -i) " /etc/hosts)
+          if [ -n "$h" ]; then
+            sudo sed -i -re "s/$h/$h $K8TRE_SUBDOMAINS/" /etc/hosts
+          else
+            echo $(hostname -i) $K8TRE_SUBDOMAINS | sudo tee -a /etc/hosts
+          fi
+          cat /etc/hosts
 
       - name: Install deployment
         run: |
           ./ci/run_codeblocks.py docs/development/k3s-dev.md --run
 
-      - name: Run tests
+      - name: Run tests (not UI)
         run: |
-          python -m pytest -v --color=yes
+          python -m pytest -v -s --color=yes -m "not ui"
 
-      - name: Get logs, including on failure
+      - name: Run tests (UI)
+        run: |
+          python -m pytest -v -s --color=yes -m ui
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots/*
+          if-no-files-found: error
+
+      - name: Get ArgoCD logs, including on failure
         if: always()
         run: |
           echo "::group::argocd-server"
@@ -58,6 +92,22 @@ jobs:
             echo "::group::argocd $kind"
             kubectl describe $kind -A
             echo "::endgroup::"
+          done
+
+      - name: Get main K8s resources, including on failure
+        if: always()
+        run: |
+          # Ignore errors since this is for debugging
+          set +e
+          for namespace in $(kubectl get namespace -ojsonpath='{.items[*].metadata.name}'); do
+            echo "***** $namespace *****"
+            for kind in daemonset deployment statefulset ingress service pod; do
+              for name in $(kubectl -n$namespace get $kind -ojsonpath='{.items[*].metadata.name}'); do
+                echo "::group::$kind/$name"
+                kubectl -n$namespace describe $kind/$name
+                echo "::endgroup::"
+              done
+            done
           done
 
   # Set a single status check for the whole workflow, so that we can use it in a

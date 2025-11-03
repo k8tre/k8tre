@@ -4,7 +4,7 @@ metadata:
   name: gitea
   namespace: argocd
   labels:
-    karectl.io/appset: gitea          
+    k8tre.io/appset: gitea          
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
@@ -12,7 +12,7 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/karectl/karectl.git
+              repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
                 - path: apps/gitea/envs/*
@@ -29,7 +29,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/karectl/karectl.git
+        repoURL: https://github.com/k8tre/k8tre.git
         targetRevision: main
         path: "{{.path.path}}"
         plugin:

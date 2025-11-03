@@ -8,9 +8,9 @@ spec:
   - name: internal-gateway
     namespace: gateway
   hostnames:
-    - "backend.${ENVIRONMENT}.${DOMAIN}"
+    - "portal.${ENVIRONMENT}.${DOMAIN}"
   rules:
     - backendRefs:
-        - name: backend
+        - name: portal
           namespace: backend
           port: 80

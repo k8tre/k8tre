@@ -1,7 +1,7 @@
 guacamole:
   image:
-    repository: ghcr.io/alwin-k-thomas/guacamole-json
-    tag: "dev"
+    repository: ghcr.io/k8tre/guacamole-json
+    tag: "v1.0.0"
     pullPolicy: Always
   env:
     - name: GUACAMOLE_HOME

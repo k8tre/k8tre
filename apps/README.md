@@ -4,6 +4,7 @@ This directory contains the Kubernetes manifests for deploying applications that
 
 ## Structure
 - `awms/` - Analytics Workspace Management Solution for Jupyterhub
+- `backend/` - Central authentication gateway and orchestration layer for the platform
 - `jupyterhub/` - JupyterHub for interactive data science and analytics workspaces
 - `keycloak/` - Keycloak for identity and access management
 

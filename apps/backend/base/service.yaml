@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend
+  name: portal
   labels:
     app: backend
 spec:
@@ -10,5 +10,5 @@ spec:
     app: backend
   ports:
     - protocol: TCP
-      port: 80 
+      port: 80
       targetPort: 8000

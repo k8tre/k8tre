@@ -1,4 +1,4 @@
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: KeycloakClient
 metadata:
   name: jupyterhub
@@ -42,7 +42,7 @@ spec:
         access.token.claim: "true"
         user.info.claim: "false"
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: KeycloakClient
 metadata:
   name: backend
@@ -55,9 +55,9 @@ spec:
     key: client-secret
   enabled: true
   redirectUris:
-    - https://backend.${ENVIRONMENT}.${DOMAIN}/auth/callback
+    - https://portal.${ENVIRONMENT}.${DOMAIN}/auth/callback
   webOrigins:
-    - https://backend.${ENVIRONMENT}.${DOMAIN}
+    - https://portal.${ENVIRONMENT}.${DOMAIN}
   defaultClientScopes:
     - openid
     - web-origins

@@ -38,10 +38,10 @@ data:
         continue
       fi
 
-      # e.g., keycloak.stg.karectl.org -> keycloak
+      # e.g., keycloak.stg.k8tre.org -> keycloak
       SUBDOMAIN=$(echo "$hostname" | cut -d'.' -f1)
 
-      # e.g., keycloak.stg.karectl.org -> /skydns/org/karectl/stg/keycloak
+      # e.g., keycloak.stg.k8tre.org -> /skydns/org/k8tre/stg/keycloak
       REVERSED_PATH=$(echo "$hostname" | awk -F'.' '{for(i=NF;i>0;i--) printf "/%s", $i}')
       KEYS=$(kubectl exec -n kare-dns $ETCD_POD -- etcdctl get "${REVERSED_PATH}/" --prefix --keys-only 2>/dev/null | grep -v "^$" || echo "")
 
@@ -67,7 +67,7 @@ metadata:
   namespace: kare-dns
   annotations:
     argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
     argocd.argoproj.io/sync-wave: "3"
 spec:
   template:

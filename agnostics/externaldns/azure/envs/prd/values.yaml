@@ -28,4 +28,4 @@ policy: sync
 txtOwnerId: externaldns
 
 domainFilters:
-  - karectl.org
+  - k8tre.org

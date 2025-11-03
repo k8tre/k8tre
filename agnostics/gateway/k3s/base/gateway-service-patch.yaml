@@ -30,7 +30,7 @@ spec:
               \"metadata\": {
                 \"annotations\": {
                   \"metallb.universe.tf/loadBalancerIPs\": \"\",
-                  \"external-dns.alpha.kubernetes.io/hostname\": \"gw.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, jupyter.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, opal.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, keycloak.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, backend.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, guacamole.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, gitea.${ENVIRONMENT}.${EXTERNAL_DOMAIN}\"
+                  \"external-dns.alpha.kubernetes.io/hostname\": \"gw.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, jupyter.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, opal.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, keycloak.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, portal.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, guacamole.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, gitea.${ENVIRONMENT}.${EXTERNAL_DOMAIN}\"
                 }
               }
             }"

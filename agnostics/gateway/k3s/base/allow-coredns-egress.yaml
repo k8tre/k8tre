@@ -16,3 +16,13 @@ spec:
         protocol: UDP
       - port: "53"
         protocol: TCP
+  ingress:
+  - fromEntities:
+    - cluster
+    - host
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: gw-echo
-        image: hashicorp/http-echo
+        image: hashicorp/http-echo:1.0.0
         args:
           - "-text=K8TRE Internal Gateway Health Probe"
         ports:

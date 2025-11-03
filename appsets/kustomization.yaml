@@ -15,7 +15,6 @@ resources:
   - agnostics/secret-store.yaml
   - agnostics/storage-class.yaml
   - federation/cr8tor.yaml
-  - federation/datashield.yaml
   - identity/keycloak.yaml
   - identity/backend.yaml
   - workspaces/awms.yaml

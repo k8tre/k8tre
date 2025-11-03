@@ -1,11 +1,11 @@
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: User
 metadata:
   name: alwin
 spec:
   username: alwin
-  email: alwin@karectl.io
+  email: alwin@k8tre.io
   enabled: true
   groups: ["asthma-admin", "asthma-analyst", "diabetes-admin"]
   keycloak:
@@ -13,16 +13,16 @@ spec:
   jupyterhub:
     workspace: research-2024
     compute_quota: "2CPU,8Gi"
-  karectl:
-    user_id: karectl_001
+  k8tre:
+    user_id: k8tre_001
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: User
 metadata:
   name: test
 spec:
   username: test
-  email: test@karectl.io
+  email: test@k8tre.io
   enabled: false
   groups: ["asthma-analyst"]
   keycloak:
@@ -30,16 +30,16 @@ spec:
   jupyterhub:
     workspace: research-2023
     compute_quota: "1CPU,4Gi"
-  karectl:
-    user_id: karectl_002
+  k8tre:
+    user_id: k8tre_002
 ---
-apiVersion: identity.karectl.io/v1alpha1
+apiVersion: identity.k8tre.io/v1alpha1
 kind: User
 metadata:
-  name: karectl-user
+  name: k8tre-user
 spec:
-  username: karectl-user
-  email: karectl-user@karectl.io
+  username: k8tre-user
+  email: k8tre-user@k8tre.io
   enabled: true
   groups: ["asthma-analyst", "diabetes-admin", "hypertension-admin"]
   keycloak:
@@ -47,5 +47,23 @@ spec:
   jupyterhub:
     workspace: research-2023
     compute_quota: "1CPU,4Gi"
-  karectl:
-    user_id: karectl_003
+  k8tre:
+    user_id: k8tre_003
+---
+apiVersion: identity.k8tre.io/v1alpha1
+kind: User
+metadata:
+  name: trevolution
+spec:
+  username: trevolution
+  email: trevolution@k8tre.io
+  enabled: true
+  password: k8tre
+  groups: ["asthma-analyst", "diabetes-admin"]
+  keycloak:
+    email_verified: true
+  jupyterhub:
+    workspace: research-2024
+    compute_quota: "2CPU,8Gi"
+  k8tre:
+    user_id: k8tre_004

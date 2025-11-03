@@ -5,6 +5,7 @@ namespace: argocd
 
 resources:
   - cmp-plugin.yaml
+  - cnp-argocd-egress.yaml
 
 patches:
   - path: add-cmp-sidecar.yaml

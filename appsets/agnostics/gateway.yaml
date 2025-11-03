@@ -10,7 +10,7 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/karectl/karectl.git
+              repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
                 - path: agnostics/gateway/*/envs/*
@@ -33,7 +33,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/karectl/karectl.git
+        repoURL: https://github.com/k8tre/k8tre.git
         targetRevision: main
         path: "{{.path.path}}"
         plugin:

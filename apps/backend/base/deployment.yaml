@@ -12,11 +12,11 @@ spec:
       labels:
         app: backend
     spec:
-      serviceAccountName: karectl-backend
+      serviceAccountName: k8tre-backend
       containers:
         - name: backend
           # Image is set by environment-specific patches
-          image: ghcr.io/placeholder/karectl-backend:latest
+          image: example.org/placeholder/k8tre-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -61,7 +61,7 @@ spec:
             - name: GUACAMOLE_HOST
               value: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
             - name: KARECTL_BACKEND
-              value: "https://backend.${ENVIRONMENT}.${DOMAIN}"
+              value: "https://portal.${ENVIRONMENT}.${DOMAIN}"
             - name: SESSION_HTTPS_ONLY
               value: "true"
             - name: KARECTL_ENV

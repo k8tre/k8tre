@@ -35,7 +35,7 @@ hub:
   extraEnv:
     KARECTL_ENV: "${ENVIRONMENT}"
     KARECTL_EXTERNAL_DOMAIN: "${DOMAIN}"
-    KARECTL_BACKEND_URL: "https://backend.${ENVIRONMENT}.${DOMAIN}"
+    KARECTL_BACKEND_URL: "https://portal.${ENVIRONMENT}.${DOMAIN}"
   extraConfig:
     00-authenticator: |
       exec(open('/etc/jupyterhub/config/authenticator.py').read())
@@ -67,7 +67,7 @@ hub:
 
       c.KubeSpawner.extra_labels = {
           'hub.jupyter.org/username': '{username}',
-          'karectl-user': '{username}',
+          'k8tre-user': '{username}',
           'hub.jupyter.org/network-access-hub': 'true'
       }
       c.KubeSpawner.user_storage_pvc_ensure = True

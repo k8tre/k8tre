@@ -1,0 +1,32 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-jhub-auth-proxy-to-alpine-repos
+  namespace: jupyterhub
+spec:
+  description: "Allow jupyterHub auth-proxy init container to access alpine package repos"
+  endpointSelector:
+    matchLabels:
+      app: jhub-auth-proxy
+  egress:
+    # Allow access for apk package installation
+    - toFQDNs:
+        - matchPattern: "*.alpinelinux.org"
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "80"
+              protocol: TCP
+    # Allow dns lookups
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: ANY
+          rules:
+            dns:
+              - matchPattern: "*"

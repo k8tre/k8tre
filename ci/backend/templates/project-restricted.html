@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="alert alert-warning" role="alert">
+  <h4 class="alert-heading">Project Access Restricted from VDI</h4>
+  <p>
+    You are currently in a VDI for the <strong>{{ vdi_project }}</strong> project.
+    From within this VDI, you can only access resources for <strong>{{ vdi_project }}</strong>.
+  </p>
+  <p>
+    You attempted to access the <strong>{{ requested_project }}</strong> project, which is not allowed from this VDI session.
+  </p>
+  <hr />
+  <p class="mb-0">
+    <strong>Possible Next Steps:</strong>
+  </p>
+  <ul>
+    <li>Continue working with <strong>{{ vdi_project }}</strong> project using the desktop shortcuts</li>
+    <li>To access <strong>{{ requested_project }}</strong>, disconnect from this VDI first</li>
+    <li>Return to the portal (outside VDI) to create <strong>{{ requested_project }}</strong> resources</li>
+  </ul>
+  <div class="mt-3">
+    <a href="/projects/{{ vdi_project }}/apps" class="btn btn-primary">View {{ vdi_project }} Apps</a>
+    <a href="/projects" class="btn btn-secondary">Back to Projects</a>
+  </div>
+</div>
+{% endblock %}

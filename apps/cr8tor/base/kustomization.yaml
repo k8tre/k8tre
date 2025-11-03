@@ -6,10 +6,8 @@ resources:
 - cr8tor-configmap.yaml
 - cr8tor-external-secret.yaml
 - networkpolicy.yaml
-- opal-external-secret.yaml
-- storage-class.yaml
 - admin-external-secret.yaml
 
 # cr8tor-operator
-- https://github.com/karectl-crates/cr8tor//manifests/cr8tor-operator?ref=feature/at-guacamole-iam
+- https://github.com/karectl-crates/cr8tor//manifests/cr8tor-operator?ref=feature/at-karectl-k8tre-integration
 - cr8tor-operator-realm-config.yaml

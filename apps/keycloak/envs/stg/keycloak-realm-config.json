@@ -1,5 +1,5 @@
 {
-    "realm": "karectl-app",
+    "realm": "k8tre-app",
     "enabled": true,
     "sslRequired": "external",
     "accessTokenLifespan": 1800,

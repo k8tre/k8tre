@@ -6,6 +6,7 @@ resources:
 - coredns-patcher-job.yaml
 - coredns-rbac.yaml
 - internal-dns-updater-job.yaml
+- dns-monitor-cronjob.yaml
 
 helmCharts:
 - name: coredns

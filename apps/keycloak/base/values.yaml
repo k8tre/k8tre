@@ -41,11 +41,20 @@ database:
 
 resources:
   limits:
-    memory: "1Gi"
-    cpu: "750m"
+    memory: "2Gi"
+    cpu: "1000m"
   requests:
-    memory: "512Mi"
+    memory: "1Gi"
     cpu: "500m"
+
+startupProbe: |
+  httpGet:
+    path: /health
+    port: http-internal
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 60
+  timeoutSeconds: 2
 
 securityContext:
   runAsNonRoot: true

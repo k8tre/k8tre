@@ -1,4 +1,4 @@
-apiVersion: research.karectl.io/v1alpha1
+apiVersion: research.k8tre.io/v1alpha1
 kind: Project
 metadata:
   name: asthma
@@ -15,7 +15,7 @@ spec:
         resolution: "1920x1080"
         desktop: "ubuntu-mate"
 ---
-apiVersion: research.karectl.io/v1alpha1
+apiVersion: research.k8tre.io/v1alpha1
 kind: Project
 metadata:
   name: diabetes

@@ -6,5 +6,5 @@ metadata:
 data:
   keycloak_internal_url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
   keycloak_external_url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
-  keycloak_realm: "karectl-app"
+  keycloak_realm: "k8tre-app"
   audience: "backend"

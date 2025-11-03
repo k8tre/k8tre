@@ -5,7 +5,9 @@ resources:
   - certificate.yaml
   - netpol_singleuser.yaml
   - netpol_singleuser_world.yaml
+  - netpol_auth-proxy_alpine.yaml
   - network_policy.yaml
+  - vdi-network-policy.yaml
   - patch-rolebinding.yaml
   - jupyterhub-external-secret.yaml
   - gateway-route.yaml

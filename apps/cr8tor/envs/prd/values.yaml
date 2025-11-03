@@ -1,5 +1,5 @@
 approvalService:
-  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-approval-service:0.1.63"
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-approval-service:0.1.65"
   volumes:
   - name: secrets-store-inline
     projected:
@@ -9,16 +9,12 @@ approvalService:
           name: cr8tor-microserviceapikey-secret
       - secret:
           name: cr8tor-secret
-      - secret:
-          name: opal-resource-db-secret
-      - secret:
-          name: datashield-secrets
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
 
 metadataService:
-  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-metadata-service:0.1.63"
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-metadata-service:0.1.65"
   volumes:
   - name: secrets-store-inline
     projected:
@@ -28,16 +24,12 @@ metadataService:
           name: cr8tor-microserviceapikey-secret
       - secret:
           name: cr8tor-secret
-      - secret:
-          name: opal-resource-db-secret
-      - secret:
-          name: datashield-secrets
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
 
 publishService:
-  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-publish-service:0.1.63"
+  image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-publish-service:0.1.65"
   volumes:
   - name: secrets-store-inline
     projected:
@@ -47,10 +39,6 @@ publishService:
           name: cr8tor-microserviceapikey-secret
       - secret:
           name: cr8tor-secret
-      - secret:
-          name: opal-resource-db-secret
-      - secret:
-          name: datashield-secrets
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"

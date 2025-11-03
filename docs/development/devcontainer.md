@@ -83,4 +83,4 @@ If you need to customize your development environment, you can modify:
 - `.devcontainer/devcontainer.json` - Main configuration file
 - `.devcontainer/post-create.sh` - Script that runs after container creation
 
-See the [DevContainer README](.devcontainer/README.md) for more details.
+<!-- See the [DevContainer README](.devcontainer/README.md) for more details. -->

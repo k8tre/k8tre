@@ -4,7 +4,7 @@ kind: Kustomization
 helmCharts:
   - name: cr8tor-publisher
     repo: https://lsc-sde.github.io/iac-helm-repository/
-    version: 0.1.63
+    version: 0.1.65
     releaseName: cr8tor
     namespace: cr8tor
     valuesFile: values.yaml

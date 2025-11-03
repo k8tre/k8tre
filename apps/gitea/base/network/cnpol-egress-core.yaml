@@ -32,8 +32,8 @@ spec:
 
     # If Keycloak is called via its external FQDN through the Gateway
     - toFQDNs:
-        - matchName: keycloak.dev.karectl.org   
-        - matchName: keycloak.karectl.org
+        - matchName: keycloak.dev.k8tre.org   
+        - matchName: keycloak.k8tre.org
       toPorts:
         - ports:
             - { port: "443", protocol: TCP }

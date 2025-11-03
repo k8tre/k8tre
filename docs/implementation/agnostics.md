@@ -101,9 +101,25 @@ As support for Gateway API grows and Ingress support is frozen, K8TRE's ingress 
 ## DNS
 
 Services within K8TRE are discoverable as normal through CoreDNS with the usual format of `<service-name>.<namespace>.svc.cluster.local`.
-However, where services need to be exposed to external clients, an external DNS entry is required. 
+However, where services need to be exposed to external clients, an external DNS entry is required.
 There are a large number of DNS solutions such as [Azure DNS](https://learn.microsoft.com/en-us/azure/dns/public-dns-overview), [Azure Private DNS](https://learn.microsoft.com/en-us/azure/dns/private-dns-overview), [Amazon Route 53](https://aws.amazon.com/route53/), etc.
 
-K8TRE allows applications to automatically create, update and delete DNS entries required to expose their services by using [ExternalDNS](https://kubernetes-sigs.github.io/external-dns/) as an abstraction layer over vendor-specific DNS solutions.
-ExternalDNS can create DNS entries automatically using [multiple approaches](https://kubernetes-sigs.github.io/external-dns/v0.15.0/docs/faq/#how-do-i-specify-a-dns-name-for-my-kubernetes-objects). 
-The simplest approach is by using the `hosts` field of the ingress object or the `external-dns.alpha.kubernetes.io/hostname` annotation on the ingress object.
+K8TRE implements automatic DNS management through [ExternalDNS](https://kubernetes-sigs.github.io/external-dns/), which watches Kubernetes resources (Services, HTTPRoutes, GRPCRoutes) and automatically creates, updates, and deletes DNS entries.
+For cloud deployments like Azure or AWS, ExternalDNS integrates directly with provider-specific DNS services such as Azure Private DNS or AWS Route 53.
+
+### K3s DNS
+
+K3s deployments present a unique challenge: there is no cloud-native DNS service available.
+To address this, K8TRE implements a dual-layer DNS architecture specifically for K3s that combines ExternalDNS with a custom DNS solution.
+
+**Why kare-dns is needed for K3s:**
+
+Unlike cloud Kubernetes platforms that provide managed DNS services, K3s clusters lack an integrated DNS backend for external domain management.
+While K3s includes CoreDNS for internal cluster DNS, it cannot serve as an authoritative nameserver for environment-specific domains (e.g., `dev.<domain>`, `stg.<domain>`) that applications need to be accessible from outside the cluster.
+
+K8TRE solves this by deploying **kare-dns**, a dedicated CoreDNS instance that acts as the authoritative DNS server for the environment domain.
+ExternalDNS is configured to use the CoreDNS provider, writing DNS records directly to kare-dns's backend. The cluster's main CoreDNS is then automatically patched to forward all queries for the environment domain to kare-dns.
+
+This architecture provides K3s deployments with the same automatic DNS management capabilities available in cloud environments, without requiring external DNS infrastructure or manual DNS record management.
+
+For more information on ExternalDNS configuration and supported providers, see the [ExternalDNS documentation](https://kubernetes-sigs.github.io/external-dns/).

@@ -6,9 +6,9 @@ spec:
   secretName: xk8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: base-xk8tre.org
+  commonName: base.k8tre.internal
   dnsNames:
-    - base-xk8tre.org
+    - base.k8tre.internal
   usages:
     - digital signature
     - key encipherment

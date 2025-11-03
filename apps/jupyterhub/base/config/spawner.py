@@ -7,10 +7,10 @@ from kubespawner import KubeSpawner
 
 
 KARECTL_ENV = os.environ.get("KARECTL_ENV", "stg")
-KARECTL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "karectl.org")
+KARECTL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "k8tre.org")
 BACKEND_URL = os.environ.get(
     "KARECTL_BACKEND_URL",
-    f"https://backend.{KARECTL_ENV}.{KARECTL_DOMAIN}"
+    f"https://portal.{KARECTL_ENV}.{KARECTL_DOMAIN}"
 )
 
 def get_available_projects():
@@ -31,13 +31,31 @@ def get_available_projects():
         print(f"Error fetching projects from backend: {e}")
         return []
 
+def get_project_from_spawner_user(spawner):
+    """Extract project from the scoped username
+    """
+    try:
+        username = spawner.user.name
+        if '-' in username:
+            parts = username.rsplit('-', 1)  # Split from right to handle usernames with dashes
+            if len(parts) == 2:
+                project = parts[1]
+                spawner.log.info(f"Profile filtering - Extracted project from username: {project}")
+                return project
+
+        spawner.log.warning(f"Profile filtering - Could not extract project from username: {username}")
+    except Exception as e:
+        spawner.log.error(f"Error extracting project from username: {e}")
+
+    return None
+
 def get_project_from_request_uri(spawner):
     """ Extract project from current request URI
     """
     try:
         request_uri = spawner.handler.request.uri if hasattr(spawner, 'handler') and spawner.handler else ""
         spawner.log.info(f"Profile filtering - Request URI: {request_uri}")
-        
+
         if "?" in request_uri:
             query_string = request_uri.split("?", 1)[1]
             query_params = urllib.parse.parse_qs(query_string)
@@ -47,16 +65,17 @@ def get_project_from_request_uri(spawner):
                 if project in available_projects:
                     spawner.log.info(f"Profile filtering - Found project: {project}")
                     return project
-                
+
+        # Only use as last resort fallback
         if hasattr(spawner, 'handler') and spawner.handler:
             auth_project = spawner.handler.request.headers.get('X-Auth-Project', '')
             if auth_project:
-                spawner.log.info(f"Profile filtering - Found project in header: {auth_project}")
+                spawner.log.info(f"Profile filtering project: {auth_project}")
                 return auth_project
 
     except Exception as e:
         spawner.log.error(f"Error extracting project from request URI: {e}")
-        
+
     return None
 
 def get_workspaces(spawner: KubeSpawner):
@@ -64,8 +83,14 @@ def get_workspaces(spawner: KubeSpawner):
     """
     try:
         spawner.log.info("=== GET_WORKSPACES FUNCTION CALLED ===")
-        headers = {}
-        requested_project = get_project_from_request_uri(spawner)
+
+        # Extract project from authenticated username
+        requested_project = get_project_from_spawner_user(spawner)
+
+        # Fallback to request URI/headers
+        if not requested_project:
+            spawner.log.warning("Could not extract project from username, trying request URI as fallback")
+            requested_project = get_project_from_request_uri(spawner)
 
         if requested_project:
             response = requests.get(
@@ -82,7 +107,7 @@ def get_workspaces(spawner: KubeSpawner):
             else:
                 spawner.log.error(f"Failed to fetch profiles for project {requested_project}: {response.status_code}")
         else:
-            spawner.log.info("No project specified, showing all profiles")
+            spawner.log.error("No project could be determined - cannot fetch profiles")
             return []
 
     except Exception as e:
