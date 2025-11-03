@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: backend
+data:
+  keycloak_internal_url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
+  keycloak_external_url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
+  keycloak_realm: "karectl-app"
+  audience: "backend"

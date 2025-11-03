@@ -8,7 +8,7 @@ This directory contains the Kubernetes manifests for deploying the Cloud Native 
   - `kustomization.yaml` - Base kustomization configuration
 - `envs/` - Environment-specific configurations
   - `dev/` - Development environment configuration with specific values
-  - `prod/` - Production environment configuration with production-specific values
+  - `prd/` - Production environment configuration with production-specific values
   - `stg/` - Staging environment configuration
 
 CNPG is deployed as part of the platform agnostic components through the `appsets/agnostics/cnpg.yaml` ApplicationSet and is used by various applications in the K8TRE platform that require PostgreSQL databases.

@@ -27,7 +27,6 @@ Usage:
 """
 
 import base64
-import re
 import secrets
 import string
 import sys
@@ -48,13 +47,13 @@ class SecretGenerator:
     """Generates various types of secrets like passwords and hex keys."""
 
     @staticmethod
-    def generate_password(length: int) -> str:
+    def generate_password(length: int = 16) -> str:
         """Generate a random password."""
         alphabet = string.ascii_letters + string.digits
         return "".join(secrets.choice(alphabet) for _ in range(length))
 
     @staticmethod
-    def generate_hex_key(length: int) -> str:
+    def generate_hex_key(length: int = 32) -> str:
         """Generate a random hex key."""
         return secrets.token_hex(length)
 
@@ -130,28 +129,24 @@ class CISecretsManager:
                 raise
 
     def process_secret_value(self, value: Any, secret_name: str, key: str) -> str:
-        """Process a secret value, handling special generation patterns of the form
-
-        {{ function_name optional-length }}
-        """
-        match = re.match(r"\{\{\s*(?P<method>\w+)(\s+(?P<length>\d+))?\s*\}\}", value)
-        if not match:
-            return value
-
-        method = match.group("method")
-        length = match.group("length")
-        if length:
-            length = int(length)
-
-        if method == "generate_password":
-            generated = self.generator.generate_password(length or 16)
-            self.generated_values[f"{secret_name}.{key}"] = generated
-            return generated
-        if method == "generate_hex_key":
-            generated = self.generator.generate_hex_key(length or 32)
-            self.generated_values[f"{secret_name}.{key}"] = generated
-            return generated
-        raise ValueError(f"Invalid generator method function: {method}")
+        """Process a secret value, handling special generation patterns."""
+        if isinstance(value, str):
+            if value == "{{ generate_password }}":
+                generated = self.generator.generate_password()
+                self.generated_values[f"{secret_name}.{key}"] = generated
+                return generated
+            elif value == "{{ generate_hex_key }}":
+                generated = self.generator.generate_hex_key()
+                self.generated_values[f"{secret_name}.{key}"] = generated
+                return generated
+            elif value.startswith("{{ generate_password("):
+                # Extract length parameter
+                length_str = value.split("(")[1].split(")")[0]
+                length = int(length_str)
+                generated = self.generator.generate_password(length)
+                self.generated_values[f"{secret_name}.{key}"] = generated
+                return generated
+        return str(value)
 
     def check_secret_exists(self, secret_name: str) -> bool:
         """Check if a secret already exists in the namespace."""
@@ -397,7 +392,7 @@ class CISecretsManager:
 
 
 def main(
-    context: Annotated[str, typer.Option(help="Kubernetes context to use")] = "default",
+    context: Annotated[str, typer.Option(help="Kubernetes context to use")],
     namespace: Annotated[
         str, typer.Option(help="Namespace to create secrets in (default: secret-store)")
     ] = "secret-store",

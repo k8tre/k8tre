@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - cmp-plugin.yaml
+
+patches:
+  - path: add-cmp-sidecar.yaml
+    target:
+      kind: Deployment
+      name: argocd-repo-server

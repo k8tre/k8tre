@@ -1,0 +1,89 @@
+apiVersion: research.karectl.io/v1alpha1
+kind: Project
+metadata:
+  name: asthma
+spec:
+  description: "Asthma research project"
+  apps:
+    - name: jupyterhub
+      type: jupyterhub
+      url: "JUPYTERHUB_URL_PLACEHOLDER"
+      config:
+        workspace: "/asthma"
+        quota: "2CPU"
+    - name: guacamole
+      type: vdi
+      url: "GUACAMOLE_URL_PLACEHOLDER"
+      config:
+        protocol: rdp
+        resolution: "1920x1080"
+        desktop: "ubuntu-mate"
+  profiles:
+    - display_name: "Asthma Workspace 1"
+      description: "A TRE workspace for federated analysis with Python"
+      slug: "asthma-ws1"
+      kubespawner_override:
+        image: "ghcr.io/karectl/datashield-workspace:c2bdae836ac9bf91713531bb8160fbd8c15157eb"
+        env:
+          PROJECT_NAME: "asthma"
+          WORKSPACE: "/asthma/ws1"
+---
+apiVersion: research.karectl.io/v1alpha1
+kind: Project
+metadata:
+  name: diabetes
+spec:
+  description: "Diabetes research project"
+  apps:
+    - name: jupyterhub
+      type: jupyterhub
+      url: "JUPYTERHUB_URL_PLACEHOLDER"
+      config:
+        workspace: "/diabetes"
+        quota: "4CPU"
+    - name: guacamole
+      type: vdi
+      url: "GUACAMOLE_URL_PLACEHOLDER"
+      config:
+        protocol: rdp
+        resolution: "1920x1080"
+        desktop: "ubuntu-mate"
+  profiles:
+    - display_name: "Diabetes Workspace 1"
+      description: "Python data analysis for diabetes"
+      slug: "diabetes-ws1"
+      kubespawner_override:
+        image: "quay.io/jupyterhub/k8s-singleuser-sample:3.3.8"
+        env:
+          PROJECT_NAME: "diabetes"
+          WORKSPACE: "/diabetes/ws1"
+---
+apiVersion: research.karectl.io/v1alpha1
+kind: Project
+metadata:
+  name: hypertension
+spec:
+  description: "Hypertension research project"
+  apps:
+    - name: jupyterhub
+      type: jupyterhub
+      url: "JUPYTERHUB_URL_PLACEHOLDER"
+      config:
+        workspace: "/hypertension"
+        quota: "2CPU"
+    - name: guacamole
+      type: vdi
+      url: "https://guacamole.dev-karectl.org"
+      config:
+        protocol: rdp
+        resolution: "1920x1080"
+        desktop: "ubuntu-mate"
+  profiles:
+    - display_name: "Hypertension Workspace 1"
+      description: "A TRE workspace for federated analysis with Python"
+      slug: "hypertension-ws1"
+      kubespawner_override:
+        image: "ghcr.io/karectl/datashield-workspace:c2bdae836ac9bf91713531bb8160fbd8c15157eb"
+        env:
+          PROJECT_NAME: "hypertension"
+          WORKSPACE: "/hypertension/ws1"

@@ -1,0 +1,107 @@
+prePuller:
+  hook:
+    enabled: false
+hub:
+  networkPolicy:
+    enabled: true
+    egressAllowRules:
+      privateIPs: true
+    egress:
+      - to:
+          - ipBlock:
+              cidr: 0.0.0.0/0
+        ports:
+          - port: 443
+            protocol: TCP
+          - port: 6443
+          - port: 443
+  extraVolumes:
+    - name: config-volume
+      configMap:
+        name: jupyterhub-config
+        items:
+            - key: authenticator.py
+              path: authenticator.py
+            - key: spawner.py
+              path: spawner.py
+            - key: hooks.py
+              path: hooks.py
+            - key: profile-form.html
+              path: profile-form.html
+  extraVolumeMounts:
+    - name: config-volume
+      mountPath: /etc/jupyterhub/config
+      readOnly: true
+  extraEnv:
+    KARECTL_ENV: "${ENVIRONMENT}"
+    KARECTL_EXTERNAL_DOMAIN: "${DOMAIN}"
+    KARECTL_BACKEND_URL: "https://backend.${ENVIRONMENT}.${DOMAIN}"
+  extraConfig:
+    00-authenticator: |
+      exec(open('/etc/jupyterhub/config/authenticator.py').read())
+    01-spawner: |
+      exec(open('/etc/jupyterhub/config/spawner.py').read())
+      c.KubeSpawner.profile_form_template_path = '/etc/jupyterhub/config/profile-form.html'
+    02-hooks: |
+      exec(open('/etc/jupyterhub/config/hooks.py').read())
+    03-force-user-isolation: |
+      c.JupyterHub.redirect_to_server = False
+      c.JupyterHub.allow_named_servers = False
+      c.Spawner.disable_user_config = True
+      def debug_spawn_check(spawner):
+          spawner.log.info(f"=== SPAWNING FOR USER: {spawner.user.name} ===")
+          spawner.log.info(f"Expected base_url: /user/{spawner.user.name}/")
+          return spawner
+      
+      c.Spawner.pre_spawn_hook = debug_spawn_check
+      c.KubeSpawner.name_template = 'jupyter-{username}'
+      c.KubeSpawner.pod_name_template = 'jupyter-{username}'
+      c.KubeSpawner.pvc_name_template = 'claim-{username}'
+
+      import logging
+      logging.getLogger('jupyterhub').setLevel(logging.DEBUG)
+
+      c.KubeSpawner.delete_grace_period = 30
+      c.KubeSpawner.start_timeout = 600
+      c.KubeSpawner.http_timeout = 60
+
+      c.KubeSpawner.extra_labels = {
+          'hub.jupyter.org/username': '{username}',
+          'karectl-user': '{username}',
+          'hub.jupyter.org/network-access-hub': 'true'
+      }
+      c.KubeSpawner.user_storage_pvc_ensure = True
+      c.KubeSpawner.storage_pvc_ensure = True
+    04-cors-dual-domain: |
+      # Allow requests from both domains  
+      c.JupyterHub.tornado_settings = {
+          'headers': {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Credentials': 'true',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+              'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Requested-With, Cookie, X-CSRFToken, Origin, Accept'
+          }
+      }
+
+      # Configure single-user servers for CORS
+      c.Spawner.args = ['--ServerApp.allow_origin=*', '--ServerApp.allow_credentials=True']
+proxy:
+  service:
+    type: ClusterIP
+singleuser:
+  cloudMetadata:
+    blockWithIptables: false
+  networkPolicy:
+    enabled: false
+ingress:
+  enabled: false
+  hosts:
+    - jupyter.${ENVIRONMENT}.${DOMAIN}
+  ingressClassName: nginx
+  annotations:
+    # external-dns.alpha.kubernetes.io/hostname: jupyter.${ENVIRONMENT}.${DOMAIN}
+    # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  tls:
+    - hosts:
+        - jupyter.${ENVIRONMENT}.${DOMAIN}
+      secretName: xk8tre-tls

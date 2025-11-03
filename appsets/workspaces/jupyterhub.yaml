@@ -27,7 +27,7 @@ spec:
               # Pattern to match directories for app discovery
               directories:
                 # Matches any directory under apps/jupyterhub/envs/
-                # e.g., apps/jupyterhub/envs/prod
+                # e.g., apps/jupyterhub/envs/prd
                 - path: apps/jupyterhub/envs/*
           - clusters:
               selector:
@@ -57,6 +57,13 @@ spec:
         targetRevision: main
         # Path to the application manifests within the repository
         path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{index .path.segments 3}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
       # Destination cluster and namespace to deploy the application
       destination:
         # Use the server URL from the matched cluster

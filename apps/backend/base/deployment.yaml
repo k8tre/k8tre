@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      serviceAccountName: karectl-backend
+      containers:
+        - name: backend
+          # Image is set by environment-specific patches
+          image: ghcr.io/placeholder/karectl-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: KARECTL_NAMESPACE
+              value: "keycloak"
+            - name: KEYCLOAK_INTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: keycloak_internal_url
+            - name: KEYCLOAK_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: keycloak_external_url
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: keycloak_realm
+            - name: KEYCLOAK_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: audience
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backend-oidc-credentials
+                  key: client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-oidc-credentials
+                  key: client-secret
+            - name: JSON_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: guacamole-json-secret
+                  key: GUACAMOLE_JSON_SECRET_KEY
+            - name: GUACAMOLE_HOST
+              value: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+            - name: KARECTL_BACKEND
+              value: "https://backend.${ENVIRONMENT}.${DOMAIN}"
+            - name: SESSION_HTTPS_ONLY
+              value: "true"
+            - name: KARECTL_ENV
+              value: "${ENVIRONMENT}"
+            - name: KARECTL_EXTERNAL_DOMAIN
+              value: "${DOMAIN}"

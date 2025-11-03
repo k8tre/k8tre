@@ -1,0 +1,51 @@
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: User
+metadata:
+  name: alwin
+spec:
+  username: alwin
+  email: alwin@karectl.io
+  enabled: true
+  groups: ["asthma-admin", "asthma-analyst", "diabetes-admin"]
+  keycloak:
+    email_verified: true
+  jupyterhub:
+    workspace: research-2024
+    compute_quota: "2CPU,8Gi"
+  karectl:
+    user_id: karectl_001
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: User
+metadata:
+  name: test
+spec:
+  username: test
+  email: test@karectl.io
+  enabled: false
+  groups: ["asthma-analyst"]
+  keycloak:
+    email_verified: true
+  jupyterhub:
+    workspace: research-2023
+    compute_quota: "1CPU,4Gi"
+  karectl:
+    user_id: karectl_002
+---
+apiVersion: identity.karectl.io/v1alpha1
+kind: User
+metadata:
+  name: karectl-user
+spec:
+  username: karectl-user
+  email: karectl-user@karectl.io
+  enabled: true
+  groups: ["asthma-analyst", "diabetes-admin", "hypertension-admin"]
+  keycloak:
+    email_verified: true
+  jupyterhub:
+    workspace: research-2023
+    compute_quota: "1CPU,4Gi"
+  karectl:
+    user_id: karectl_003

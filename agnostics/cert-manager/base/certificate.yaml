@@ -1,14 +1,14 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: k8tre-tls
+  name: xk8tre-tls
 spec:
-  secretName: k8tre-tls
+  secretName: xk8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: base.k8tre.internal
+  commonName: base-xk8tre.org
   dnsNames:
-    - base.k8tre.internal
+    - base-xk8tre.org
   usages:
     - digital signature
     - key encipherment

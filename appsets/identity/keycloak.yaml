@@ -30,6 +30,13 @@ spec:
         repoURL: https://github.com/k8tre/k8tre.git
         targetRevision: main
         path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{.metadata.labels.environment}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
       destination:
         server: "{{.server}}"
         namespace: "{{index .path.segments 1}}"

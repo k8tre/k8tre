@@ -13,7 +13,6 @@ This assumes you already have a [Ubuntu 24.04](https://ubuntu.com/download/deskt
 
 Create a K3s configuration file, then install K3S.
 Although most commands can be passed to the command line installer it is more convenient to define them in a [K3S configuration file](https://docs.k3s.io/installation/configuration#configuration-file).
-We'll be installing Cilium, so disable the default Flannel CNI.
 
 ```bash
 sudo mkdir -p /etc/rancher/k3s
@@ -22,9 +21,7 @@ node-name: k8tre-dev
 tls-san:
   - k8tre-dev
 cluster-init: true
-
-# Custom CNI: https://docs.k3s.io/networking/basic-network-options#custom-cni
-flannel-backend: none
+# flannel-backend: "none"
 disable-network-policy: true
 disable:
   - traefik
@@ -39,33 +36,6 @@ Setup Kubeconfig file
 ```bash
 mkdir -p ~/.kube
 sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config
-```
-
-### Setup Cilium CNI
-
-https://docs.cilium.io/en/stable/installation/k3s/
-
-```bash
-CILIUM_VERSION=1.17.5
-CILIUM_CLI_VERSION=v0.18.4
-K3S_POD_CIDR=10.42.0.0/16
-
-curl -sfSL https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-amd64.tar.gz | sudo tar -zxvf - -C /usr/local/bin/
-cilium install --version $CILIUM_VERSION --set=ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR" --set cni.chainingMode=portmap
-```
-
-Install portmap plugin for [hostport support](https://docs.cilium.io/en/v1.17/installation/cni-chaining-portmap/#k8s-install-portmap)
-
-```bash
-sudo mkdir -p /opt/cni/bin/
-curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-amd64-v1.7.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
-```
-
-Wait for Cilium to be ready, and optionally check Cilium it's working.
-```
-cilium status --wait
-# Uncomment if you need to verify cilium is working
-# cilium connectivity test
 ```
 
 ### 3.2 Enable Required Add-ons
@@ -85,7 +55,8 @@ Enable hostpath-storage:
 ARGOCD_VERSION=v3.0.6
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
-sleep 10
+sleep 60
+kubectl get events -n argocd
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 
 sudo curl -sfSL https://github.com/argoproj/argo-cd/releases/download/$ARGOCD_VERSION/argocd-linux-amd64 -o /usr/local/bin/argocd
@@ -113,7 +84,6 @@ argocd cluster set in-cluster \
   --label environment=dev \
   --label secret-store=kubernetes \
   --label vendor=k3s \
-  --label skip-metallb=true
   
 argocd cluster get in-cluster
 ```
@@ -190,22 +160,6 @@ kubectl get deployment -A
 kubectl get daemonset -A
 kubectl get crd
 ```
-
-## Setup Keycloak
-
-
-```bash
-# Get the initial admin password
-KEYCLOAK_PASSWORD=$(kubectl -nkeycloak get secret keycloak-admin-secret -o jsonpath='{.data.admin-password}' | base64 -d)
-# Wait a minute to ensure Keycloak is actually ready
-sleep 1m
-
-ci/ci-setup-keycloak.py \
-  --keycloak-admin=admin \
-  --keycloak-password="$KEYCLOAK_PASSWORD" \
-  --verify=false
-```
-
 
 TODO:
 - Check all references to `k8tre/k8tre` and `main` are changed in all applications

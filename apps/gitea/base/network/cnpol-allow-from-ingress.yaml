@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gitea-allow-from-ingress
+  namespace: gitea
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: gitea
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx   # namespace label of ingress controller
+      toPorts:
+        - ports:
+            - port: "3000"        # service targetPort for HTTP (match your chart)
+              protocol: TCP

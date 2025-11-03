@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-auth-headers
+  namespace: jupyterhub
+data:
+  X-Original-URL: $scheme://$http_host$request_uri
+  X-Original-URI: $request_uri
+  X-Forwarded-Proto: $scheme
+  X-Original-Host: $http_host
+  X-Real-IP: $remote_addr
+  X-Forwarded-For: $proxy_add_x_forwarded_for
+  Cookie: $http_cookie
+  Authorization: $http_authorization

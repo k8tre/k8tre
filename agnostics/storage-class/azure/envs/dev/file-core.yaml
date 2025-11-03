@@ -7,8 +7,9 @@ metadata:
 provisioner: file.csi.azure.com
 allowVolumeExpansion: true
 parameters:
-  storageAccount: <storage-account-name> # Replace with your storage account name
-  resourceGroup: <resource-group-name> # Replace with your resource group name
+  # TODO: Replace with variable substitution
+  storageAccount: stgk8trecoredev 
+  resourceGroup: rg-k8tre-dev-uks-aks 
   skuName: Standard_LRS
 mountOptions:
   - dir_mode=0777

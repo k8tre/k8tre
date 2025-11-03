@@ -1,15 +1,15 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: keycloak-k8tre-tls
+  name: xk8tre-tls
   namespace: keycloak
 spec:
-  secretName: keycloak-k8tre-tls
+  secretName: keycloak.${ENVIRONMENT}.${DOMAIN}-tls
   privateKey:
     rotationPolicy: Always
-  commonName: keycloak.base.k8tre.internal
+  commonName: keycloak.${ENVIRONMENT}.${DOMAIN}
   dnsNames:
-    - keycloak.base.k8tre.internal
+    - keycloak.${ENVIRONMENT}.${DOMAIN}
   usages:
     - digital signature
     - key encipherment

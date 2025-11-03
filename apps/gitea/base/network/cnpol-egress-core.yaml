@@ -1,0 +1,39 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gitea-egress-core
+  namespace: gitea
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: gitea
+  egress:
+    # DNS to CoreDNS
+    - toEndpoints:
+        - matchLabels:
+            k8s-app: kube-dns
+            kubernetes.io/metadata.name: kube-system
+      toPorts:
+        - ports:
+            - { port: "53", protocol: UDP }
+            - { port: "53", protocol: TCP }
+
+    # If Keycloak is called as an in-cluster Service
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: keycloak
+            kubernetes.io/metadata.name: keycloak
+      toPorts:
+        - ports:
+            - { port: "80", protocol: TCP }
+            - { port: "443", protocol: TCP }
+            - { port: "8080", protocol: TCP }
+            - { port: "8443", protocol: TCP }
+
+    # If Keycloak is called via its external FQDN through the Gateway
+    - toFQDNs:
+        - matchName: keycloak.dev.karectl.org   
+        - matchName: keycloak.karectl.org
+      toPorts:
+        - ports:
+            - { port: "443", protocol: TCP }

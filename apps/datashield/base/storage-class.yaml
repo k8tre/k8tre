@@ -1,0 +1,24 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: opal-file
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  storageAccount: stgk8trecore${ENVIRONMENT}
+  resourceGroup: rg-k8tre-${ENVIRONMENT}-uks-aks
+  skuName: Standard_LRS
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - uid=10041
+  - gid=10041
+  - mfsymlinks
+  - nosharesock
+  - cache=strict
+  - actimeo=30
+  - nobrl  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate

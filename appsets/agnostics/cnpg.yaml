@@ -21,7 +21,7 @@ spec:
               # Pattern to match directories for app discovery
               directories:
                 # Matches any directory under agnostics/cnpg/envs/
-                # e.g., agnostics/cnpg/envs/prod
+                # e.g., agnostics/cnpg/envs/prd
                 - path: agnostics/cnpg/envs/*
           - clusters:
               selector:

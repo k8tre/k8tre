@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gateway-srv-patch
+  namespace: gateway
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata: {}
+    spec:
+      serviceAccountName: gateway-admin
+      containers:
+      - name: kubectl
+        image: alpine/k8s:1.31.1
+        env:
+        - name: ENVIRONMENT
+          value: ${ENVIRONMENT}
+        - name: EXTERNAL_DOMAIN
+          value: ${DOMAIN}
+        command:
+          - /bin/sh
+          - -c
+          - |
+            kubectl patch svc cilium-gateway-internal-gateway -n gateway \
+            --type=merge \
+            -p "{
+              \"metadata\": {
+                \"annotations\": {
+                  \"metallb.universe.tf/loadBalancerIPs\": \"\",
+                  \"external-dns.alpha.kubernetes.io/hostname\": \"gw.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, jupyter.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, opal.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, keycloak.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, backend.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, guacamole.${ENVIRONMENT}.${EXTERNAL_DOMAIN}, gitea.${ENVIRONMENT}.${EXTERNAL_DOMAIN}\"
+                }
+              }
+            }"
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway-admin
+  namespace: gateway
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: gateway-patch-role
+  namespace: gateway
+rules:
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gateway-patch-rolebinding
+  namespace: gateway
+subjects:
+- kind: ServiceAccount
+  name: gateway-admin
+  namespace: gateway
+roleRef:
+  kind: Role
+  name: gateway-patch-role
+  apiGroup: rbac.authorization.k8s.io

@@ -7,7 +7,7 @@ This directory contains the Kubernetes manifests for deploying the External Secr
 - `base/` - Contains the base Kubernetes manifests for the External Secrets Operator (Empty at the moment)
 - `envs/` - Environment-specific configurations
   - `dev/` - Development environment configuration
-  - `prod/` - Production environment configuration
+  - `prd/` - Production environment configuration
   - `stg/` - Staging environment configuration
 
 The External Secrets Operator is deployed as part of the platform agnostic components through the `appsets/agnostics/external-secrets.yaml` ApplicationSet and enables applications in the K8TRE platform to securely retrieve secrets from external sources.

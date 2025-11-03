@@ -1,0 +1,52 @@
+# kare-dns staging environment overrides - minimal configuration
+serviceType: LoadBalancer
+
+servers:
+- zones:
+  - zone: ${ENVIRONMENT}.${DOMAIN}
+  port: 53
+  plugins:
+  - name: etcd
+    parameters: ${ENVIRONMENT}.${DOMAIN}
+    configBlock: |-
+      stubzones
+      path /skydns
+      endpoint http://etcd.kare-dns.svc.cluster.local:2379
+  - name: template
+    parameters: IN SOA ${ENVIRONMENT}.${DOMAIN}
+    configBlock: |-
+      match ^${ENVIRONMENT}\.${DOMAIN}\.$
+      answer "{{ .Name }} 60 IN SOA ns1.${ENVIRONMENT}.${DOMAIN}. admin.${ENVIRONMENT}.${DOMAIN}. 2025091100 3600 1800 604800 86400"
+      fallthrough
+  - name: template
+    parameters: IN NS ${ENVIRONMENT}.${DOMAIN}
+    configBlock: |-
+      match ^${ENVIRONMENT}\.${DOMAIN}\.$
+      answer "{{ .Name }} 60 IN NS ns1.${ENVIRONMENT}.${DOMAIN}."
+      fallthrough
+  - name: cache
+    parameters: 30
+  - name: health
+    configBlock: |-
+      lameduck 5s
+  - name: ready
+- zones:
+  - zone: cluster.local
+  port: 53
+  plugins:
+  - name: kubernetes
+    parameters: cluster.local in-addr.arpa ip6.arpa
+    configBlock: |-
+      pods insecure
+      fallthrough in-addr.arpa ip6.arpa
+      endpoint_pod_names
+  - name: cache
+    parameters: 30
+- zones:
+  - zone: .
+  port: 53
+  plugins:
+  - name: forward
+    parameters: . /etc/resolv.conf
+  - name: cache
+    parameters: 30

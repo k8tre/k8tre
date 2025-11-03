@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-ca
+  namespace: cert-manager
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: m.harding@lancaster.ac.uk
+    privateKeySecretRef:
+      name: letsencrypt-ca
+    solvers:
+    - dns01:
+        azureDNS:
+          hostedZoneName: karectl.org
+          resourceGroupName: rg-kare-con-uks-dns
+          subscriptionID: 443fc06f-050e-4794-83d8-eaeee691d453
+          managedIdentity:
+            clientID: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX

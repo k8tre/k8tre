@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: gitea-egress-github
+  namespace: gitea
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: gitea
+  egress:
+    - toFQDNs:
+        - { matchName: github.com }
+        - { matchName: api.github.com }
+      toPorts:
+        - ports:
+            - { port: "443", protocol: TCP }

@@ -40,58 +40,18 @@ spec:
     matchLabels:
       app: jupyterhub
       component: continuous-image-puller
-
 ---
+# TODO: Define more restrictive policy to avoid dropped hairpin traffic
 apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
+kind: CiliumClusterwideNetworkPolicy
 metadata:
-  name: allow-access-hub-to-services
-  namespace: jupyterhub
+  name: allow-pod-to-pod-via-gateway
 spec:
+  endpointSelector: {}
   egress:
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: keycloak
-            app.kubernetes.io/component: keycloak
-            app.kubernetes.io/instance: keycloak
-            app.kubernetes.io/name: keycloak
-      toPorts:
-        - ports:
-            # This is the pod not the service port
-            - port: "8080"
-              protocol: TCP
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: jupyterhub
-            app.kubernetes.io/instance: guacamolehandler
-            app.kubernetes.io/name: guacamolehandler
-      toPorts:
-        - ports:
-            - port: "8040"
-              protocol: TCP
-  endpointSelector:
-    matchLabels:
-      app: jupyterhub
-      component: hub
-
----
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: allow-access-proxy-to-services
-  namespace: jupyterhub
-spec:
-  egress:
-    - toEndpoints:
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: jupyterhub
-            app.kubernetes.io/instance: guacamolehandler
-            app.kubernetes.io/name: guacamolehandler
-      toPorts:
-        - ports:
-            - port: "8040"
-              protocol: TCP
-  endpointSelector:
-    matchLabels:
-      app: jupyterhub
-      component: proxy
+  - toEntities:
+    - cluster
+  ingress:
+  - fromEntities:
+    - cluster
+    - world

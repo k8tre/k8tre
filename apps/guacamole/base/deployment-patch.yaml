@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole
+  namespace: jupyterhub
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: config-generator
+          image: busybox:1.35
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: guacamole-json-secret
+                  key: GUACAMOLE_JSON_SECRET_KEY
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Generating configuration..."
+              mkdir -p /config
+              cat > /config/guacamole.properties << EOF
+              enable-environment-properties: true
+              extension-priority: json
+              skip-if-unavailable: file
+              json-secret-key: ${SECRET_KEY}
+              guacd-hostname: guacamole-guacd
+              guacd-port: 4822
+              log-level: debug
+              EOF
+          volumeMounts:
+            - name: generated-config
+              mountPath: /config
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+
+      volumes:
+        - name: generated-config
+          emptyDir: {}
+
+      containers:
+        - name: guacamole
+          volumeMounts:
+            - name: generated-config
+              mountPath: /etc/guacamole/guacamole.properties
+              subPath: guacamole.properties
+              readOnly: true

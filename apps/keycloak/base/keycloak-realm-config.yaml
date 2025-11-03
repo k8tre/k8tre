@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8tre-realm-config
+  namespace: keycloak
+data:
+  realm-name: karectl-app
+  realm-display-name: Karectl Application Realm
+  keycloak-url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}/"
+  keycloak-verify-tls: "true"

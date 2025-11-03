@@ -1,0 +1,38 @@
+# This file contains the configuration for the PostgreSQL database used by Keycloak.
+# https://cloudnative-pg.io/documentation/1.23/cloudnative-pg.v1/#postgresql-cnpg-io-v1-ClusterSpec
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-postgres-cluster
+  namespace: keycloak
+spec:
+  enablePDB: false
+  instances: 1
+  storage:
+    size: 512Mi # Reduced from 1Gi to use less storage
+  imagePullPolicy: Always
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+      ephemeral-storage: "512Mi" # Adding explicit ephemeral storage limit
+  managed:
+    roles:
+      - name: keycloak-user
+        ensure: present
+        comment: "Keycloak user role"
+        login: true
+        superuser: false
+        passwordSecret:
+          name: keycloak-db-secret
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak-user
+      secret:
+        name: keycloak-db-secret
+      postInitApplicationSQL:
+        - create schema if not exists keycloak;

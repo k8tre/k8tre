@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/">Home</a></li>
+    <li class="breadcrumb-item"><a href="/projects">Projects</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Apps for {{ project }}</li>
+  </ol>
+</nav>
+
+<h3>Apps for Project: {{ project }}</h3>
+<div class="row">
+  {% for app in apps %}
+  <div class="col-md-4 mb-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <img src="/static/{{ app.type }}.png"
+             alt="{{ app.type }}"
+             style="width: 48px; height: 48px; margin-bottom: 10px;" />
+
+        <h5 class="card-title">{{ app.name }}</h5>
+        <p class="card-text text-muted">Type: {{ app.type }}</p>
+        <a href="/launch/{{ project }}/{{ app.name }}" class="btn btn-success">Launch</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<a href="/projects" class="btn btn-link mt-3">Back to Projects</a>
+{% endblock %}

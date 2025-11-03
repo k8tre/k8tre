@@ -1,0 +1,177 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-patcher-script
+  namespace: kube-system
+data:
+  patch-coredns.sh: |-
+    #!/bin/sh
+    set -e
+    DEBUG=${DEBUG:-false}
+
+    echo "Starting CoreDNS patcher..."
+    echo "Waiting for kare-dns service to be ready..."
+    TIMEOUT=300
+    ELAPSED=0
+
+    while [ $ELAPSED -lt $TIMEOUT ]; do
+      KARE_DNS_IP=$(kubectl get service kare-dns-coredns -n kare-dns -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+
+      if [ -n "$KARE_DNS_IP" ] && [ "$KARE_DNS_IP" != "null" ] && [ "$KARE_DNS_IP" != "<no value>" ]; then
+        echo "Found kare-dns service ClusterIP: $KARE_DNS_IP"
+        if echo "$KARE_DNS_IP" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' > /dev/null; then
+          # Create Corefile content
+          {
+            echo "${ENVIRONMENT}.${DOMAIN}:53 {"
+            echo "    errors"
+            echo "    forward . $KARE_DNS_IP:53"
+            echo "}"
+            echo ".:53 {"
+            echo "    errors"
+            echo "    health"
+            echo "    ready"
+            echo "    kubernetes cluster.local in-addr.arpa ip6.arpa {"
+            echo "        pods insecure"
+            echo "        fallthrough in-addr.arpa ip6.arpa"
+            echo "    }"
+            echo "    hosts /etc/coredns/NodeHosts {"
+            echo "        ttl 60"
+            echo "        reload 15s"
+            echo "        fallthrough"
+            echo "    }"
+            echo "    prometheus :9153"
+            echo "    forward . /etc/resolv.conf"
+            echo "    cache 30"
+            echo "    loop"
+            echo "    reload"
+            echo "    loadbalance"
+            echo "    import /etc/coredns/custom/*.override"
+            echo "}"
+            echo "import /etc/coredns/custom/*.server"
+          } > /tmp/new-corefile
+          echo "Patching CoreDNS ConfigMap with kare-dns IP: $KARE_DNS_IP"
+
+          if kubectl patch configmap coredns -n kube-system --patch '{"data":{"Corefile":"'"$(cat /tmp/new-corefile | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')"'"}}'; then
+            echo "Successfully patched CoreDNS ConfigMap"
+
+            echo "Restarting CoreDNS deployment..."
+            if kubectl rollout restart deployment/coredns -n kube-system; then
+              echo "Successfully restarted CoreDNS deployment"
+
+              echo "Waiting for CoreDNS rollout to complete..."
+              if kubectl rollout status deployment/coredns -n kube-system --timeout=120s; then
+                echo "CoreDNS configuration updated successfully!"
+                exit 0
+              else
+                echo "WARNING: CoreDNS rollout timed out, but patch was applied"
+                exit 0
+              fi
+            else
+              echo "ERROR: Failed to restart CoreDNS deployment"
+              exit 1
+            fi
+          else
+            echo "ERROR: Failed to patch CoreDNS ConfigMap"
+            exit 1
+          fi
+        else
+          echo "Invalid IP format: $KARE_DNS_IP, retrying..."
+        fi
+      fi
+
+      echo "kare-dns service not ready yet, waiting..."
+      sleep 5
+      ELAPSED=$((ELAPSED + 5))
+    done
+
+    echo "ERROR: Timeout waiting for kare-dns service after ${TIMEOUT}s"
+    exit 1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: coredns-kare-dns-patcher
+  namespace: kube-system
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
+    argocd.argoproj.io/sync-options: Replace=true
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-kare-dns
+        image: alpine/k8s:1.31.1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for kare-dns service to be ready..."
+          TIMEOUT=300
+          ELAPSED=0
+
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            echo "Checking kare-dns service... (${ELAPSED}s/${TIMEOUT}s)"
+            SERVICE_IP=$(kubectl get service kare-dns-coredns -n kare-dns -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+
+            if [ -n "$SERVICE_IP" ] && [ "$SERVICE_IP" != "null" ] && [ "$SERVICE_IP" != "None" ]; then
+              echo "kare-dns service is ready with ClusterIP: $SERVICE_IP"
+              break
+            fi
+
+            echo "kare-dns service not ready yet, waiting..."
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+          if [ $ELAPSED -ge $TIMEOUT ]; then
+            echo "ERROR: Timeout waiting for kare-dns service after ${TIMEOUT}s"
+            exit 1
+          fi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+      containers:
+      - name: dns-patcher
+        image: alpine/k8s:1.31.1
+        command: ["/bin/sh", "/scripts/patch-coredns.sh"]
+        env:
+        - name: ENVIRONMENT
+          value: "${ENVIRONMENT}"
+        - name: DOMAIN
+          value: "${DOMAIN}"
+        volumeMounts:
+        - name: patcher-script
+          mountPath: /scripts
+          readOnly: true
+        - name: temp-dir
+          mountPath: /tmp
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      volumes:
+      - name: patcher-script
+        configMap:
+          name: coredns-patcher-script
+          defaultMode: 0755
+      - name: temp-dir
+        emptyDir: {}
+      restartPolicy: OnFailure
+      serviceAccount: coredns
+      serviceAccountName: coredns
+  backoffLimit: 3
