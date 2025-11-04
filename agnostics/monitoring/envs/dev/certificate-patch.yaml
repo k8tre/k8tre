@@ -1,0 +1,9 @@
+- op: replace
+  path: /spec/secretName
+  value: grafana-k8tre-tls
+- op: replace
+  path: /spec/commonName
+  value: grafana.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
+- op: replace
+  path: /spec/dnsNames/0
+  value: grafana.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk

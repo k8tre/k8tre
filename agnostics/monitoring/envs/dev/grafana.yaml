@@ -1,0 +1,57 @@
+# https://github.com/grafana/alloy-scenarios/blob/b1478d777eefe476319fd4a8779f02a68f549e99/k8s/logs/grafana-values.yml
+
+---
+# https://github.com/grafana/helm-charts/issues/3699
+initChownData:
+  enabled: false
+
+persistence:
+  type: pvc
+  enabled: true
+
+adminUser: admin
+# TODO: Move to secret
+adminPassword: secret123
+# admin:
+#  existingSecret: ""
+#  userKey: admin-user
+#  passwordKey: admin-password
+
+service:
+  enabled: true
+  type: ClusterIP
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: Loki
+      type: loki
+      access: proxy
+      orgId: 1
+      url: http://loki-gateway:80
+      basicAuth: true
+      secureJsonData:
+        basicAuthPassword: secret123
+      basicAuthUser: loki
+      isDefault: false
+      version: 1
+      editable: false
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      orgId: 1
+      url: http://prometheus-server:80
+      isDefault: false
+      basicAuth: false
+      editable: false
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - grafana.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
+  tls:
+    - hosts:
+        - grafana.k8tre-dev-eks.trevolution.dev.hic.dundee.ac.uk
+      secretName: grafana-k8tre-tls
