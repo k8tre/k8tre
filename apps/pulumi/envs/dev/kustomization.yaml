@@ -1,0 +1,15 @@
+# https://www.pulumi.com/docs/iac/guides/continuous-delivery/pulumi-kubernetes-operator/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# resources:
+# -
+
+helmCharts:
+  - name: pulumi-kubernetes-operator
+    repo: oci://ghcr.io/pulumi/helm-charts/pulumi-kubernetes-operator
+    version: 2.3.0
+    releaseName: pulumi
+    namespace: pulumi
+    # valuesFile: values.yaml
