@@ -14,3 +14,4 @@ resources:
   - identity/keycloak.yaml
   - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
+  - workspaces/pulumi.yaml
