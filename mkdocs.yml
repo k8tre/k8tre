@@ -23,6 +23,7 @@ theme:
         icon: material/brightness-4
         name: Switch to light mode
   features:
+    - navigation.instant
     - navigation.tabs
     - navigation.sections
     - navigation.expand
@@ -50,9 +51,9 @@ markdown_extensions:
       alternate_style: true
   - tables
   - footnotes
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+  # - pymdownx.emoji:
+  #     emoji_index: !!python/name:materialx.emoji.twemoji
+  #     emoji_generator: !!python/name:materialx.emoji.to_svg
 
 nav:
   - Home: index.md
@@ -81,5 +82,8 @@ nav:
       - Introduction: development/introduction.md
       - K3S Single-Cluster Setup: development/k3s-dev.md
       - K3S Multi-Cluster Setup: development/k3s.md
+  - Guides:
+      - Installation: guides/installation.md
+      - Workspace Access: guides/workspace-access.md
   - Contributing: contributing.md
   

@@ -1,0 +1,38 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: gitea-postgres-cluster
+  namespace: gitea
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd.argoproj.io/ignore-differences: |
+      jqPathExpressions:
+      - .spec.managed.roles[]?.connectionLimit
+      - .spec.managed.roles[]?.inherit
+spec:
+  instances: 1
+  storage:
+    size: 5Gi
+  imagePullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  managed:
+    roles:
+      - name: gitea_user
+        ensure: present
+        comment: "Gitea DB user"
+        login: true
+        superuser: false
+        passwordSecret:
+          name: gitea-db-secret         # comes from ExternalSecret (AKV)
+  bootstrap:
+    initdb:
+      database: gitea                   # matches AKV 'database'
+      owner: gitea_user
+      secret:
+        name: gitea-db-secret           # provides username/password/database to initdb

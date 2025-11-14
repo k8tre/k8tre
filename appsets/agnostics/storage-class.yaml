@@ -10,7 +10,7 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/k8tre/k8tre.git
+              repoURL: https://github.com/karectl/karectl.git
               revision: main
               directories:
                 - path: agnostics/storage-class/*/envs/*
@@ -18,24 +18,25 @@ spec:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
-                  storage-class: "{{index .path.segments 2}}"
+                  vendor: "{{index .path.segments 2}}"
   template:
     metadata:
-      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      name: "storage-{{index .path.segments 2}}-{{index .path.segments 4}}"
       annotations:
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
         argocd.argoproj.io/sync-wave: "-10"
     spec:
       project: default
       source:
-        repoURL: https://github.com/k8tre/k8tre.git
+        repoURL: https://github.com/karectl/karectl.git
         targetRevision: main
         path: "{{.path.path}}"
       destination:
         server: "{{.server}}"
+        namespace: storage-system
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=false
+          - CreateNamespace=true

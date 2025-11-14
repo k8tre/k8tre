@@ -1,0 +1,82 @@
+# This ApplicationSet dynamically generates Argo CD Applications for Backend
+# environments. It scans a Git repository for matching directory patterns
+# and creates applications for each match.
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  # Name of the ApplicationSet resource
+  name: backend
+  # The ApplicationSet is created in the ArgoCD namespace
+  namespace: argocd
+spec:
+  # Enable Go templating for dynamic field generation
+  goTemplate: true
+  # Configure template behavior - fail if a key is missing
+  goTemplateOptions: ["missingkey=error"]
+
+  # Define how applications are discovered and generated
+  generators:
+    - matrix:
+        generators:
+          - git:
+              # Repository containing the application definitions
+              repoURL: https://github.com/k8tre/k8tre.git
+              # Use HEAD to always track the latest commit on the main branch
+              revision: main
+              # Pattern to match directories for app discovery
+              directories:
+                # Matches any directory under apps/backend/envs/
+                # e.g., apps/backend/envs/dev, apps/backend/envs/prod
+                - path: apps/backend/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  # This will match the environment from the path segment
+                  # e.g., if path is apps/backend/envs/dev, it will match clusters with label environment: dev
+                  environment: "{{index .path.segments 3}}"
+
+  # Template for generating Application resources
+  template:
+    metadata:
+      # Application naming pattern: <app-name>-<environment>
+      # e.g., backend-dev
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        # ArgoCD application name
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      # Assign to the default project
+      project: default
+      # Source configuration for the application
+      source:
+        # Git repository containing the application manifests
+        repoURL: https://github.com/k8tre/k8tre.git
+        # Use the latest commit on the main branch
+        targetRevision: main
+        # Path to the application manifests within the repository
+        path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{.metadata.labels.environment}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
+      # Destination cluster and namespace to deploy the application
+      destination:
+        # Use the server URL from the matched cluster
+        server: "{{.server}}"
+        # Deploy to backend namespace
+        namespace: backend
+      # Sync policy for the application
+      syncPolicy:
+        automated:
+          # Automatically delete resources that are no longer in Git
+          prune: true
+          # Automatically sync if out of sync with Git
+          selfHeal: true
+        syncOptions:
+          # Create namespace if it doesn't exist
+          - CreateNamespace=true

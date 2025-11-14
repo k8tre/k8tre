@@ -1,0 +1,3 @@
+- op: replace
+  path: /spec/acme/solvers/0/dns01/azureDNS/managedIdentity/clientID
+  value: ba650eed-1ef8-4147-b54f-b214b7eead96

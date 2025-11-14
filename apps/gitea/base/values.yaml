@@ -1,0 +1,92 @@
+# Make sure the chart doesn't deploy its own DB/cache
+postgresql: { enabled: false }
+postgresql-ha: { enabled: false }
+mysql: { enabled: false }
+memcached: { enabled: false }
+redis: { enabled: false }
+redis-cluster: { enabled: false }
+
+image:
+  tag: "1.21.11" #version with admin auth api
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+gitea:
+  admin:
+    existingSecret: gitea-secret
+    username: admin            # ignored because existingSecret is set
+    password: ""               # ignored because existingSecret is set
+
+  config:
+    queue:
+      TYPE: level    # use local disk-backed queue (default is redis) 
+      CONN_STR: /data/queues/level
+    server:
+      DOMAIN: gitea.${ENVIRONMENT}.${DOMAIN}
+      ROOT_URL: https://gitea.${ENVIRONMENT}.${DOMAIN}/
+      PROTOCOL: http           # ingress terminates TLS
+      HTTP_PORT: 3000
+      DISABLE_SSH: "true"
+    service:
+      DISABLE_REGISTRATION: "true"
+
+    # --- DB config ---
+    database:
+      DB_TYPE: postgres
+      HOST: gitea-postgres-cluster-rw.gitea.svc.cluster.local:5432
+      NAME: gitea
+      USER: gitea_user
+
+    # --- Disable Redis; use in-memory cache & file sessions ---
+    cache:
+      ADAPTER: memory
+      ENABLED: true   
+    session:
+      PROVIDER: file
+    redis:
+      ENABLED: false
+    queue:
+      TYPE: Immediate
+
+  # These envs ensure the running container uses the same settings
+  env:
+    - name: GITEA__DATABASE__PASSWD
+      valueFrom:
+        secretKeyRef:
+          name: gitea-db-secret
+          key: password
+    - name: GITEA__CACHE__ADAPTER
+      value: memory
+    - name: GITEA__SESSION__PROVIDER
+      value: file
+    - name: GITEA__QUEUE__TYPE        
+      value: level
+    - name: GITEA__QUEUE__CONN_STR
+      value: /data/queues/level
+
+service:
+  ssh:
+    enabled: false
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 10Gi
+  accessModes: [ "ReadWriteOnce" ]
+  # storageClass: managed-standard  # uncomment only if you must pin a class
+
+resources:
+  requests: { cpu: "200m", memory: "512Mi" }
+  limits:   { cpu: "1",    memory: "1Gi" }

@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kare-dns
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/k8tre/k8tre.git
+              revision: main
+              directories:
+                - path: agnostics/kare-dns/*/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: "{{index .path.segments 4}}"
+                  vendor: "{{index .path.segments 2}}"
+                matchExpressions:
+                  - key: skip-kare-dns
+                    operator: NotIn
+                    values: ["true"]
+  template:
+    metadata:
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
+        argocd.argoproj.io/sync-wave: "-8" # Install after MetalLB, before External DNS
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{index .path.segments 4}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
+      destination:
+        server: "{{.server}}"
+        namespace: "{{index .path.segments 1}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

@@ -7,38 +7,15 @@ helmCharts:
     version: 4.2.0
     releaseName: jupyterhub
     namespace: jupyterhub
-    valuesFile: values.yaml
-
-  - name: guacamole
-    repo: https://www.manicstreetpreacher.co.uk/helm-guacamole/
-    version: 0.1.2
-    releaseName: guacamole
-    namespace: jupyterhub
-    valuesFile: guacamole.yaml
-
-  - name: generic-webservice
-    repo: https://www.manicstreetpreacher.co.uk/helm-generic-webservice/
-    version: 0.1.5
-    releaseName: guacamolehandler
-    namespace: jupyterhub
-    valuesFile: guacamolehandler.yaml
+    valuesFile: ../../base/values.yaml
 
 resources:
   - ../../base
-  - certificate-guacamole.yaml
-  - guacamole-json-secret.yaml
-  - jupyterhub-secret.yaml
-  - netpol-singleuser.yaml
-  # - netpol_singleuser_world.yaml
-
-patches:
-  - path: certificate-patch.yaml
-    target:
-      kind: Certificate
-      name: jupyter-k8tre-tls
 
 configMapGenerator:
-  - name: jupyterhub-extraconfig
+  - name: jupyterhub-config
     files:
-      # Kustomize will create a ConfigMap with the contents of this file
-      - jupyterhub_extraconfig.py
+    - ../../base/config/authenticator.py
+    - ../../base/config/spawner.py
+    - ../../base/config/hooks.py
+    - ../../base/config/profile-form.html

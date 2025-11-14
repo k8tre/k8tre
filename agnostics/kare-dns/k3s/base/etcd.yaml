@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: etcd-data
+  namespace: kare-dns
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etcd
+  namespace: kare-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: etcd
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: etcd
+    spec:
+      containers:
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.5.15
+        command:
+        - etcd
+        - --data-dir=/etcd-data
+        - --listen-client-urls=http://0.0.0.0:2379
+        - --advertise-client-urls=http://0.0.0.0:2379
+        - --listen-peer-urls=http://0.0.0.0:2380
+        - --initial-advertise-peer-urls=http://0.0.0.0:2380
+        - --initial-cluster=etcd-0=http://0.0.0.0:2380
+        - --name=etcd-0
+        - --initial-cluster-token=etcd-cluster
+        - --initial-cluster-state=new
+        ports:
+        - containerPort: 2379
+        - containerPort: 2380
+        volumeMounts:
+        - name: etcd-data
+          mountPath: /etcd-data
+      volumes:
+      - name: etcd-data
+        persistentVolumeClaim:
+          claimName: etcd-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+  namespace: kare-dns
+spec:
+  ports:
+  - name: client
+    port: 2379
+    targetPort: 2379
+  - name: peer
+    port: 2380
+    targetPort: 2380
+  selector:
+    app.kubernetes.io/name: etcd

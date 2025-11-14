@@ -8,7 +8,7 @@ This directory contains the Kubernetes manifests for deploying External DNS with
   - `base/` - Contains the base configuration files
   - `envs/` - Environment-specific configurations
     - `dev/` - Development environment configuration
-    - `prod/` - Production environment configuration  
+    - `prd/` - Production environment configuration  
     - `stg/` - Staging environment configuration
 
 ## Features
@@ -29,7 +29,3 @@ Each environment uses its own `values.yaml` file that configures:
 - Domain filters for the specific environment
 - Azure authentication via Workload Identity
 - Sync policies and ownership identifiers
-
-## ToDo
-
-- Each deployment will need to update the values.yaml file with the appropriate values for their organisation and environments. This will need to be setup as Kustomize patch elsewhere to avoid users having to modify these files here.

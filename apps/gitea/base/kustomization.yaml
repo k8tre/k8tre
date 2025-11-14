@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: gitea
+
+resources:
+  - certificate.yaml
+  - gitea-external-secrets.yaml
+  - gitea-db-external-secret.yaml
+  - gitea-oauth-config-job.yaml
+  - postgres.yaml
+  - network/cnpol-allow-from-ingress.yaml
+  - network/cnpol-egress-core.yaml
+  - gateway-route.yaml
+
+# Render the official Gitea Helm chart
+helmCharts:
+  - name: gitea
+    repo: https://dl.gitea.com/charts/
+    version: 9.4.0
+    releaseName: gitea
+    valuesFile: values.yaml
+
+# Patch to inject DB password into init containers
+patches:
+  - path: patch-init-password.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: gitea

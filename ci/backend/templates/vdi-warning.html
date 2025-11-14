@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="alert alert-warning" role="alert">
+  <h4 class="alert-heading">VDI from VDI Warning</h4>
+  <p>
+    You are attempting to launch a VDI from within an existing VDI session.
+    This can create nested VDI sessions (VDI inside VDI), which can create:
+  </p>
+  <ul>
+    <li>Performance degradation</li>
+    <li>Resource conflicts</li>
+    <li>Unexpected behavior</li>
+  </ul>
+  <hr />
+  <p class="mb-0">
+    <strong>Possible Next Steps:</strong>
+  </p>
+  <ul>
+    <li>Close this browser and use the desktop shortcuts in your VDI</li>
+    <li>To access a different project, disconnect from the current VDI first</li>
+    <li>Use the JupyterHub shortcut on your desktop for the {{ project }} project</li>
+  </ul>
+  <div class="mt-3">
+    <a href="/projects" class="btn btn-secondary">Back to Projects</a>
+    <a href="/projects/{{ project }}/apps" class="btn btn-primary">View Available Apps</a>
+  </div>
+</div>
+{% endblock %}

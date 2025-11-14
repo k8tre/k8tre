@@ -1,0 +1,71 @@
+command:
+  - "/opt/keycloak/bin/kc.sh"
+  - "start"
+  - "--http-port=8080"
+  - "--hostname-strict=false"
+  - "--import-realm"
+
+http:
+  relativePath: "/"
+
+postgresql:
+  enabled: false
+
+extraEnv: |
+  - name: KEYCLOAK_ADMIN
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-credentials
+        key: username
+  - name: KEYCLOAK_ADMIN_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: keycloak-admin-credentials
+        key: admin-password
+  - name: JAVA_OPTS_APPEND
+    value: >-
+      -XX:MaxRAMPercentage=50.0
+      -Djgroups.dns.query={{ include "keycloak.fullname" . }}-headless
+  - name: KC_PROXY_HEADERS
+    value: xforwarded
+  - name: KC_HOSTNAME
+    value: https://keycloak.${ENVIRONMENT}.${DOMAIN}
+
+database:
+  vendor: postgres
+  hostname: keycloak-postgres-cluster-rw
+  port: 5432
+  database: keycloak
+  username: keycloak-user
+  existingSecret: keycloak-db-secret
+
+resources:
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+
+startupProbe: |
+  httpGet:
+    path: /health
+    port: http-internal
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  failureThreshold: 60
+  timeoutSeconds: 2
+
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+
+extraVolumes: |
+  - name: realm-config
+    configMap:
+      name: keycloak-realm-config
+
+extraVolumeMounts: |
+  - name: realm-config
+    mountPath: /opt/keycloak/data/import
+    readOnly: true

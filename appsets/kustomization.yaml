@@ -3,14 +3,34 @@ kind: Kustomization
 namespace: argocd
 
 resources:
+  - agnostics/argocd.yaml
+  - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
   - agnostics/cnpg.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
+  - agnostics/kare-dns.yaml
   - agnostics/metallb.yaml
   - agnostics/nginx.yaml
   - agnostics/secret-store.yaml
   - agnostics/storage-class.yaml
+  - federation/cr8tor.yaml
   - identity/keycloak.yaml
+  - identity/backend.yaml
   - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
+  - workspaces/guacamole.yaml
+  - workspaces/gitea.yaml
+
+patches:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/#allow-temporarily-toggling-auto-sync
+  - target:
+      kind: ApplicationSet
+    patch: |-
+      - op: add
+        path: /spec/ignoreApplicationDifferences
+        value:
+          - jsonPointers:
+              - /spec/syncPolicy
+              - /spec/source/targetRevision
+              

@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="alert alert-danger" role="alert">
+  <h4 class="alert-heading">An error occurred</h4>
+  <pre>{{ error }}</pre>
+  <hr />
+  <a href="/" class="btn btn-outline-danger">Back to Home</a>
+</div>
+{% endblock %}

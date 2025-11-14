@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitea-tls
+  namespace: gitea
+spec:
+  secretName: gitea-tls
+  privateKey:
+    rotationPolicy: Always
+  commonName: gitea.${ENVIRONMENT}.${DOMAIN}
+  dnsNames:
+    - gitea.${ENVIRONMENT}.${DOMAIN}
+  usages: [ "digital signature", "key encipherment", "server auth" ]
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

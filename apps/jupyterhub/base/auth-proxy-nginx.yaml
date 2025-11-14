@@ -1,0 +1,242 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jhub-auth-proxy-nginx-template
+  namespace: jupyterhub
+data:
+  nginx.conf.template: |
+    worker_processes auto;
+    events { worker_connections 1024; }
+    http {
+      # DNS inside cluster
+      resolver kube-dns.kube-system.svc.cluster.local valid=10s ipv6=off;
+      map $http_upgrade $connection_upgrade { default upgrade; "" close; }
+
+      # CORS origin mapping - echo back the request origin
+      map $http_origin $cors_origin {
+        default "$http_origin";
+      }
+
+      upstream jhub_upstream {
+        server proxy-public.jupyterhub.svc.cluster.local:80;
+      }
+
+      server {
+        listen 8080;
+        server_name _;
+
+        error_page 401 = @error401;
+        error_page 403 = @error403;
+
+        # health for probes (NO AUTH)
+        location = /health { 
+          return 200; 
+        }
+
+        # subrequest to backend validate
+        location = /_auth {
+          internal;
+          proxy_pass http://portal.backend.svc.cluster.local/auth/validate;
+          proxy_ssl_verify off;
+          proxy_set_header X-Original-URI $request_uri;
+          proxy_set_header X-Original-URL $scheme://$host$request_uri;
+          proxy_set_header X-Original-Host $http_x_original_host;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Request-ID $request_id;
+          proxy_pass_request_body off;
+          proxy_set_header Content-Length "";
+
+          proxy_set_header Authorization $http_authorization;
+          proxy_set_header Referer $http_referer;
+          proxy_set_header Origin $http_origin;
+          proxy_set_header X-Auth-Token-Cookie $cookie_k8tre_auth_token;
+          proxy_set_header X-Project-Cookie $cookie_k8tre_project;
+
+          proxy_buffer_size 256k;
+          proxy_buffers 16 256k;
+          proxy_busy_buffers_size 256k;
+          proxy_connect_timeout 30s;
+          proxy_send_timeout 30s;
+          proxy_read_timeout 30s;
+        }
+
+        # Skip auth for static files and hub health
+        location ^~ /hub/static/ { 
+          proxy_pass http://jhub_upstream;
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+        }
+        location ^~ /static/ { 
+          proxy_pass http://jhub_upstream;
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+        }
+        location = /hub/health { 
+          proxy_pass http://jhub_upstream;
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+        }
+
+        # Handle preflight OPTIONS requests for any path
+        location / {
+          if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' $cors_origin always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS, PATCH' always;
+            add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-Requested-With, X-Auth-User, X-Auth-Project, X-Auth-Stamp, X-Auth-Signature, X-Auth-Audience, Cookie, X-CSRFToken, Accept, Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Range, Range' always;
+            add_header 'Access-Control-Max-Age' 86400 always;
+            add_header 'Content-Type' 'text/plain; charset=utf-8' always;
+            add_header 'Content-Length' 0 always;
+            return 204;
+          }
+
+          # For non-OPTIONS requests, require authentication
+          auth_request /_auth;
+
+          # copy headers from auth response
+          auth_request_set $auth_user  $upstream_http_x_auth_user;
+          auth_request_set $auth_mail  $upstream_http_x_auth_email;
+          auth_request_set $auth_grps  $upstream_http_x_auth_groups;
+          auth_request_set $auth_proj  $upstream_http_x_auth_project;
+          auth_request_set $auth_stmp  $upstream_http_x_auth_stamp;
+          auth_request_set $auth_sig   $upstream_http_x_auth_signature;
+          auth_request_set $auth_aud   $upstream_http_x_auth_audience;
+          auth_request_set $auth_authz $upstream_http_authorization;
+
+          proxy_pass http://jhub_upstream;
+          proxy_http_version 1.1;
+
+          # preserve host and forwarding info
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-Host $host;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Real-IP $remote_addr;
+
+          # websockets for terminals and notebooks
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection $connection_upgrade;
+
+          # inject auth headers for Hub
+          proxy_set_header Remote-User      $auth_user;
+          proxy_set_header X-Auth-User      $auth_user;
+          proxy_set_header X-Auth-Email     $auth_mail;
+          proxy_set_header X-Auth-Groups    $auth_grps;
+          proxy_set_header X-Auth-Project   $auth_proj;
+          proxy_set_header Authorization    $auth_authz;
+          proxy_set_header X-Auth-Stamp     $auth_stmp;
+          proxy_set_header X-Auth-Signature $auth_sig;
+          proxy_set_header X-Auth-Audience  $auth_aud;
+
+          # Extended timeouts for WebSockets and notebooks
+          proxy_read_timeout 3600s;
+          proxy_send_timeout 3600s;
+          proxy_connect_timeout 60s;
+
+          # Disable buffering for real-time communication
+          proxy_buffering off;
+          proxy_request_buffering off;
+
+          # Add CORS headers
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+          add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS, PATCH' always;
+          add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, X-Requested-With, X-Auth-User, X-Auth-Project, X-Auth-Stamp, X-Auth-Signature, X-Auth-Audience, Cookie, X-CSRFToken, Accept, Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, If-Modified-Since, Cache-Control, Content-Range, Range' always;
+          add_header 'Access-Control-Expose-Headers' 'Authorization, X-JupyterHub-Version, Content-Length, Content-Range' always;
+        }
+
+        # Error handling for auth failures
+        location @error401 {
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+
+          return 302 https://portal.${ENVIRONMENT}.${DOMAIN}/login?redirect=$scheme://$host$request_uri;
+        }
+        
+        location @error403 {
+          add_header 'Access-Control-Allow-Origin' $cors_origin always;
+          add_header 'Access-Control-Allow-Credentials' 'true' always;
+          return 403 "Access Denied";
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jhub-auth-proxy
+  namespace: jupyterhub
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: jhub-auth-proxy
+  template:
+    metadata:
+      labels:
+        app: jhub-auth-proxy
+      annotations:
+        checksum/config: "updated-$(date +%s)"
+    spec:
+      initContainers:
+      - name: template-nginx-config
+        image: alpine:3.19
+        env:
+        - name: DOMAIN
+          value: ${DOMAIN}
+        - name: ENVIRONMENT
+          value: ${ENVIRONMENT}
+        command:
+        - sh
+        - -c
+        - |
+          apk add --no-cache gettext
+          envsubst '$DOMAIN $ENVIRONMENT' < /templates/nginx.conf.template > /config/nginx.conf
+          echo "Generated nginx config:"
+          cat /config/nginx.conf
+        volumeMounts:
+        - name: config-template
+          mountPath: /templates
+        - name: config-rendered
+          mountPath: /config
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - name: http
+          containerPort: 8080
+        volumeMounts:
+        - name: config-rendered
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: config-template
+        configMap:
+          name: jhub-auth-proxy-nginx-template
+      - name: config-rendered
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jhub-auth-proxy
+  namespace: jupyterhub
+spec:
+  selector:
+    app: jhub-auth-proxy
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

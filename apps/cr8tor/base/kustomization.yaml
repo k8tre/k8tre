@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cr8tor
+resources:
+- certificate.yaml
+- cr8tor-configmap.yaml
+- cr8tor-external-secret.yaml
+- networkpolicy.yaml
+- admin-external-secret.yaml
+
+# cr8tor-operator
+- https://github.com/karectl-crates/cr8tor//manifests/cr8tor-operator?ref=feature/at-karectl-k8tre-integration
+- cr8tor-operator-realm-config.yaml

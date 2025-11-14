@@ -1,0 +1,90 @@
+# Allows internal cluster communication to specific namespaces
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: vdi-egress-restrictions
+  namespace: jupyterhub
+spec:
+  endpointSelector:
+    matchLabels:
+      app: vdi
+
+  # Default deny all egress
+  egress:
+    # Allow DNS resolution
+    - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: kube-system
+          k8s-app: kube-dns
+      toPorts:
+      - ports:
+        - port: "53"
+          protocol: UDP
+        - port: "53"
+          protocol: TCP
+    # Allow same namespace access
+    - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: jupyterhub
+
+    # Allow access to JupyterHub
+    - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: jupyterhub
+      toPorts:
+      - ports:
+        - port: "80"
+          protocol: TCP
+        - port: "443"
+          protocol: TCP
+        - port: "8000"
+          protocol: TCP
+    # Allow access to portal
+    - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: backend
+      toPorts:
+      - ports:
+        - port: "80"
+          protocol: TCP
+        - port: "443"
+          protocol: TCP
+        - port: "8000"
+          protocol: TCP
+    # Allow access to cr8tor
+    - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: cr8tor
+
+    # Allow external access to domains
+    - toFQDNs:
+      - matchPattern: "*.${ENVIRONMENT}.${DOMAIN}"
+      - matchPattern: "*.${DOMAIN}"
+      toPorts:
+      - ports:
+        - port: "443"
+          protocol: TCP
+        - port: "80"
+          protocol: TCP
+
+  ingress:
+    # Only allow connections within the cluster
+    - fromEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: jupyterhub
+      toPorts:
+      - ports:
+        - port: "3389"
+          protocol: TCP
+        - port: "5900"
+          protocol: TCP
+    # Allow ingress from portal
+    - fromEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: backend
+      toPorts:
+      - ports:
+        - port: "3389"
+          protocol: TCP
+        - port: "5900"
+          protocol: TCP

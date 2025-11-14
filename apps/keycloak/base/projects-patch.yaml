@@ -1,0 +1,33 @@
+apiVersion: research.k8tre.io/v1alpha1
+kind: Project
+metadata:
+  name: asthma
+spec:
+  apps:
+    - name: jupyterhub
+      url: "https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub"
+      type: jupyterhub
+    - name: guacamole
+      url: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+      type: vdi
+      config:
+        protocol: rdp
+        resolution: "1920x1080"
+        desktop: "ubuntu-mate"
+---
+apiVersion: research.k8tre.io/v1alpha1
+kind: Project
+metadata:
+  name: diabetes
+spec:
+  apps:
+    - name: jupyterhub
+      url: "https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub"
+      type: jupyterhub
+    - name: guacamole
+      url: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+      type: vdi
+      config:
+        protocol: rdp
+        resolution: "1920x1080"
+        desktop: "ubuntu-mate"
