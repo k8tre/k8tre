@@ -1,7 +1,10 @@
 # K8TRE Installation
 This guide provides instruction to quickly get K8TRE up and running on a local k8s cluster. It is structured with various entry points depending on your purpose, target machine setup and familiarity with technologies such as Kubernetes.
 
-Before we can get cracking with K8TRE, we first need a Kubernetes (K8s) cluster available on your local host machine along with a single linux-based virtual machine to run the k8s cluster on. 
+Before we can get cracking with K8TRE, we first need a Kubernetes (K8s) cluster available on your local host machine along with a single linux-based virtual machine to run the k8s cluster on.
+
+!!! note
+    All code blocks below coloured blue should be run on the host machine, while purple block commands should be run inside the Ubuntu VM
 
 ## Prepare VM node 
 There are multiple ways to stand up and access a linux-based VM whether on a local machine or via some remote cloud resource. This guide assumes you have a local machine (Laptop?) without any existing framework for managing and deploying VMs. Although, if you already have an available framework setup (e.g. VirtualBox, VMware, etc) feel free to skip to the next section. 
@@ -12,14 +15,17 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
     [Multipass](https://canonical.com/multipass) provides a simple approach to quickly spin up Ubuntu-based VMs on demand.
 
     1. Install Multipass by downloading the installer [here](https://canonical.com/multipass/download/macos) or using brew in Terminal:
+        <div class="code-blue">
         ```shell
         brew install --cask multipass
         ```
     2. Check multipass is installed and accessible from terminal:
+        <div class="code-blue">
         ```shell
             multipass version
         ```
     3. Create a VM in multipass with Ubuntu 24.04. Note, you may need to adjust the VM spec based on your resource availability.
+        <div class="code-blue">
         ```shell
         multipass launch 24.04 \
             --name k8tre-vm \
@@ -28,6 +34,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             --disk 40G
         ```
     4. Check the VM is up and running:
+        <div class="code-blue">
         ```shell
         multipass info k8tre-vm
         ```
@@ -47,6 +54,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         Mounts:         --
         ```
     5. To install Kubernetes on the VM you will need to open a terminal to the VM itself. To do this run:
+        <div class="code-blue">
         ```shell
         multipass shell k8tre-vm
         ```
@@ -171,6 +179,7 @@ At this point, we're ready to install [K3s](https://k3s.io/), a lightweight Kube
 **1. Install K3s on the VM**
 
 Execute the following commands in terminal to download and install K3s onto the VM:
+<div class="code-green">
 ```shell
 sudo mkdir -p /etc/rancher/k3s
 sudo tee /etc/rancher/k3s/config.yaml << EOF
@@ -270,7 +279,7 @@ Copy the IP and edit the coreDNS config map by running:
 ```shell
 kubectl edit configmap coredns -n kube-system
 ```
-Then edit in the text editor (Shift + I on Mac) the forwarding address i.e. change:
+Then edit in the VIM text editor (Shift + I on Mac) the forwarding address i.e. change:
 ```shell
 forward . /etc/resolv.conf
 ```
@@ -278,7 +287,7 @@ to:
 ```shell
 forward . 192.168.64.1
 ```
-Apply the changes to coreDNS:
+Apply the changes (i.e. ESC, :wq + Enter) to coreDNS:
 ```shell
 kubectl rollout restart deployment coredns -n kube-system
 ```
@@ -321,12 +330,14 @@ To login via the CLI tool:
 ```shell
 argocd login localhost:8080 --username=admin --password="$ARGOCD_PASSWORD" --insecure
 ```
+</div>
 To access the web UI from your host web browser use the same URL and credentials. Note, for multipass VMs, replace localhost with the allocated IP address (run multipass info k8tre-vm to view the IP):
 
+<div class="code-blue">
 ```shell
 https://<IP_OF_VM>:8080/
 ```
-
+</div>
 
 
 **3. Set Cluster Labels**
@@ -340,10 +351,13 @@ This command sets required labels on the target cluster which ArgoCD uses to ens
     Specify a IP range for the local load balancer (metallb-ip-range) that is accessible from the bridge network your VM is bound. To check the network in use, follow the steps for your host OS below:  
 
 === "MacOS"
-    If using Multipass, VMs are typically bound to a bridge network 'bridge100'. To find the IP range run: 
+    If using Multipass, VMs are typically bound to a bridge network 'bridge100'. To find the IP range run the following command on your **host** machine in Terminal (i.e. not in the VM shell):
+
+    <div class="code-blue">
     ```shell
     ifconfig bridge100
     ```
+    
     This will return an output with the IP range of the network e.g.
     ```shell
     inet 192.168.64.1 netmask 0xffffff00 broadcast 192.168.64.255
@@ -352,6 +366,7 @@ This command sets required labels on the target cluster which ArgoCD uses to ens
     ```shell
     metallb-ip-range=192.168.64.240-192.168.64.250
     ```
+    </div>
     If using an altenrative VM framework to multipass, refer to the relevant docuementation to identity the VM network accessible from the host. 
 === "Linux/Ubuntu"
     ```shell
@@ -361,7 +376,7 @@ This command sets required labels on the target cluster which ArgoCD uses to ens
     ```shell
     ```
 
-
+<div class="code-green">
 ```shell
 argocd cluster set in-cluster \
     --label environment=stg \
@@ -512,10 +527,11 @@ Get the kare-dns LoadBalancer IP:
 ```shell
 kubectl get svc kare-dns-coredns -n kare-dns
 ```
-
+</div>
 On your host machine, create a persistent DNS configuration matching the environment and domain from ArgoCD cluster labels:
 
 === "MacOS"
+    <div class="code-blue">
     ```shell
     sudo mkdir -p /etc/resolver
     ```
@@ -531,7 +547,7 @@ On your host machine, create a persistent DNS configuration matching the environ
     sudo dscacheutil -flushcache
     sudo killall -HUP mDNSResponder
     ```
-
+    </div>
 === "Linux/Ubuntu"
     ```shell
     sudo mkdir -p /etc/systemd/resolved.conf.d/
@@ -570,6 +586,7 @@ On your host machine, create a persistent DNS configuration matching the environ
 
 K8TRE components can utilise its default secrets management service based on the K8s operator [External Secrets Operator](https://external-secrets.io/). This provides TRE operators with an abstraction layer to provision secrets from a range of commonly used key management solutions (e.g. Azure key Vault, AWS Secrets Manager). Out-of-the-box components in K8TRE require certain secrets to be defined and accessible in the cluster. For the purposes of this guide, we also need to create these secrets. In the K8TRE repository, we include a helper script to generate keys/secrets needed by core services running in the K8TRE deployment now running on your local machine. To generate the secrets ensure you are still in the k8tre/ repo you cloned earlier and first install [uv](https://docs.astral.sh/uv/getting-started/installation/) by running the following:
 
+<div class="code-green">
 ```shell
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env
