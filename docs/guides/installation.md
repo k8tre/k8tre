@@ -194,7 +194,7 @@ Ensure the logged in user (e.g. ubuntu) can access the cluster by setting the us
 ```shell
 mkdir -p ~/.kube
 sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config
-sudo chmod 777 /etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc; source ~/.bashrc 
 ``` 
 At this point you should be able to verify access to the k8s cluster using kubectl:
 ```shell
