@@ -478,7 +478,7 @@ Add the target K8TRE repository to argoCD:
 ```shell
 GITHUB_ORG=k8tre
 GITHUB_REPOSITORY=k8tre
-GITHUB_REVISION=feature/LTH-karectl-integration
+GITHUB_REVISION=main
 argocd repo add https://github.com/$GITHUB_ORG/$GITHUB_REPOSITORY.git
 ```
 If the target repository is protected, ensure to also include the --username and --password arguments.
