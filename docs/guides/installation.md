@@ -336,6 +336,32 @@ This command sets required labels on the target cluster which ArgoCD uses to ens
 !!! note
     The `external-domain` label defines the base domain used for all K8TRE services (e.g., `keycloak.stg.k8tre.org`, `jupyter.stg.k8tre.org`). Change `k8tre.org` to your own domain name.
 
+!!! note
+    Specify a IP range for the local load balancer (metallb-ip-range) that is accessible from the bridge network your VM is bound. To check the network in use, follow the steps for your host OS below:  
+
+=== "MacOS"
+    If using Multipass, VMs are typically bound to a bridge network 'bridge100'. To find the IP range run: 
+    ```shell
+    ifconfig bridge100
+    ```
+    This will return an output with the IP range of the network e.g.
+    ```shell
+    inet 192.168.64.1 netmask 0xffffff00 broadcast 192.168.64.255
+    ```
+    Based on this, a valid IP range for the load balancer would be:
+    ```shell
+    metallb-ip-range=192.168.64.240-192.168.64.250
+    ```
+    If using an altenrative VM framework to multipass, refer to the relevant docuementation to identity the VM network accessible from the host. 
+=== "Linux/Ubuntu"
+    ```shell
+    ```
+    
+=== "Windows"
+    ```shell
+    ```
+
+
 ```shell
 argocd cluster set in-cluster \
     --label environment=stg \
@@ -343,6 +369,7 @@ argocd cluster set in-cluster \
     --label vendor=k3s \
     --label external-domain=k8tre.org \
     --label external-dns=k3s
+    --label metallb-ip-range=<e.g. 192.168.64.240-192.168.64.250>
 ```
 
 **4. Enable Kustomize Helm**
