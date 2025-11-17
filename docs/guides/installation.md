@@ -589,5 +589,5 @@ Now you have K8TRE running, why not try to access the default portal and open a 
 
 [Access a K8TRE Analytics Workspace](workspace-access.md)
 
-[Extending K8TRE services]()
+[Developing K8TRE Components](../development/developer-guide.md)
 
