@@ -82,6 +82,7 @@ nav:
       - Introduction: development/introduction.md
       - K3S Single-Cluster Setup: development/k3s-dev.md
       - K3S Multi-Cluster Setup: development/k3s.md
+      - Application Development: development/developer-guide.md
   - Guides:
       - Installation: guides/installation.md
       - Workspace Access: guides/workspace-access.md

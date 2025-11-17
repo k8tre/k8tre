@@ -180,7 +180,7 @@ argocd app list
 
 Each application follows a standard structure:
 
-```\
+```shell
 apps/<app-name>/\
 ├── base/                        # Base Kubernetes manifests
 │   ├── kustomization.yaml       # Kustomize configuration
@@ -205,7 +205,9 @@ Creating a new application in K8TRE involves organising manifests into base infr
 Before creating any manifests, define required secrets in `ci/ci-secrets.yaml`. K8TRE uses the **External Secrets Operator (ESO)** to manage secrets, separating secret storage from application deployment.
 
 Add your application's secrets to the configuration file ci-secrets.yaml:
-```
+
+{% raw %}
+```yaml
   #Example
   # Application admin credentials
   - name: <app>-secrets
@@ -227,6 +229,8 @@ Add your application's secrets to the configuration file ci-secrets.yaml:
       - key: database
         value: "<app>"
 ```
+{% endraw %}
+
 Generate the secrets in your cluster:
 
 ```
@@ -328,7 +332,8 @@ ApplicationSets automate the deployment of your application across multiple envi
 
 ApplicationSets use a **matrix generator** combining Git directory discovery with cluster label matching:
 
-```
+{% raw %}
+```yaml
 #example
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -382,6 +387,7 @@ spec:
         syncOptions:
           - CreateNamespace=true
 ```
+{% endraw %}
 
 ## Development Workflow
 
@@ -397,7 +403,7 @@ Edit your application configurations in the appropriate files. Common changes in
 
 Before committing, test your changes:
 
-```shell\
+```shell
 # Validate Kustomize build
 kustomize build apps/<app-name>/envs/dev
 
