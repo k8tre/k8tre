@@ -388,7 +388,7 @@ argocd cluster set in-cluster \
     --label secret-store=kubernetes \
     --label vendor=k3s \
     --label external-domain=k8tre.org \
-    --label external-dns=k3s
+    --label external-dns=k3s \
     --label metallb-ip-range=<e.g. 192.168.64.240-192.168.64.250>
 ```
 
