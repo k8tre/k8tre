@@ -400,13 +400,13 @@ cat << EOF > argocd-cm-patch.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-name: argocd-cm
-namespace: argocd
-labels:
+  name: argocd-cm
+  namespace: argocd
+  labels:
     app.kubernetes.io/name: argocd-cm
     app.kubernetes.io/part-of: argocd
 data:
-kustomize.buildOptions: "--enable-helm --load-restrictor LoadRestrictionsNone"
+  kustomize.buildOptions: "--enable-helm --load-restrictor LoadRestrictionsNone"
 EOF
 
 kubectl apply -f argocd-cm-patch.yaml
@@ -437,11 +437,11 @@ data:
         command: [sh, -c]
         args:
           - |
-            # Environment variables ENVIRONMENT and DOMAIN are passed from ApplicationSet via plugin.env
+            # Environment variables ENVIRONMENT, DOMAIN, and METALLB_IP_RANGE are passed from ApplicationSet via plugin.env
             # ArgoCD makes them available as \$ARGOCD_ENV_<NAME> in the plugin container
             # Replace patterns: \${VAR}, .ENVIRONMENT., .DOMAIN, and standalone ENVIRONMENT/DOMAIN
             kustomize build --enable-helm --load-restrictor LoadRestrictionsNone . | \\
-            sed "s/\\\${ENVIRONMENT}/\${ARGOCD_ENV_ENVIRONMENT}/g; s/\\\${DOMAIN}/\${ARGOCD_ENV_DOMAIN}/g; s/\\\\.ENVIRONMENT\\\\./.\${ARGOCD_ENV_ENVIRONMENT}./g; s/\\\\.DOMAIN/.\${ARGOCD_ENV_DOMAIN}/g; s/^ENVIRONMENT$/\${ARGOCD_ENV_ENVIRONMENT}/g; s/^DOMAIN$/\${ARGOCD_ENV_DOMAIN}/g"
+            sed "s|\\\${ENVIRONMENT}|\${ARGOCD_ENV_ENVIRONMENT}|g; s|\\\${DOMAIN}|\${ARGOCD_ENV_DOMAIN}|g; s|\\\${METALLB_IP_RANGE}|\${ARGOCD_ENV_METALLB_IP_RANGE}|g; s|\\.ENVIRONMENT\\.|.\${ARGOCD_ENV_ENVIRONMENT}.|g; s|\\.DOMAIN|.\${ARGOCD_ENV_DOMAIN}|g; s|^ENVIRONMENT$|\${ARGOCD_ENV_ENVIRONMENT}|g; s|^DOMAIN$|\${ARGOCD_ENV_DOMAIN}|g"
 EOF
 
 kubectl apply -f cmp-plugin.yaml
