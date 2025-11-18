@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: argocd
 
 resources:
-  - agnostics/argocd.yaml
   - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
   - agnostics/cnpg.yaml

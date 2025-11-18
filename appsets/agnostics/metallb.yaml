@@ -35,6 +35,11 @@ spec:
         repoURL: https://github.com/k8tre/k8tre.git
         targetRevision: main
         path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: METALLB_IP_RANGE
+              value: "{{index .metadata.labels \"metallb-ip-range\"}}"
       destination:
         server: "{{.server}}"
         namespace: metallb-system
