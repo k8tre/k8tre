@@ -489,6 +489,42 @@ kubectl patch deployment argocd-repo-server -n argocd --type=json --patch-file a
 kubectl rollout status deployment argocd-repo-server -n argocd
 ```
 
+
+**6. Add Cilium Network Policy**
+
+The command below adds a networking policy that allows specific argocd services egress:
+ 
+```shell
+kubectl apply -f - << 'EOF'
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-argocd-egress
+  namespace: argocd
+spec:
+  endpointSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/name
+      operator: In
+      values:
+      - argocd-repo-server
+      - argocd-dex-server
+      - argocd-notifications-controller
+  egress:
+  - toEntities:
+    - cluster
+    - host
+  - toCIDR:
+    - 0.0.0.0/0
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+      - port: "80"
+        protocol: TCP
+EOF
+```
+
 ## K8TRE
 You should now have a minimal VM and k3s cluster configuration (i.e. cilium, ArgoCD) to install K8TRE. To do this, we need to first configure ArgoCD to listen to the K8TRE repository that contains the agnostic/application definitions which ArgoCD will use to reconcile and deploy all specified resources in to the cluster. It is recommended that you point ArgoCD [K8TRE repository](https://github.com/k8tre/k8tre) for the purposes of this quickstart guide. However, if you plan to make changes to the vanilla K8TRE deployment, we recommend you fork it into your own git organisation and then configure ArgoCD to read from that particular repository and target revision. The K8TRE repository follows a common ArgoCD App-of-Apps pattern which is important to understand when looking to extend the base K8TRE configuration, see [here](https://medium.com/@andersondario/argocd-app-of-apps-a-gitops-approach-52b17a919a66) for more details.
 
