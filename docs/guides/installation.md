@@ -356,31 +356,18 @@ This command sets required labels on the target cluster which ArgoCD uses to ens
 !!! note
     Specify a IP range for the local load balancer (metallb-ip-range) that is accessible from the bridge network your VM is bound. To check the network in use, follow the steps for your host OS below:  
 
-=== "MacOS"
-    If using Multipass, VMs are typically bound to a bridge network 'bridge100'. To find the IP range run the following command on your **host** machine in Terminal (i.e. not in the VM shell):
+To identity the IP range of the VM network run:
 
-    <div class="code-blue">
-    ```shell
-    ifconfig bridge100
-    ```
-    
-    This will return an output with the IP range of the network e.g.
-    ```shell
-    inet 192.168.64.1 netmask 0xffffff00 broadcast 192.168.64.255
-    ```
-    Based on this, a valid IP range for the load balancer would be:
-    ```shell
-    metallb-ip-range=192.168.64.240-192.168.64.250
-    ```
-    </div>
-    If using an altenrative VM framework to multipass, refer to the relevant docuementation to identity the VM network accessible from the host. 
-=== "Linux/Ubuntu"
-    ```shell
-    ```
-    
-=== "Windows"
-    ```shell
-    ```
+```shell
+ip route | grep default
+```
+
+This will return the network gateway IP e.g.:
+```shell
+default via 172.26.64.1 dev eth0 proto dhcp src 172.26.68.121 metric 100
+``` 
+
+Using 172.26.64.1 (and assuming a 255.255.255.0 net mask) i.e. 172.26.64.0-172.26.64.255 a example subnet for metallb-ip-range could be **192.168.64.240-192.168.64.250**
 
 ```shell
 argocd cluster set in-cluster \
@@ -590,6 +577,7 @@ On your host machine, create a persistent DNS configuration matching the environ
     ```
     </div>
 === "Linux/Ubuntu"
+    <div class="code-blue">
     ```shell
     sudo mkdir -p /etc/systemd/resolved.conf.d/
     sudo tee /etc/systemd/resolved.conf.d/k8tre.conf << EOF
@@ -619,9 +607,44 @@ On your host machine, create a persistent DNS configuration matching the environ
     ```shell
     resolvectl status
     ```
+    </div>
 
 === "Windows"
-    ???
+    <div class="code-blue">
+    ```shell
+    Get-NetAdapter
+    ```
+    Result: vEthernet (Default Switch) - the Hyper-V adapter
+
+    Only queries for stg.k8tre.org go to kare-dns
+    
+    ```shell
+    Add-DnsClientNrptRule -Namespace "stg.k8tre.org" -NameServers @("172.26.64.212")
+    ```
+    
+    Set primary and secondary DNS servers
+    Primary: kare-dns (172.26.71.210)
+    Secondary: Google DNS (8.8.8.8) for other domains
+    Set-DnsClientServerAddress -InterfaceAlias "vEthernet (Default Switch)" -ServerAddresses ("172.26.64.212", "8.8.8.8")
+
+    Flush DNS cache
+    
+    ```shell
+    ipconfig /flushdns
+    ```
+    Test split DNS - should resolve via kare-dns
+    ```shell
+    Resolve-DnsName -Name portal.stg.k8tre.org -Type A
+    ```
+
+    Result: 172.26.71.212
+
+    Test regular DNS - should work via Google DNS:
+
+    ```shell
+    Resolve-DnsName -Name google.com -Type A
+    ```
+    </div>
 
 **4. K8TRE Secrets Management**
 
