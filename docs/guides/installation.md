@@ -89,7 +89,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             multipass launch 24.04 `
                 --name k8tre-vm `
                 --cpus 2 `
-                --memory 4G `
+                --memory 8G `
                 --disk 40G
         ```
         !!! warning "VirtualBox Network Configuration"
@@ -106,7 +106,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             multipass launch 24.04 `
                 --name k8tre-vm `
                 --cpus 2 `
-                --memory 4G `
+                --memory 8G `
                 --disk 12G `
                 --network Wi-Fi
             ```
@@ -159,7 +159,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         - VM Name: `k8tre-vm`
         - Disk size: 12 GB (single file)
         - Customize Hardware:
-            - Memory: 4 GB
+            - Memory: 8 GB
             - Processors: 2 CPUs
             - Network Adapter: NAT or Bridged
 
