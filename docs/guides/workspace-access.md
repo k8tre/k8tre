@@ -24,7 +24,12 @@ Enter the credentials:
 username: trevolution
 password: k8tre
 ```
-This will redirect you back to the Portal.
+
+Keycloak will ask you to specify your account name:
+
+![alt text](../img/keycloak-reset-pwd.png)
+
+You should then be redirected you back to the Portal.
 
 ![alt text](../img/portal-auth-home.png)
 
