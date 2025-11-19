@@ -4,6 +4,11 @@ last_updated: 2025-05-30
 discussion: https://github.com/orgs/k8tre/discussions/4
 k8tre_statements:
   spec: All external access to applications/services must be via the ingress/gateway. The TREs must use a network plugin/CNI that fully supports Network Policy enforcement. 
+  satre:
+    - ref: 2.2.9
+      rationale: SATRE requires TREs to control and manage all of their network infrastructure in order to protect information in systems and applications. This can be achieved in a managed or self-managed K8S cluster by using a CNI that supports Network Policies, and using Network Policies to control traffic flows within the cluster to ensure only authorized traffic is allowed.
+      
+      
 ---
 
 {{ spec_content(page.meta) }}
