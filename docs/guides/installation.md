@@ -130,8 +130,6 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             ```
             </div>
 
-
-
     4. Check the VM is up and running:
         <div class="code-blue">
         ```powershell
