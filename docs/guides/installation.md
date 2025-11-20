@@ -367,7 +367,7 @@ This will return the network gateway IP e.g.:
 default via 172.26.64.1 dev eth0 proto dhcp src 172.26.68.121 metric 100
 ``` 
 
-Using 172.26.64.1 (and assuming a 255.255.255.0 net mask) i.e. 172.26.64.0-172.26.64.255 a example subnet for metallb-ip-range could be **192.168.64.240-192.168.64.250**
+Using 172.26.64.1 (and assuming a 255.255.255.0 net mask) i.e. 172.26.64.0-172.26.64.255 a example subnet for metallb-ip-range could be **172.26.64.240-172.26.64.250**
 
 ```shell
 argocd cluster set in-cluster \
@@ -376,7 +376,7 @@ argocd cluster set in-cluster \
     --label vendor=k3s \
     --label external-domain=k8tre.org \
     --label external-dns=k3s \
-    --label metallb-ip-range=<e.g. 192.168.64.240-192.168.64.250>
+    --label metallb-ip-range=<e.g. 172.26.64.240-172.26.64.250>
 ```
 
 **4. Enable Kustomize Helm**
