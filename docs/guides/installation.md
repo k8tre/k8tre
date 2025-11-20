@@ -71,9 +71,11 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
     [Multipass](https://canonical.com/multipass) provides a simple approach to quickly spin up Ubuntu-based VMs on demand. It automatically downloads Ubuntu cloud images and handles all configuration.
 
     1. Install Multipass by downloading the installer [here](https://canonical.com/multipass/download/windows) or using Windows Package Manager in PowerShell:
+        <div class="code-blue">
         ```powershell
             winget install Canonical.Multipass
         ```
+        </div>
         !!! note
             Multipass on Windows requires either **Hyper-V** (Windows Pro/Enterprise/Education) or **VirtualBox** (works on Windows Home).
 
@@ -81,10 +83,13 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             - **VirtualBox**: If on Windows Home or prefer VirtualBox, install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) first, then run: `multipass set local.driver=virtualbox`
 
     2. Check multipass is installed and accessible from PowerShell or Command Prompt:
+        <div class="code-blue">
         ```powershell
             multipass version
         ```
+        </div>
     3. Create a VM with Ubuntu 24.04 (this automatically downloads the Ubuntu image):
+        <div class="code-blue">
         ```powershell
             multipass launch 24.04 `
                 --name k8tre-vm `
@@ -92,35 +97,45 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
                 --memory 8G `
                 --disk 40G
         ```
+        </div>
         !!! warning "VirtualBox Network Configuration"
             When using **VirtualBox** as the driver, the VM often fails to obtain an IPv4 address. If `multipass info k8tre-vm` shows no IPv4 address, you need to specify the network adapter during VM creation.
 
-            First, delete the VM if already created:
-            ```powershell
-            multipass delete k8tre-vm
-            multipass purge
-            ```
+        First, delete the VM if already created:
+        <div class="code-blue">
+        ```powershell
+        multipass delete k8tre-vm
+        multipass purge
+        ```
+        </div>
 
-            Then recreate with the `--network` flag, specifying your network adapter (usually "Wi-Fi"):
-            ```powershell
-            multipass launch 24.04 `
-                --name k8tre-vm `
-                --cpus 2 `
-                --memory 8G `
-                --disk 12G `
-                --network Wi-Fi
-            ```
+        Then recreate with the `--network` flag, specifying your network adapter (usually "Wi-Fi"):
+        <div class="code-blue">
+        ```powershell
+        multipass launch 24.04 `
+            --name k8tre-vm `
+            --cpus 2 `
+            --memory 8G `
+            --disk 12G `
+            --network Wi-Fi
+        ```
+        </div>
 
-            To find your available network adapters, run:
-            ```powershell
-            Get-NetAdapter | Select-Object Name, Status
-            ```
+        To find your available network adapters, run:
+        <div class="code-blue">
+        ```powershell
+        Get-NetAdapter | Select-Object Name, Status
+        ```
+        </div>
 
     4. Check the VM is up and running:
+        <div class="code-blue">
         ```powershell
             multipass info k8tre-vm
         ```
+        </div>
         You should see output similar to:
+        <div class="code-blue">
         ```
         Name:           k8tre-vm
         State:          Running
@@ -134,10 +149,13 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         Memory usage:   1.9GiB out of 3.8GiB
         Mounts:         --
         ```
+        </div>
     5. Open a terminal to the VM:
+        <div class="code-blue">
         ```powershell
             multipass shell k8tre-vm
         ```
+        </div>
 
     ### Option 2: VMware Workstation
 
@@ -169,10 +187,13 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         - Wait for installation to complete and reboot
 
     5. Install VMware Tools (for better performance):
+        <div class="code-blue">
         ```shell
             sudo apt update
             sudo apt install open-vm-tools
         ```
+        </div>
+        
 
     6. Access VM terminal:
         - Open the VM console in VMware Workstation, or
