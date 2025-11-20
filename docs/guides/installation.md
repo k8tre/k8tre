@@ -76,6 +76,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
             winget install Canonical.Multipass
         ```
         </div>
+
         !!! note
             Multipass on Windows requires either **Hyper-V** (Windows Pro/Enterprise/Education) or **VirtualBox** (works on Windows Home).
 
@@ -98,6 +99,7 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
                 --disk 40G
         ```
         </div>
+        
         !!! warning "VirtualBox Network Configuration"
             When using **VirtualBox** as the driver, the VM often fails to obtain an IPv4 address. If `multipass info k8tre-vm` shows no IPv4 address, you need to specify the network adapter during VM creation.
 
