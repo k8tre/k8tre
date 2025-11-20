@@ -99,36 +99,38 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
                 --disk 40G
         ```
         </div>
-        
+
         !!! warning "VirtualBox Network Configuration"
             When using **VirtualBox** as the driver, the VM often fails to obtain an IPv4 address. If `multipass info k8tre-vm` shows no IPv4 address, you need to specify the network adapter during VM creation.
 
-        First, delete the VM if already created:
-        <div class="code-blue">
-        ```powershell
-        multipass delete k8tre-vm
-        multipass purge
-        ```
-        </div>
+            First, delete the VM if already created:
+            <div class="code-blue">
+            ```powershell
+            multipass delete k8tre-vm
+            multipass purge
+            ```
+            </div>
+            
+            To find your available network adapters, run:
+            <div class="code-blue">
+            ```powershell
+            Get-NetAdapter | Select-Object Name, Status
+            ```
+            </div>
 
-        Then recreate with the `--network` flag, specifying your network adapter (usually "Wi-Fi"):
-        <div class="code-blue">
-        ```powershell
-        multipass launch 24.04 `
-            --name k8tre-vm `
-            --cpus 2 `
-            --memory 8G `
-            --disk 12G `
-            --network Wi-Fi
-        ```
-        </div>
+            Then recreate with the `--network` flag, specifying your network adapter (usually "Wi-Fi"):
+            <div class="code-blue">
+            ```powershell
+            multipass launch 24.04 `
+                --name k8tre-vm `
+                --cpus 2 `
+                --memory 8G `
+                --disk 12G `
+                --network Wi-Fi
+            ```
+            </div>
 
-        To find your available network adapters, run:
-        <div class="code-blue">
-        ```powershell
-        Get-NetAdapter | Select-Object Name, Status
-        ```
-        </div>
+
 
     4. Check the VM is up and running:
         <div class="code-blue">
