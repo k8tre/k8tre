@@ -115,7 +115,9 @@ git checkout -b feature/<initials>-<app-name>
 ```
 ### Step 2: Configure ArgoCD for Local Development
 
-The `local/` folder contains a specialised root application configuration that enables isolated development. Unlike the production `app_of_apps/root-app-of-apps.yaml` which deploys all applications from the main branch, the local configuration uses **selective patching** to point only your application to your development branch while keeping all other services stable.
+For local development, create a copy of the production root application that you can modify without affecting the main configuration. Make sure to keep the `local/` folder in `.gitignore` to prevent commiting this folder.
+
+The `local/root-app-of-apps.yaml` should remain unchanged from the production version. It will continue to point ApplicationSets to the `main` branch, maintaining infrastructure stability:
 
 Edit `local/root-app-of-apps.yaml`:
 
@@ -129,40 +131,43 @@ spec:
   project: default
   source:
     repoURL: https://github.com/k8tre/k8tre.git
-    targetRevision: feature/<initials>-<app>  # Your local development branch
+    targetRevision: main  # ApplicationSets stay on main
     path: appsets
     kustomize:
+      commonLabels:
+        app.kubernetes.io/managed-by: argocd
+      commonAnnotations:
+        app.kubernetes.io/part-of: k8tre
       patches:
-        # Patch ONLY your app to track your development branch
         - target:
             kind: ApplicationSet
-            labelSelector: "karectl.io/appset=<your-app>"
           patch: |-
             - op: replace
-              path: /spec/generators/0/matrix/generators/0/git/revision
-              value: feature/<initials>-<app>
+              path: /spec/generators/0/matrix/generators/0/git/repoURL
+              value: https://github.com/k8tre/k8tre.git
             - op: replace
-              path: /spec/template/spec/source/targetRevision
-              value: feature/<initials>-<app>
-
-        # Keep all other applications on stable main branch
-        - target:
-            kind: ApplicationSet
-            labelSelector: "karectl.io/appset!=<your-app>"
-          patch: |-
+              path: /spec/template/spec/source/repoURL
+              value: https://github.com/k8tre/k8tre.git
             - op: replace
               path: /spec/generators/0/matrix/generators/0/git/revision
-              value: main
+              value: main  # Keep on main
             - op: replace
               path: /spec/template/spec/source/targetRevision
-              value: main
+              value: main  # Keep on main
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
   syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
     automated:
       prune: true
       selfHeal: true
+  info:
+    - name: K8TRE App of Apps
+      value: "https://github.com/k8tre/k8tre"
+    - name: K8TRE Documentation
+      value: "https://k8tre.github.io/k8tre/"
 ```
 ### Step 3: Apply Local Configuration
 
@@ -173,6 +178,9 @@ kubectl apply -f local/root-app-of-apps.yaml
 # Verify ArgoCD recognises the configuration
 argocd app list
 ```
+### Step 4: Configure ArgoCD to track the feature branch
+The appset for any new application need to be in the main branch but all other application manifest inside `apps/` folder can be made to track from the feature branch. This is mentioned in detail in the Creating New Application Step 5.
+
 
 ## Creating a New Application
 
@@ -389,6 +397,32 @@ spec:
 ```
 {% endraw %}
 
+NOTE: Move ONLY the `<appset>.yaml` to the main branch for development by raising a PR from feature branch to main. Once this is done follow the below steps to make ArgoCD pull app changes from the feature branch.
+
+**Configure via ArgoCD UI:**
+
+1.  Navigate to ArgoCD UI: `http://<cluster-ip>:8080`
+2.  Find your application in the list (e.g., `<app-name>-in-cluster` or `<app-name>-dev`)
+3.  Click on the application name to open its details
+4.  Click the **"App Details"** button (or the information icon)
+5.  Click **"Edit"** (pencil icon in the top right)
+6.  Locate the **"Target Revision"** or **"Revision"** field
+7.  Change the value from `main` to `feature/<initials>-<app-name>`
+8.  Click **"Save"**
+9.  Click **"Sync"** button to deploy your feature branch changes
+
+**What to modify on your feature branch:**
+
+-   Application manifests in `apps/<app-name>/base/`
+-   Environment configurations in `apps/<app-name>/envs/dev/`
+-   Helm values, patches, and resource definitions
+-   Secrets configuration in `ci/ci-secrets.yaml`
+
+**What stays on main branch:**
+
+-   ApplicationSet definition in `appsets/<app-name>.yaml`
+-   Infrastructure and core platform components
+
 ## Development Workflow
 
 ### 1. Make Changes
@@ -414,7 +448,7 @@ kubectl apply --dry-run=client -k apps/<app-name>/envs/dev
 ### 3. Commit and Push
 Push to the feature development branch to test via ArgoCD 
 
-```shell\
+```shell
 git add .
 git commit -m "feat: add <app-name> application"
 git push origin feature/<initials>-<feature-name>
@@ -424,7 +458,7 @@ git push origin feature/<initials>-<feature-name>
 
 If you've configured ArgoCD to watch your development branch, it will automatically detect changes and sync. Otherwise, manually sync:
 
-```shell\
+```shell
 argocd app sync root-app-of-apps
 ```
 
@@ -432,7 +466,7 @@ argocd app sync root-app-of-apps
 
 Check application status:
 
-```shell\
+```shell
 # Via kubectl
 kubectl get applications -n argocd
 kubectl get pods -n <app-name>
@@ -464,7 +498,7 @@ kubectl get pods -n <app-name>
 
 ### Debug Commands
 
-```shell\
+```shell
 # Check ArgoCD application status
 kubectl get applications -n argocd
 
@@ -478,7 +512,7 @@ cilium connectivity test
 hubble observe --namespace <app-name>
 
 # Check certificate status
-kubectl get certificates -n <app-name>\
+kubectl get certificates -n <app-name>
 ```
 
 ## Submitting Changes
