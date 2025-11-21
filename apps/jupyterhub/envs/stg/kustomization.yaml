@@ -7,7 +7,7 @@ helmCharts:
     version: 4.2.0
     releaseName: jupyterhub
     namespace: jupyterhub
-    valuesFile: ../../base/values.yaml
+    valuesFile: values.yaml
       
 resources:
   - ../../base
