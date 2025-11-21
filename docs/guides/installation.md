@@ -706,7 +706,10 @@ echo JUPYTER_TOKEN=${JUPYTER_TOKEN}
 
 ```
 
-Port-forward port 8888 and got to `http://localhost:8888/desktop?token=$JUPYTER_TOKEN`:
+If you have direct access to port 8888 on the VM running K3S go to
+`http://VM_HOST_IP:8888/desktop?token=$JUPYTER_TOKEN`
+
+Alternatively port-forward port 8888 and go to `http://localhost:8888/desktop?token=$JUPYTER_TOKEN`:
 ```sh
 kubectl port-forward pod/k8tre-access 8888:8888 &
 echo "Go to http://localhost:8888/desktop?token=$JUPYTER_TOKEN"
