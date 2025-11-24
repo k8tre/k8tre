@@ -570,7 +570,7 @@ kubectl apply -f app_of_apps/root-app-of-apps.yaml
 ```
 The health status of K8TRE applications can be viewed via the ArgoCD web portal (i.e. http://<localhost or IP>:8080) or via the command line using kubectl.
 
-## Accessing K8TRE from hostHost DNS Configuration
+## Accessing K8TRE from your host machine
 
 You have two options to access K8TRE from your host machine- custom DNS forwarding, or running a remote desktop _alongside_ K8TRE.
 
