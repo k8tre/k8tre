@@ -677,11 +677,12 @@ On your host machine, create a persistent DNS configuration matching the environ
 
 You can deploy a remote Linux desktop container that require no local configuration.
 Note that this container runs on the same K3S cluster, but is outside K8TRE.
-It uses NoVNC to provide the desktop, and Jupyter-server to start the desktop.
+It uses NoVNC to provide the desktop.
+
+Be aware this container has no authentication, anyone with access to the port can access the desktop.
 
 ```shell
 KAREDNS_COREDNS_IP=$(kubectl get svc kare-dns-coredns -n kare-dns -ojsonpath='{.spec.clusterIP}')
-JUPYTER_TOKEN=$(openssl rand -hex 15)
 cat << EOF | kubectl apply -f -
 apiVersion: v1
 kind: Pod
@@ -690,30 +691,22 @@ metadata:
 spec:
   containers:
     - name: mate
-      image: ghcr.io/manics/jupyter-desktop-mate:latest
-      env:
-        - name: JUPYTER_TOKEN
-          value: "${JUPYTER_TOKEN}"
+      image: docker.io/jlesage/firefox:latest
       ports:
-        - containerPort: 8888
-          hostPort: 8888
+        - containerPort: 5800
   dnsPolicy: None
   dnsConfig:
     nameservers:
       - ${KAREDNS_COREDNS_IP}
 EOF
-echo JUPYTER_TOKEN=${JUPYTER_TOKEN}
 
 ```
 
-If you have direct access to port 8888 on the VM running K3S go to
-`http://VM_HOST_IP:8888/desktop?token=$JUPYTER_TOKEN`
-
-Alternatively port-forward port 8888 and go to `http://localhost:8888/desktop?token=$JUPYTER_TOKEN`:
+Setup a port-forward for port 5800:
 ```sh
-kubectl port-forward pod/k8tre-access 8888:8888 &
-echo "Go to http://localhost:8888/desktop?token=$JUPYTER_TOKEN"
+kubectl port-forward pod/k8tre-access 5800:5800 &
 ```
+and go to http://localhost:5800
 
 **4. K8TRE Secrets Management**
 
