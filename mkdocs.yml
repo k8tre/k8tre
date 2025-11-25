@@ -74,7 +74,6 @@ nav:
         #  - Resources : spec/resources.md
           - Secrets : spec/secrets.md
           - Storage : spec/storage.md
-          - Telemetry : spec/telemetry.md
           - Workspace Isolation: spec/workspaceisolation.md
   - Implementation: 
       - Infrastructure: implementation/architecture.md
