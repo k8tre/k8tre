@@ -570,8 +570,11 @@ kubectl apply -f app_of_apps/root-app-of-apps.yaml
 ```
 The health status of K8TRE applications can be viewed via the ArgoCD web portal (i.e. http://<localhost or IP>:8080) or via the command line using kubectl.
 
-## Host DNS Configuration
+## Accessing K8TRE from your host machine
 
+You have two options to access K8TRE from your host machine- custom DNS forwarding, or running a remote desktop _alongside_ K8TRE.
+
+### Host DNS Configuration
 For your host machine to resolve K8TRE service domains (e.g., `portal.stg.k8tre.org`), configure split DNS forwarding to route environment-specific domains to kare-dns.
 
 Get the kare-dns LoadBalancer IP:
@@ -668,6 +671,42 @@ On your host machine, create a persistent DNS configuration matching the environ
     Resolve-DnsName -Name google.com -Type A
     ```
     </div>
+
+
+### Create a remote desktop
+
+You can deploy a remote Linux desktop container that require no local configuration.
+Note that this container runs on the same K3S cluster, but is outside K8TRE.
+It uses NoVNC to provide the desktop.
+
+Be aware this container has no authentication, anyone with access to the port can access the desktop.
+
+```shell
+KAREDNS_COREDNS_IP=$(kubectl get svc kare-dns-coredns -n kare-dns -ojsonpath='{.spec.clusterIP}')
+cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8tre-access
+spec:
+  containers:
+    - name: mate
+      image: docker.io/jlesage/firefox:latest
+      ports:
+        - containerPort: 5800
+  dnsPolicy: None
+  dnsConfig:
+    nameservers:
+      - ${KAREDNS_COREDNS_IP}
+EOF
+
+```
+
+Setup a port-forward for port 5800:
+```sh
+kubectl port-forward pod/k8tre-access 5800:5800 &
+```
+and go to http://localhost:5800
 
 **4. K8TRE Secrets Management**
 
