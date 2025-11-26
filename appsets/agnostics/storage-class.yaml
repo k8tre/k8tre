@@ -31,6 +31,13 @@ spec:
         repoURL: https://github.com/karectl/karectl.git
         targetRevision: main
         path: "{{.path.path}}"
+        plugin:
+          name: kustomize-with-envsubst-v1.0
+          env:
+            - name: ENVIRONMENT
+              value: "{{index .path.segments 4}}"
+            - name: DOMAIN
+              value: "{{index .metadata.labels \"external-domain\"}}"
       destination:
         server: "{{.server}}"
         namespace: storage-system
