@@ -12,7 +12,7 @@ k8tre_statements:
     - ref: 1.5.6
       rationale: SATRE requires TRE operators to give each user of the TRE a unique logon, with changes to any records strictly controlled. K8TRE-compliant components or entire TREs must therefore follow this authentication model. 
     - ref: 3.2.4
-      rationale: SATRE requires TRE operators to ensure that multi-factor authentication is enabled for all users. Identity and access management sysytems provided by K8TRE-compliant components or entire TREs must therefore enforce multi-factor authentication for all users.
+      rationale: SATRE requires TRE operators to ensure that multi-factor authentication is enabled for all users. Identity and access management systems provided by K8TRE-compliant components or entire TREs must therefore enforce multi-factor authentication for all users.
 ---
 
 {{ spec_content(page.meta) }}
@@ -22,6 +22,8 @@ k8tre_statements:
 ### K8TRE Reference Implementation
 
 ### TREu
+
+TREu requires users to log into the TRE Portal using their standard UCL identity. External collaborators invited to join projects are provisioned with a guest UCL user identity during the TRE onboarding process and log in using this identity.
 
 ### FRIDGE
 

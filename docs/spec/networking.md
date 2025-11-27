@@ -3,7 +3,7 @@ topic: Networking
 last_updated: 2025-05-30
 discussion: https://github.com/orgs/k8tre/discussions/4
 k8tre_statements:
-  spec: All external access to applications/services must be via the ingress/gateway. The TRE must use a network plugin/CNI that fully supports Network Policy enforcement. Outbound connectivity should be blocked by defult, or restricted by IP and port to pre-approved, trusted destinations.
+  spec: All external access to applications/services must be via the ingress/gateway. The TRE must use a network plugin/CNI that fully supports Network Policy enforcement. Outbound connectivity should be blocked by default, or restricted by IP and port to pre-approved, trusted destinations.
   satre:
     - ref: 2.1.9
       rationale: SATRE requires TRE operators to mitigate and record any risks introduced by the use of software in the TRE that requires telemetry to function, such as licensed commercial software must contact an external licensing server. TRE operators may prohibit this entirely, or may allow it with appropriate risk mitigation and recording, but K8TRE components that facilitate the use of such software must support TRE operators in meeting this SATRE requirement.
@@ -31,7 +31,7 @@ The (Kubernetes-based) System plane uses the Cilium CNI and network policies to 
 
 ### FRIDGE
 
-FRIDGE makes extensive use of Cilium and standard Kubernetes network policies to ensure only the required network paths are open between componenents in the cluster. This also applies to ingress and egress traffic. Project isolation is not required in FRIDGE as a FRIDGE instance is currently dedicated to a project.
+FRIDGE makes extensive use of Cilium and standard Kubernetes network policies to ensure only the required network paths are open between components in the cluster. This also applies to ingress and egress traffic. Project isolation is not required in FRIDGE as a FRIDGE instance is currently dedicated to a project.
 
 ## FAQ
 

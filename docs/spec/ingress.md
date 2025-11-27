@@ -12,7 +12,7 @@ k8tre_statements:
 
 ### K8TRE Reference Implementation
 
-he K8TRE Reference Implementation currently implements an NGINX Ingress Controller.
+The K8TRE Reference Implementation currently implements an NGINX Ingress Controller.
 
 ### TREu
 
