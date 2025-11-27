@@ -23,6 +23,8 @@ k8tre_statements:
 
 ### TREu
 
+In TREu, Projects are isolated from each other at the network level, preventing inter-project transfers. Different projects use separate file systems and are mounted exclusively into project desktops, available only to the users of that project. TREu does not currently support the provision of shared services within Projects.
+
 ### FRIDGE
 
 ## FAQ

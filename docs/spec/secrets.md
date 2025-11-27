@@ -15,7 +15,7 @@ k8tre_statements:
 
 ### K8TRE Reference Implementation
 
-KMS provider and plugin the preferred solution for MVP.
+The KMS provider and plugin is the preferred solution for MVP.
 
 ### TREu
 
