@@ -459,14 +459,14 @@ kubectl apply -f cmp-plugin.yaml
 
 Then patch the ArgoCD repo-server to add the plugin sidecar:
 ```shell
-cat << 'EOF' > add-cmp-sidecar.yaml
+cat << EOF > add-cmp-sidecar.yaml
 - op: add
   path: /spec/template/spec/containers/-
   value:
     name: cmp-kustomize-envsubst
     command:
       - /var/run/argocd/argocd-cmp-server
-    image: quay.io/argoproj/argocd:v2.13.3
+    image: quay.io/argoproj/argocd:$ARGOCD_VERSION
     securityContext:
       runAsNonRoot: true
       runAsUser: 999
