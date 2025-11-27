@@ -63,15 +63,21 @@ nav:
       - Introduction: spec/README.md
       - Glossary: spec/glossary.md
       - The K8TRE Specification: 
+        #  - Asset Management : spec/assetmanagement.md
           - BYO Software : spec/byosoftware.md
-          - Container Runtimes: spec/containerruntimes.md
+          - Container Runtimes : spec/containerruntimes.md
           - Databases : spec/database.md
           - DNS : spec/dns.md
+          - Documentation : spec/documentation.md
+        #  - Egress : spec/egress.md
           - GitOps : spec/gitops.md
+          - Identity: spec/identity.md
           - Ingress : spec/ingress.md
           - Networking : spec/networking.md
+        #  - Resources : spec/resources.md
           - Secrets : spec/secrets.md
           - Storage : spec/storage.md
+          - Workspace Isolation: spec/workspaceisolation.md
   - Implementation: 
       - Infrastructure: implementation/architecture.md
       - ArgoCD: implementation/argocd.md
