@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - gateway.yaml
   - gateway-health-probe-service.yaml
+  - http-redirect-route.yaml
