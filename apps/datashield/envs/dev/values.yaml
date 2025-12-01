@@ -1,0 +1,47 @@
+namespace: datashield
+nameOverride: "opal"
+
+global:
+  storageClassName: ""
+  existingSecret: "datashield-secrets"
+
+serviceAccount:
+  name: rock-spawner-service-account
+
+mongo:
+  enabled: false
+useMongo: false
+
+usePostgres:
+  data: true
+postgres:
+  data:
+    enabled: false 
+    host: datashield-postgres-cluster-rw.datashield.svc.cluster.local
+    existingSecret: opal-resource-db-secret 
+    existingSecretKeys:
+      password: password
+      user: username
+      database: database
+
+opal:
+  adminPassword:
+    secretKey: opal-administrator-password
+  rock:
+    imagesAllowed: "datashield/rock-quebrada-marvel:1.0.0"
+    specs:
+      - id: rockdsml 
+        type: rock 
+        enabled: true
+        container:
+            name: rockdsml
+            image: "datashield/rock-quebrada-marvel:1.0.0"
+            imagePullPolicy: IfNotPresent
+            port: 8085
+            resources:
+                requests:
+                    cpu: "1000m"
+                    memory: "500Mi"
+                limits:
+                    cpu: "2000m"
+                    memory: "1Gi"

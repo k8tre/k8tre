@@ -22,7 +22,6 @@ spec:
     roles:
       - name: keycloak-user
         ensure: present
-        comment: "Keycloak user role"
         login: true
         superuser: false
         passwordSecret:
