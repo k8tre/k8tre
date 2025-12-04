@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Install Longhorn via Helm
+helmCharts:
+  - name: longhorn
+    repo: https://charts.longhorn.io
+    version: 1.7.2
+    releaseName: longhorn
+    namespace: storage-system
+    valuesFile: longhorn-values.yaml
+    includeCRDs: true
+
+resources:
+  - rwx-default.yaml
+  - rwo-default.yaml
