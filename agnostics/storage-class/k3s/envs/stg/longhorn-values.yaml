@@ -1,0 +1,7 @@
+# Minimal Longhorn configuration for k3s stg
+persistence:
+  defaultClass: false  # rwx-default will be the default instead
+  defaultClassReplicaCount: 1
+
+defaultSettings:
+  defaultReplicaCount: 1
