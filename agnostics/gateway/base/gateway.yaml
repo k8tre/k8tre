@@ -12,6 +12,7 @@ spec:
   gatewayClassName: cilium
   listeners:
   - name: http
+    hostname: "*.${ENVIRONMENT}.${DOMAIN}"
     port: 80
     protocol: HTTP
     allowedRoutes:
