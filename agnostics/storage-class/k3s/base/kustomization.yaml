@@ -14,3 +14,4 @@ helmCharts:
 resources:
   - rwx-default.yaml
   - rwo-default.yaml
+  - allow-longhorn-network-policy.yaml

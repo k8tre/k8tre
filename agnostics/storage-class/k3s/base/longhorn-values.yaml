@@ -5,3 +5,7 @@ persistence:
 
 defaultSettings:
   defaultReplicaCount: 1
+
+# Pre-upgrade checker disabled
+preUpgradeChecker:
+  jobEnabled: false
