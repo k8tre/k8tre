@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pulumi
+  namespace: pulumi-kubernetes-operator
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/k8tre/k8tre.git
+              revision: main
+              directories:
+                - path: apps/pulumi/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: "{{index .path.segments 3}}"
+
+  template:
+    metadata:
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+        # argocd.argoproj.io/sync-wave:
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: pulumi-kubernetes-operator
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          # Work around
+          # CustomResourceDefinition.apiextensions.k8s.io "stacks.pulumi.com" is invalid: metadata.annotations: Too long: may not be more than 262144 bytes
+          - ServerSideApply=true
