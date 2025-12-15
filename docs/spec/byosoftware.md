@@ -3,7 +3,10 @@ topic: BYO Software
 last_updated: 2025-07-07
 discussion: https://github.com/orgs/k8tre/discussions/8
 k8tre_statements:
-  spec: Both "bring-your-own software and code" and curated software models may be supported.
+  spec: Both "bring-your-own software and code" and curated software models may be supported in order to provide users with the relevant tools for working with data in the TRE.
+  satre:
+    - ref: 2.1.10
+      rationale: SATRE requires TRE operators to provide users with the relevant tools for working with data in the TRE. K8TRE components and entire TREs may fulfil this component using "bring-your-own software and code" or curated software models. The tools which should be provided will depend on the types of data in the TRE, and the expectations of users of the TRE.
 ---
 
 {{ spec_content(page.meta) }}

@@ -4,6 +4,9 @@ last_updated: 2025-05-30
 discussion: (https://github.com/orgs/k8tre/discussions/6)
 k8tre_statements:
   spec: Storing secrets unencrypted in etcd is not acceptable.
+  satre:
+    - ref: 2.5.12
+      rationale: SATRE requires TRE operators to encrypt project and user data at rest. Storing secrets unencrypted in etcd may be equivalent to storing project and user data unencrypted, since secrets can be used by malicious actors to access, change, or change access to project and user data.
 ---
 
 {{ spec_content(page.meta) }}
@@ -12,7 +15,7 @@ k8tre_statements:
 
 ### K8TRE Reference Implementation
 
-KMS provider and plugin the preferred solution for MVP.
+The KMS provider and plugin is the preferred solution for MVP.
 
 ### TREu
 
