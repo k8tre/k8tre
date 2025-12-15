@@ -559,7 +559,7 @@ git clone -b $GITHUB_REVISION https://github.com/$GITHUB_ORG/$GITHUB_REPOSITORY.
 Modify the default K8TRE root app-of-apps manifest so that it reads from the correct git repository and branch: 
 
 ```shell
-sed -i -e "s%/k8tre%/${GITHUB_REPOSITORY}%" -e "s%main%${GITHUB_REVISION}%" app_of_apps/root-app-of-apps.yaml
+sed -i -e "s%/k8tre/k8tre%/${GITHUB_ORG}/${GITHUB_REPOSITORY}%" -e "s%main%${GITHUB_REVISION}%" app_of_apps/root-app-of-apps.yaml
 ```
 
 **3. Apply K8TRE App Of Apps Manifest**
