@@ -37,11 +37,11 @@ KARECTL_PLATFORM = os.environ.get("KARECTL_PLATFORM", "k3s")
 
 def build_service_url(service, path=""):
     """ Build service URL using configured environment and domain """
-    return f"https://{service}.{KARECTL_ENV}.{KARECTL_EXTERNAL_DOMAIN}{path}"
+    return f"https://{service}.{KARECTL_EXTERNAL_DOMAIN}{path}"
 
 def get_session_domain():
     """ Get cookie domain for session management """
-    return f".{KARECTL_ENV}.{KARECTL_EXTERNAL_DOMAIN}"
+    return f".{KARECTL_EXTERNAL_DOMAIN}"
 
 
 GUACAMOLE_HOST = os.environ.get("GUACAMOLE_HOST", build_service_url("guacamole"))
