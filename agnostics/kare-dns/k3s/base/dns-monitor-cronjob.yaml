@@ -26,7 +26,7 @@ data:
 
     # Get IP from CoreDNS
     CONFIGURED_IP=$(kubectl get cm coredns -n kube-system -o jsonpath='{.data.Corefile}' | \
-      grep -A 2 "${ENVIRONMENT}.${DOMAIN}:53" | grep "forward" | awk '{print $3}' | cut -d: -f1)
+      grep -A 2 "${DOMAIN}:53" | grep "forward" | awk '{print $3}' | cut -d: -f1)
 
     echo "Current kare-dns IP: $CURRENT_IP"
     echo "Configured CoreDNS IP: $CONFIGURED_IP"
@@ -39,7 +39,7 @@ data:
 
     echo "IP mismatch detected! Updating CoreDNS..."
     cat > /tmp/new-corefile << 'COREFILE'
-    ${ENVIRONMENT}.${DOMAIN}:53 {
+    ${DOMAIN}:53 {
         errors
         forward . ${CURRENT_IP}:53
     }

@@ -7,9 +7,9 @@ spec:
   secretName: xk8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: jupyter.${ENVIRONMENT}.${DOMAIN}
+  commonName: jupyter.${DOMAIN}
   dnsNames:
-    - jupyter.${ENVIRONMENT}.${DOMAIN}
+    - jupyter.${DOMAIN}
   usages:
     - digital signature
     - key encipherment

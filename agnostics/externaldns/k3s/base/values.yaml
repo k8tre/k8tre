@@ -3,7 +3,7 @@ env:
   - name: ETCD_URLS
     value: "http://etcd.kare-dns.svc.cluster.local:2379"
 domainFilters:
-  - ${ENVIRONMENT}.${DOMAIN}
+  - ${DOMAIN}
 policy: sync
 txtOwnerId: externaldns
 sources:

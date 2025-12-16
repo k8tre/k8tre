@@ -29,7 +29,7 @@ extraEnv: |
   - name: KC_PROXY_HEADERS
     value: xforwarded
   - name: KC_HOSTNAME
-    value: https://keycloak.${ENVIRONMENT}.${DOMAIN}
+    value: https://keycloak.${DOMAIN}
 
 database:
   vendor: postgres

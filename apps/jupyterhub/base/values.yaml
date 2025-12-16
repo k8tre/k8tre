@@ -35,7 +35,7 @@ hub:
   extraEnv:
     KARECTL_ENV: "${ENVIRONMENT}"
     KARECTL_EXTERNAL_DOMAIN: "${DOMAIN}"
-    KARECTL_BACKEND_URL: "https://portal.${ENVIRONMENT}.${DOMAIN}"
+    KARECTL_BACKEND_URL: "https://portal.${DOMAIN}"
   extraConfig:
     00-authenticator: |
       exec(open('/etc/jupyterhub/config/authenticator.py').read())
@@ -96,12 +96,17 @@ singleuser:
 ingress:
   enabled: false
   hosts:
-    - jupyter.${ENVIRONMENT}.${DOMAIN}
+    - jupyter.${DOMAIN}
   ingressClassName: nginx
   annotations:
-    # external-dns.alpha.kubernetes.io/hostname: jupyter.${ENVIRONMENT}.${DOMAIN}
+    # external-dns.alpha.kubernetes.io/hostname: jupyter.${DOMAIN}
     # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
   tls:
     - hosts:
+<<<<<<< HEAD
         - jupyter.${ENVIRONMENT}.${DOMAIN}
       secretName: xk8tre-tls
+=======
+        - jupyter.${DOMAIN}
+      secretName: xkarectl-tls
+>>>>>>> d0ee605 (Fix/mph-remove-env-prd-var-sub (#163))

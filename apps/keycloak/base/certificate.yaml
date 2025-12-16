@@ -4,12 +4,12 @@ metadata:
   name: xk8tre-tls
   namespace: keycloak
 spec:
-  secretName: keycloak.${ENVIRONMENT}.${DOMAIN}-tls
+  secretName: keycloak.${DOMAIN}-tls
   privateKey:
     rotationPolicy: Always
-  commonName: keycloak.${ENVIRONMENT}.${DOMAIN}
+  commonName: keycloak.${DOMAIN}
   dnsNames:
-    - keycloak.${ENVIRONMENT}.${DOMAIN}
+    - keycloak.${DOMAIN}
   usages:
     - digital signature
     - key encipherment

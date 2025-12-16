@@ -59,9 +59,9 @@ spec:
                   name: guacamole-json-secret
                   key: GUACAMOLE_JSON_SECRET_KEY
             - name: GUACAMOLE_HOST
-              value: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+              value: "https://guacamole.${DOMAIN}"
             - name: KARECTL_BACKEND
-              value: "https://portal.${ENVIRONMENT}.${DOMAIN}"
+              value: "https://portal.${DOMAIN}"
             - name: SESSION_HTTPS_ONLY
               value: "true"
             - name: KARECTL_ENV

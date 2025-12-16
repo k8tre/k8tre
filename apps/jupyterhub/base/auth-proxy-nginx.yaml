@@ -150,7 +150,7 @@ data:
           add_header 'Access-Control-Allow-Origin' $cors_origin always;
           add_header 'Access-Control-Allow-Credentials' 'true' always;
 
-          return 302 https://portal.${ENVIRONMENT}.${DOMAIN}/login?redirect=$scheme://$host$request_uri;
+          return 302 https://portal.${DOMAIN}/login?redirect=$scheme://$host$request_uri;
         }
         
         location @error403 {

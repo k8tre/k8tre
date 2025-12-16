@@ -53,7 +53,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
   className: nginx
-  host: cr8tor.${ENVIRONMENT}.${DOMAIN}
+  host: cr8tor.${DOMAIN}
   tls:
     secretName: xk8tre-tls
 

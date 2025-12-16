@@ -5,3 +5,4 @@ namespace: gitea
 
 resources:
   - ../../base
+

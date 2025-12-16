@@ -11,9 +11,9 @@ spec:
     key: client-secret
   enabled: true
   redirectUris:
-    - https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub/oauth_callback
+    - https://jupyter.${DOMAIN}/hub/oauth_callback
   webOrigins:
-    - https://jupyter.${ENVIRONMENT}.${DOMAIN}
+    - https://jupyter.${DOMAIN}
   defaultClientScopes:
     - openid 
     - web-origins
@@ -55,9 +55,9 @@ spec:
     key: client-secret
   enabled: true
   redirectUris:
-    - https://portal.${ENVIRONMENT}.${DOMAIN}/auth/callback
+    - https://portal.${DOMAIN}/auth/callback
   webOrigins:
-    - https://portal.${ENVIRONMENT}.${DOMAIN}
+    - https://portal.${DOMAIN}
   defaultClientScopes:
     - openid
     - web-origins

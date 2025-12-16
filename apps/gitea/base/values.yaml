@@ -32,8 +32,8 @@ gitea:
       TYPE: level    # use local disk-backed queue (default is redis) 
       CONN_STR: /data/queues/level
     server:
-      DOMAIN: gitea.${ENVIRONMENT}.${DOMAIN}
-      ROOT_URL: https://gitea.${ENVIRONMENT}.${DOMAIN}/
+      DOMAIN: gitea.${DOMAIN}
+      ROOT_URL: https://gitea.${DOMAIN}/
       PROTOCOL: http           # ingress terminates TLS
       HTTP_PORT: 3000
       DISABLE_SSH: "true"

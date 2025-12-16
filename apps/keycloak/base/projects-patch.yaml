@@ -5,10 +5,10 @@ metadata:
 spec:
   apps:
     - name: jupyterhub
-      url: "https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub"
+      url: "https://jupyter.${DOMAIN}/hub"
       type: jupyterhub
     - name: guacamole
-      url: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+      url: "https://guacamole.${DOMAIN}"
       type: vdi
       config:
         protocol: rdp
@@ -22,10 +22,10 @@ metadata:
 spec:
   apps:
     - name: jupyterhub
-      url: "https://jupyter.${ENVIRONMENT}.${DOMAIN}/hub"
+      url: "https://jupyter.${DOMAIN}/hub"
       type: jupyterhub
     - name: guacamole
-      url: "https://guacamole.${ENVIRONMENT}.${DOMAIN}"
+      url: "https://guacamole.${DOMAIN}"
       type: vdi
       config:
         protocol: rdp

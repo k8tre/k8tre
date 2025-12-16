@@ -36,7 +36,7 @@ data:
         if echo "$KARE_DNS_IP" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' > /dev/null; then
           # Create Corefile content
           {
-            echo "${ENVIRONMENT}.${DOMAIN}:53 {"
+            echo "${DOMAIN}:53 {"
             echo "    errors"
             echo "    forward . $KARE_DNS_IP:53"
             echo "}"

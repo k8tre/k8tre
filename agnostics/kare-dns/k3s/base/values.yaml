@@ -3,26 +3,26 @@ serviceType: LoadBalancer
 
 servers:
 - zones:
-  - zone: ${ENVIRONMENT}.${DOMAIN}
+  - zone: ${DOMAIN}
   port: 53
   plugins:
   - name: etcd
-    parameters: ${ENVIRONMENT}.${DOMAIN}
+    parameters: ${DOMAIN}
     configBlock: |-
       stubzones
       path /skydns
       endpoint http://etcd.kare-dns.svc.cluster.local:2379
   - name: template
-    parameters: IN SOA ${ENVIRONMENT}.${DOMAIN}
+    parameters: IN SOA ${DOMAIN}
     configBlock: |-
       match ^${ENVIRONMENT}\.${DOMAIN}\.$
-      answer "{{ .Name }} 60 IN SOA ns1.${ENVIRONMENT}.${DOMAIN}. admin.${ENVIRONMENT}.${DOMAIN}. 2025091100 3600 1800 604800 86400"
+      answer "{{ .Name }} 60 IN SOA ns1.${DOMAIN}. admin.${DOMAIN}. 2025091100 3600 1800 604800 86400"
       fallthrough
   - name: template
-    parameters: IN NS ${ENVIRONMENT}.${DOMAIN}
+    parameters: IN NS ${DOMAIN}
     configBlock: |-
       match ^${ENVIRONMENT}\.${DOMAIN}\.$
-      answer "{{ .Name }} 60 IN NS ns1.${ENVIRONMENT}.${DOMAIN}."
+      answer "{{ .Name }} 60 IN NS ns1.${DOMAIN}."
       fallthrough
   - name: cache
     parameters: 30
