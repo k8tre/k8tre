@@ -26,6 +26,8 @@ The TREu System plane cluster, which does not have access to sensitive data, use
 
 FRIDGE uses Longhorn for compatibility across different HPC platforms. FRIDGE also applies encryption on storage volumes attached to Kubernetes Pods where user jobs are exectuded, ensuring data safety.
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - Which storage requirements shall the K8TRE Specification assume the underlying Kubernetes platform will provide? e.g. what storageClass definitions / providers should be recommended/mandated?
