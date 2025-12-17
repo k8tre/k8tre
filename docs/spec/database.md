@@ -20,6 +20,8 @@ TREu uses Postgres databases for use in its System cluster, specifically, for Ap
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **What should K8TRE Specification say about *in-cluster* DBs and what should it say about *off-cluster* DBs?**

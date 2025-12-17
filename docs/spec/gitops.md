@@ -31,6 +31,8 @@ TREu deployments use GitOps [(e.g. for the ARC TRE, per ISMS guidance)](https://
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - Why is employing GitOps practices recommended?

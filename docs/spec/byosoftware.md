@@ -25,6 +25,8 @@ TREu is designed for a bring-your-own software model, encouraging researchers to
 
 FRIDGE extends the computational capability of another TRE by accepting tasks to run on the HPC platform where FRIDGE is deployed. Although adopting a job submission model, FRIDGE allows users to upload container images with their own software that is to be executed as a job.
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **What is K8TRE's stance on allowing researchers to ingress "bring-your-own software and code", versus a curated software model? Will it allow both?**

@@ -20,6 +20,8 @@ In its default AWS adaptation, TREu uses the default high- and low-level contain
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **What container runtimes should a K8TRE implementation use, and why?**

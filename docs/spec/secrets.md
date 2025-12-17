@@ -21,6 +21,8 @@ The KMS provider and plugin is the preferred solution for MVP.
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - How do we store secrets in and make them available to applications on the cluster? Use k8s default secrets storage or more secure alternative backends?

@@ -22,6 +22,8 @@ In a TREu deployment, DNS records are not created by applications running on the
 
 FRIDGE conceptually follows a job execution model, whereby a frontend-TRE submits tasks to a FRIDGE instance and collects results through a well-known API. FRIDGE users may not deploy long running services for external consumption and, therefore, requires no external DNS support.  
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **What will provide in-cluster DNS?**

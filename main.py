@@ -6,6 +6,21 @@ def define_env(env):
         updated = meta.get("last_updated", "Unknown")
         source = meta.get("discussion") or "N/A"
 
+
+
+        return f"""
+# {topic}
+
+!!! abstract "Specification"
+    {statement}
+
+Last updated: {updated}  
+Source: {source}
+"""
+    
+    
+    @env.macro
+    def satre_link(meta):
         satre_items = meta.get("k8tre_statements", {}).get("satre", [])
 
         # Build SATRE section only if items exist
@@ -19,15 +34,4 @@ def define_env(env):
 **Component {ref}**  
 {rationale}
 """
-
-        return f"""
-# {topic}
-
-!!! abstract "Specification"
-    {statement}
-
-Last updated: {updated}  
-Source: {source}
-
-{satre_md}
-"""
+                return satre_md

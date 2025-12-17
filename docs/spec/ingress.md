@@ -20,6 +20,8 @@ TREu implements an NGINX Ingress Controller exposed to a AWS Network Load Balanc
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **Are load balancers mandatory for a K8TRE?**
