@@ -20,7 +20,7 @@ resources:
   - workspaces/jupyterhub.yaml
   - workspaces/guacamole.yaml
   - workspaces/gitea.yaml
-  - workspaces/pulumi.yaml
+  - observability/observability-metrics.yaml
 
 patches:
 # https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/#allow-temporarily-toggling-auto-sync
