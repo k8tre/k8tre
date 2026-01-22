@@ -79,6 +79,11 @@ async def pre_spawn_hook(spawner):
     spawner.environment["KARECTL_PROJECT"] = project or ""
     spawner.environment["SELECTED_PROJECT"] = project or ""
 
+    # Set project label for network policy isolation
+    if project:
+        spawner.extra_labels = spawner.extra_labels or {}
+        spawner.extra_labels['karectl.io/project'] = project
+
     spawner.log.info(f"Spawner environment set: USER={base_user}, PROJECT={project}")
 
 # Configure JupyterHub settings
