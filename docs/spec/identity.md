@@ -3,7 +3,7 @@ topic: Identity and Access
 last_updated: 2025-11-25
 discussion: 
 k8tre_statements:
-  spec: The TRE must implement identity and access management services to manage access to resources based on trusted identities. These services may be deployed on-cluster, or apps may connect to off-cluster identity services, for authentication and authorisation, with MFA enforced.
+  spec: The TRE must implement identity and access management services to manage user access to resources based on trusted identities. These services may be deployed on-cluster, or apps may connect to off-cluster identity services, for authentication and authorisation, with MFA enforced.
   satre:
     - ref: 1.5.3
       rationale: SATRE requires TRE operators to have a set of services to manage access to resources based on identity. K8TRE-compliant components or entire TREs must therefore provide access to resources based on identity.
@@ -27,8 +27,11 @@ TREu requires users to log into the TRE Portal using their standard UCL identity
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **Question**
 
    Answer
+

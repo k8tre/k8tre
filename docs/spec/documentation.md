@@ -27,6 +27,8 @@ TREu hosts a Docs site at https://docs.tre.arc.ucl.ac.uk/
 
 ### FRIDGE
 
+{{ satre_link(page.meta) }}
+
 ## FAQ
 
 - **Question**
