@@ -2372,10 +2372,7 @@ data:
           }
         ]
       },
-      "time": {
-        "from": "2025-05-01T18:36:31.586Z",
-        "to": "2025-05-01T20:01:30.579Z"
-      },
+      "time": { "from": "now-12h", "to": "now" },
       "timepicker": {
         "refresh_intervals": [
           "30s",
