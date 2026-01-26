@@ -7,6 +7,7 @@ resources:
   - gateway-route.yaml
   - dashboards/vllm-query-dashboard.yaml
   - dashboards/nvidia-dcgm-dashboard.yaml
+  - dashboards/lmcache-dashboard.yaml
 
 helmCharts:
   - name: kube-prometheus-stack
