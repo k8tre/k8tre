@@ -16,7 +16,6 @@ resources:
   - federation/cr8tor.yaml
   - identity/keycloak.yaml
   - identity/backend.yaml
-  - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
   - workspaces/guacamole.yaml
   - workspaces/gitea.yaml
