@@ -202,6 +202,19 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         - SSH to the VM using the IP shown in VMware (run `ip a` in VM to find IP)
     
 
+# Check the number of inotify watches a user can have
+```shell
+sysctl fs.inotify.max_user_instances
+sysctl fs.inotify.max_user_watches
+```
+
+and consider increasing them if they're too low:
+```shell
+echo fs.inotify.max_user_instances = 4096 | sudo tee -a /etc/sysctl.d/local.conf
+echo fs.inotify.max_user_watches = 262144 | sudo tee -a /etc/sysctl.d/local.conf
+sudo systemctl restart systemd-sysctl
+```
+
 ## Kubernetes Cluster (K3s)
 At this point, we're ready to install [K3s](https://k3s.io/), a lightweight Kubernetes cluster distribution. You should have a target VM running Ubuntu 24.04 on your local host machine (or maybe remotely) accessible via your chosen command line tool.
 
