@@ -65,14 +65,14 @@ storage:
       staging:
         name: k8tre-staging
         create: true
-        storageClassName: cr8tor-k8tre-staging
+        storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
 
       production:
         name: k8tre-prod
         create: true
-        storageClassName: cr8tor-k8tre-prod
+        storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
     lsc:
@@ -82,14 +82,14 @@ storage:
         staging:
           name: lsc-staging
           create: true
-          storageClassName: cr8tor-lsc-staging
+          storageClassName: rwx-default
           accessModes:
           - ReadWriteMany
 
         production:
           name: lsc-prod
           create: true
-          storageClassName: cr8tor-lsc-prod
+          storageClassName: rwx-default
           accessModes:
           - ReadWriteMany
   nw:
@@ -99,14 +99,14 @@ storage:
       staging:
         name: nw-staging
         create: true
-        storageClassName: cr8tor-nw-staging
+        storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
 
       production:
         name: nw-prod
         create: true
-        storageClassName: cr8tor-nw-prod
+        storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
 
