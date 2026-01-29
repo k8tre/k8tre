@@ -26,7 +26,7 @@ You probably use services powered by Kubernetes every day without realising it. 
 
 ## How K8TRE Keeps Data Safe
 
-K8TRE follows the [SATRE (Safe Haven for Approved Researcher Environments)](https://satre-specification.readthedocs.io/en/stable/) standards - a widely recognised set of security rules for handling sensitive research data. This means K8TRE:
+K8TRE follows the [SATRE (Safe Havens for Approved Researcher Environments)](https://satre-specification.readthedocs.io/en/stable/) standards - a widely recognised set of security rules for handling sensitive research data. This means K8TRE:
 
 - ✓ Controls who can access data and what they can do with it
 - ✓ Tracks all activities to ensure accountability
@@ -76,7 +76,7 @@ K8TRE helps several groups:
 
 ## Accountability and Oversight
 
-K8TRE is being developed as part of [DARE UK](https://dareuk.org.uk/) (Data and Analytics Research Environments UK), a national initiative to improve how health and administrative data can be used responsibly for research. The project involves multiple organisations working together under clear governance structures, ensuring transparency and accountability.
+K8TRE is being developed as part of [DARE-UK](https://dareuk.org.uk/) (Data and Analytics Research Environments UK), a national initiative to improve how health and administrative data can be used responsibly for research. The project involves multiple organisations working together under clear governance structures, ensuring transparency and accountability.
 
 ## Summary
 
