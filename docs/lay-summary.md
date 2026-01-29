@@ -2,7 +2,7 @@
 
 ## What is K8TRE?
 
-K8TRE (pronounced "Kate-Tree") is a secure digital workspace designed to help researchers safely analyse sensitive data, including health records and government information. It ensures that personal data belonging to citizens remains protected while enabling important research that can improve health outcomes and public services.
+K8TRE (pronounced "Kay-Tree") is a Trusted Research Environment designed to help researchers safely analyse sensitive data, including health records and government information. It ensures that personal data belonging to citizens remains protected while enabling important research that can improve health outcomes and public services.
 
 ## Why Does This Matter?
 
