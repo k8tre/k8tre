@@ -76,7 +76,7 @@ K8TRE helps several groups:
 
 ## Accountability and Oversight
 
-K8TRE is being developed as part of [DARE-UK](https://dareuk.org.uk/) (Data and Analytics Research Environments UK), a national initiative to improve how health and administrative data can be used responsibly for research. The project involves multiple organisations working together under clear governance structures, ensuring transparency and accountability.
+K8TRE is being developed as part of [DARE-UK's ](https://dareuk.org.uk/), [TREvolution](https://dareuk.org.uk/trevolution/) program, a national initiative to improve how health and administrative data can be used responsibly for research. The project involves multiple organisations working together under clear governance structures, ensuring transparency and accountability.
 
 ## Summary
 
