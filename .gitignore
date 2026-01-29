@@ -9,3 +9,6 @@ __pycache__/
 .venv/
 
 screenshots/
+
+# MkDocs build output
+site/
