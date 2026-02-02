@@ -5,7 +5,6 @@ resources:
   - guacamole-secrets.yaml
   - gateway-route.yaml
   - guacamole-auth-proxy.yaml
-  - netpol_auth-proxy_alpine.yaml
 
 helmCharts:
   - name: guacamole
