@@ -90,7 +90,7 @@ six==1.17.0
     # via python-dateutil
 super-collections==0.6.2
     # via mkdocs-macros-plugin
-termcolor==3.1.0
+termcolor==3.3.0
     # via mkdocs-macros-plugin
 urllib3==2.6.2
     # via requests
