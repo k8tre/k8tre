@@ -12,6 +12,8 @@ approvalService:
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
+    - name: PUBLISH_CONTAINER_NAME
+      value: cr8tor-publish.${DOMAIN}
 
 metadataService:
   image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-metadata-service:0.1.65"
@@ -28,6 +30,7 @@ metadataService:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
 
+
 publishService:
   image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-publish-service:0.1.65"
   volumes:
@@ -42,6 +45,39 @@ publishService:
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
+
+    - name: DESTINATION_POSTGRESQL_HOST
+      value: "datashield-postgres-cluster-rw.datashield.svc.cluster.local"
+    - name: DESTINATION_POSTGRESQL_DATABASE
+      value: "opal-resource-db"
+    - name: DESTINATION_POSTGRESQL_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: cr8tor-secret
+          key: opal-resource-db-username
+
+    - name: DESTINATION_POSTGRESQL_PASSWORD_SECRET_NAME
+      value: opal-resource-db-password
+
+    - name: DESTINATION_POSTGRESQL_PORT
+      value: "5432"
+
+    - name: DESTINATION_POSTGRESQL_OPAL_READONLY_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: cr8tor-secret
+          key: opal-resource-db-username
+    - name: DESTINATION_POSTGRESQL_OPAL_READONLY_PASSWORD_SECRET_NAME
+      value: opal-resource-db-password
+
+    - name: DESTINATION_OPAL_HOST
+      value: "https://opal.${DOMAIN}"
+    - name: DESTINATION_OPAL_NO_SSL_VERIFY
+      value: "false"
+    - name: DESTINATION_OPAL_USERNAME
+      value: "administrator"
+    - name: DESTINATION_OPAL_PASSWORD_SECRET_NAME
+      value: opal-administrator-password
 
 ingress:
   enabled: true

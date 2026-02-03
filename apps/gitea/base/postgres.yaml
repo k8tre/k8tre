@@ -11,8 +11,10 @@ metadata:
       - .spec.managed.roles[]?.inherit
 spec:
   instances: 1
+  enablePDB: false
   storage:
     size: 5Gi
+    storageClass: rwo-default
   imagePullPolicy: IfNotPresent
   resources:
     requests:
