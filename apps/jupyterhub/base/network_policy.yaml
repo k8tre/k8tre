@@ -47,7 +47,13 @@ kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: allow-pod-to-pod-via-gateway
 spec:
-  endpointSelector: {}
+  # Apply to all pods EXCEPT project namespaces as they have custom policies.
+  endpointSelector:
+    matchExpressions:
+    - key: io.cilium.k8s.namespace.labels.karectl.io/resource-type
+      operator: NotIn
+      values:
+      - project-namespace
   egress:
   - toEntities:
     - cluster

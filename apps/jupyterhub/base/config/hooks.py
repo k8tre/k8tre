@@ -1,6 +1,7 @@
 # JupyterHub hooks and configuration
 
 import os
+import re
 import requests
 import urllib.parse
 
@@ -11,6 +12,7 @@ BACKEND_URL = os.environ.get(
     "KARECTL_BACKEND_URL",
     f"https://portal.{KARECTL_ENV}.{KARECTL_DOMAIN}"
 )
+
 
 def logout_hook(user):
     """ Call backend cleanup when user logs out of JupyterHub
@@ -29,24 +31,18 @@ def logout_hook(user):
     except Exception as e:
         print(f"Failed to cleanup session for {user.name}: {e}")
 
-def get_project_from_query(spawner):
-    """ Parse project from query param in spawn_url.
-    """
-    url = spawner.user._spawn_pending.get('url', '') if hasattr(spawner.user, '_spawn_pending') else ''
-    if not url:
-        url = spawner.user.settings.get('spawn_url', '')
-    if not url:
-        return None
 
-    parsed = urllib.parse.urlparse(url)
-    query = urllib.parse.parse_qs(parsed.query)
-    project = query.get('project', [None])[0]
-    return project
+def get_notebook_pvc_name(username, project):
+    """ Get notebook PVC by cr8tor naming convention
+    """
+    safe_user = re.sub(r"[^a-z0-9-]", "", username.lower())
+    safe_project = re.sub(r"[^a-z0-9-]", "", project.lower())
+    return f"notebook-{safe_user}-{safe_project}"
+
 
 async def pre_spawn_hook(spawner):
     """ Hook to run before spawning a new server
     """
-    # Debug
     headers = dict(spawner.handler.request.headers)
     spawner.log.info(f"Incoming headers for pre_spawn_hook: {headers}")
 
@@ -79,10 +75,38 @@ async def pre_spawn_hook(spawner):
     spawner.environment["KARECTL_PROJECT"] = project or ""
     spawner.environment["SELECTED_PROJECT"] = project or ""
 
-    # Set project label for network policy isolation
+    # Set project namespace and labels
     if project:
         spawner.extra_labels = spawner.extra_labels or {}
         spawner.extra_labels['karectl.io/project'] = project
+        spawner.extra_labels['karectl.io/user'] = base_user
+
+        namespace = f"project-{project}"
+        spawner.namespace = namespace
+        spawner.log.info(f"Spawning into project namespace: {namespace}")
+
+        # Configure notebook storage using cr8tor's PVC naming convention
+        # PVC is pre-created by cr8tor when user joins project
+        pvc_name = get_notebook_pvc_name(base_user, project)
+        spawner.log.info(f"Using notebook PVC: {pvc_name} in namespace {namespace}")
+
+        spawner.volumes = spawner.volumes or []
+        spawner.volume_mounts = spawner.volume_mounts or []
+
+        # Mount the pre-provisioned PVC at /home/jovyan
+        # If PVC doesn't exist, Kubernetes will fail to schedule the pod
+        spawner.volumes.append({
+            'name': 'notebook-storage',
+            'persistentVolumeClaim': {'claimName': pvc_name}
+        })
+        spawner.volume_mounts.append({
+            'name': 'notebook-storage',
+            'mountPath': '/home/jovyan'
+        })
+
+        spawner.environment["NOTEBOOK_STORAGE_TYPE"] = "persistent"
+        spawner.environment["NOTEBOOK_PVC_NAME"] = pvc_name
+        spawner.log.info(f"Persistent storage configured: PVC {pvc_name} mounted at /home/jovyan")
 
     spawner.log.info(f"Spawner environment set: USER={base_user}, PROJECT={project}")
 
@@ -93,6 +117,9 @@ c.JupyterHub.logout_redirect_url = f"{BACKEND_URL}/logged-out"
 c.Authenticator.logout_redirect_url = f"{BACKEND_URL}/logged-out"
 c.JupyterHub.post_stop_hook = logout_hook
 c.KubeSpawner.pre_spawn_hook = pre_spawn_hook
+
+# Enable user namespaces to handle per-user/per-project namespaces
+c.KubeSpawner.enable_user_namespaces = True
 
 # Additional settings that were in 04-custom-templates.py
 c.JupyterHub.allow_named_servers = False

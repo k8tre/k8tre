@@ -13,6 +13,7 @@ resources:
   - gateway-route.yaml
   - backend-config.yaml
   - auth-proxy-nginx.yaml
+  - hub-cluster-role.yaml
 
 patches:
   - path: patch-hub-rolebinding.yaml

@@ -9,5 +9,12 @@ helmCharts:
     namespace: cr8tor
     valuesFile: values.yaml
 
+  - name: cr8tor-operator
+    repo: oci://ghcr.io/karectl-crates/charts
+    version: 0.0.1-rc.1
+    releaseName: cr8tor-operator
+    namespace: cr8tor
+    valuesFile: operator-values.yaml
+
 resources:
   - ../../base

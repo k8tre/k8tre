@@ -1,0 +1,19 @@
+image:
+  registry: ghcr.io
+  repository: karectl-crates/cr8tor-operator
+  tag: "v0.0.1"
+  pullPolicy: IfNotPresent
+
+keycloak:
+  adminSecretName: "keycloak-admin-credentials"
+  realmConfigMapName: "karectl-realm-config"
+
+config:
+  logLevel: "INFO"
+
+# Storage configuration for prd
+storage:
+  defaultStorageClass: "rwo-default"
+  defaultVdiSize: "20Gi"
+  defaultNotebookSize: "10Gi"
+  defaultPersist: true

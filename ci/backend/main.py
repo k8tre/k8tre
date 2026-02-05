@@ -182,16 +182,47 @@ async def _get_guac_auth_token(data: dict):
         r.raise_for_status()
         return r.json()["authToken"]
 
+def get_proj_namespace(project_name):
+    """ Get the namespace for the project"""
+    return f"project-{project_name}"
+
+
+def _list_vdi_instances():
+    """ List all VDI instances from all project namespaces.
+    """
+    all_items = []
+    try:
+        projects = k8s_api.list_namespaced_custom_object(
+            "research.karectl.io", "v1alpha1", NAMESPACE, "projects"
+        )
+        for proj in projects.get("items", []):
+            proj_name = proj["metadata"]["name"]
+            ns = get_proj_namespace(proj_name)
+            try:
+                crd = k8s_api.list_namespaced_custom_object(
+                    group="karectl.io", version="v1alpha1",
+                    namespace=ns, plural="vdiinstances"
+                )
+                all_items.extend(crd.get("items", []))
+            except Exception as e:
+                print(
+                    f"Error listing VDI instances in namespace '{ns}' for project '{proj_name}': {e}",
+                    flush=True,
+                )
+                continue
+    except Exception as e:
+        print(f"Error listing VDI instances across namespaces: {e}", flush=True)
+    return all_items
+
+
 def _build_connections_for_user(username):
-    """ Create vdi connections pers user which are already created
+    """ Create vdi connections per user which are already created
         We filter those existing CRDs based on user name
     """
     conns = {}
-    crd = k8s_api.list_namespaced_custom_object(
-        group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
-    )
+    vdi_items = _list_vdi_instances()
 
-    for vdi in crd.get("items", []):
+    for vdi in vdi_items:
         spec = vdi.get("spec", {})
         status = vdi.get("status", {})
         v_user = spec.get("user")
@@ -205,7 +236,7 @@ def _build_connections_for_user(username):
         if v_user == username and pwd and phase in ("Ready", "Running"):
             conn_id = f"{v_proj}-desktop"
             print(f"Adding connection: {conn_id} for VDI {vdi_name} with Linux user: {linux_user}", flush=True)
-            hostname = f"vdi-{v_user}-{v_proj}.jupyterhub.svc.cluster.local"
+            hostname = f"vdi-{v_user}-{v_proj}.{get_proj_namespace(v_proj)}.svc.cluster.local"
             conns[conn_id] = {
                 "protocol": "rdp",
                 "parameters": {
@@ -273,7 +304,7 @@ def _is_user_vdi(username, project):
         vdi_cr = k8s_api.get_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=vdi_name
         )
@@ -316,14 +347,9 @@ def _is_request_vdi_pod(request: Request, username: str):
     client_ip = _get_client_ip(request)
     try:
         # Get all VDI instances for this user
-        all_vdis = k8s_api.list_namespaced_custom_object(
-            group="k8tre.io",
-            version="v1alpha1",
-            namespace="jupyterhub",
-            plural="vdiinstances"
-        )
+        all_vdis = _list_vdi_instances()
         v1 = client.CoreV1Api()
-        for vdi in all_vdis.get("items", []):
+        for vdi in all_vdis:
             spec = vdi.get("spec", {})
             status = vdi.get("status", {})
             vdi_user = spec.get("user")
@@ -337,7 +363,7 @@ def _is_request_vdi_pod(request: Request, username: str):
             # Get the pod IP for this VDI
             try:
                 pod_name = f"vdi-{username}-{vdi_project}".lower()
-                pod = v1.read_namespaced_pod(name=pod_name, namespace="jupyterhub")
+                pod = v1.read_namespaced_pod(name=pod_name, namespace=get_proj_namespace(vdi_project))
                 pod_ip = pod.status.pod_ip
                 if pod_ip and client_ip == pod_ip:
                     print(f"Request from inside VDI pod: {pod_name} (IP: {pod_ip})", flush=True)
@@ -1251,7 +1277,7 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                 "kind": "VDIInstance",
                 "metadata": {
                     "name": vdi_name,
-                    "namespace": "jupyterhub"
+                    "namespace": get_proj_namespace(project)
                 },
                 "spec": {
                     "user": username,
@@ -1277,7 +1303,7 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                 crd_client.create_namespaced_custom_object(
                     group="k8tre.io",
                     version="v1alpha1",
-                    namespace="jupyterhub",
+                    namespace=get_proj_namespace(project),
                     plural="vdiinstances",
                     body=vdi_spec
                 )
@@ -1494,7 +1520,7 @@ async def get_vdi_status(username: str, project: str, user=Depends(require_user)
         vdi_cr = k8s_api.get_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=instance_name
         )
@@ -1507,14 +1533,14 @@ async def get_vdi_status(username: str, project: str, user=Depends(require_user)
         is_ready = False
         if phase in ("Running", "Ready") and has_password:
             service_name = f"vdi-{username}-{project}"
-            hostname = f"{service_name}.jupyterhub.svc.cluster.local"
+            hostname = f"{service_name}.{get_proj_namespace(project)}.svc.cluster.local"
 
             service_ready = False
             try:
                 v1 = client.CoreV1Api()
                 endpoints = v1.read_namespaced_endpoints(
                     name=service_name,
-                    namespace="jupyterhub"
+                    namespace=get_proj_namespace(project)
                 )
                 if endpoints.subsets:
                     for subset in endpoints.subsets:
@@ -1591,7 +1617,7 @@ def delete_vdi_instance(username: str = Path(...), project: str = Path(...)):
         k8s_api.delete_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=instance_name,
             body=client.V1DeleteOptions()
@@ -1619,11 +1645,9 @@ def get_vdi_instances(request: Request, user=Depends(require_user)):
     try:
         # Get all VDI instances for this user
         vdi_instances = []
-        crd = k8s_api.list_namespaced_custom_object(
-            group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
-        )
-        
-        for vdi in crd.get("items", []):
+        vdi_items = _list_vdi_instances()
+
+        for vdi in vdi_items:
             spec = vdi.get("spec", {})
             status = vdi.get("status", {})
             metadata = vdi.get("metadata", {})

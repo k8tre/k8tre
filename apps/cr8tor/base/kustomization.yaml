@@ -8,7 +8,4 @@ resources:
 - networkpolicy.yaml
 - admin-external-secret.yaml
 - gateway-route.yaml
-
-# cr8tor-operator
-- https://github.com/karectl-crates/cr8tor//manifests/cr8tor-operator?ref=feature/at-karectl-k8tre-integration
 - cr8tor-operator-realm-config.yaml

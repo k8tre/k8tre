@@ -48,15 +48,8 @@ hub:
       c.JupyterHub.redirect_to_server = False
       c.JupyterHub.allow_named_servers = False
       c.Spawner.disable_user_config = True
-      def debug_spawn_check(spawner):
-          spawner.log.info(f"=== SPAWNING FOR USER: {spawner.user.name} ===")
-          spawner.log.info(f"Expected base_url: /user/{spawner.user.name}/")
-          return spawner
-      
-      c.Spawner.pre_spawn_hook = debug_spawn_check
       c.KubeSpawner.name_template = 'jupyter-{username}'
       c.KubeSpawner.pod_name_template = 'jupyter-{username}'
-      c.KubeSpawner.pvc_name_template = 'claim-{username}'
 
       import logging
       logging.getLogger('jupyterhub').setLevel(logging.DEBUG)
@@ -65,13 +58,19 @@ hub:
       c.KubeSpawner.start_timeout = 600
       c.KubeSpawner.http_timeout = 60
 
+      # Increase timeout for cross-namespace calls with more information
+      c.KubeSpawner.k8s_api_request_timeout = 30
+      c.KubeSpawner.events_enabled = True
+
       c.KubeSpawner.extra_labels = {
           'hub.jupyter.org/username': '{username}',
           'k8tre-user': '{username}',
           'hub.jupyter.org/network-access-hub': 'true'
       }
-      c.KubeSpawner.user_storage_pvc_ensure = True
-      c.KubeSpawner.storage_pvc_ensure = True
+      # Disable KubeSpawner's auto PVC creation as the PVC are created by cr8tor operator ahead of time
+      # Integrated in hooks.py's pre_spawn_hook
+      c.KubeSpawner.user_storage_pvc_ensure = False
+      c.KubeSpawner.storage_pvc_ensure = False
     04-cors-dual-domain: |
       # Allow requests from both domains  
       c.JupyterHub.tornado_settings = {
@@ -93,6 +92,10 @@ singleuser:
     blockWithIptables: false
   networkPolicy:
     enabled: false
+  # Disable default storage
+  # cr8tor provisions PVCs
+  storage:
+    type: none
 ingress:
   enabled: false
   hosts:
