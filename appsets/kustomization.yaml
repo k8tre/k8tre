@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: argocd
 
 resources:
+  - agnostics/crds.yaml
   - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
   - agnostics/cluster-autoscaler.yaml
