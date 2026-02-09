@@ -5,6 +5,7 @@ namespace: argocd
 resources:
   - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
+  - agnostics/cluster-autoscaler.yaml
   - agnostics/cnpg.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
