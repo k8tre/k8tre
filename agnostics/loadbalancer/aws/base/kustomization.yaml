@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+# Need to install CRDs separate from Helm chart
+# https://github.com/aws/eks-charts/tree/v0.0.224/stable/aws-load-balancer-controller#installing-the-chart
+  - github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=v0.0.224"
+# - https://raw.githubusercontent.com/aws/eks-charts/refs/tags/v0.0.224/stable/aws-load-balancer-controller/crds/crds.yaml
+# - https://raw.githubusercontent.com/aws/eks-charts/refs/tags/v0.0.224/stable/aws-load-balancer-controller/crds/gateway-crds.yaml
+
+helmCharts:
+  - name: aws-load-balancer-controller
+    repo: https://aws.github.io/eks-charts
+    version: 3.0.0
+    releaseName: aws-loadbalancer
+    namespace: loadbalancer
+    valuesFile: values.yaml
