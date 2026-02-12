@@ -22,7 +22,7 @@ The infrastructure layer provides everything that is required to support a CNCF-
 K8TRE requires **Cilium** as the default CNI with Layer 7 routing and Gateway API support enabled. Target K8TRE clusters must meet these base networking requirements prior to deploying K8TRE. For example, K3S must be started with the flannel-backend turned off. For AKS on Azure, out-of-the-box managed Cilium CNI is constrained by charges for advanced features such as L7 routing support. To overcome this constraint, the reference implementation of an Azure infrastructure for K8TRE [here](https://github.com/k8tre/k8tre-azure) implements a BYO Cilium CNI approach that is configured to replace the default in-cluster kube-proxy service. In addition, Cilium is configured to handle IP address management using the cluster-pool mode to support high performance cluster networking.    
 
 ### Deployment Support
-The current MVP follows a GitOps model for the deployment of K8TRE into a target cluster(s). In particular, it requires a **ArgoCD** management cluster is set up that is configured to listen on the repository where an TRE operators K8TRE repository is managed from and establish trusted connections to the k8s clusters where K8TRE is to be deployed. See [here](argocd.md) for more details.
+The current MVP follows a GitOps model for the deployment of K8TRE into a target cluster(s). In particular, it requires an **ArgoCD** management cluster is set up and configured to listen on the repository where a TRE operator's K8TRE repository is managed from, and establish trusted connections to the k8s clusters where K8TRE is to be deployed. See [here](argocd.md) for more details.
 For example, the K8TRE Azure infrastructure reference implementation provisions a separate management cluster configured with ArgoCD and trusted connections to target K8TRE clusters (i.e. dev, stg, prod).
 
 ### K8TRE Infrastructure Recipes
@@ -39,7 +39,7 @@ _Todo_
 
 _Todo_
 
-While these K8TRE infrastructure reference implementations aim to get operators up and running with minimal overhead, host organisations are free to setup their own infrastructre as long as it meets the requirements for K8TRE (and follows security best practices outlined by the SATREv2 specifications).
+While these K8TRE infrastructure reference implementations aim to get operators up and running with minimal overhead, host organisations are free to setup their own infrastructure as long as it meets the requirements for K8TRE (and follows security best practices outlined by the SATREv2 specifications).
 
 
 ## Agnostics Layer
@@ -57,7 +57,7 @@ The agnostics layer includes base components that provide core capabilities defi
 - Secrets Management
     - [External Secrets Operator](https://external-secrets.io/)
 - Ingress Management
-    - [Cilium Gateway]]
+    - [Cilium Gateway]
     (https://cilium.io/use-cases/gateway-api/)
 - Storage
     - CSI Provisioners
