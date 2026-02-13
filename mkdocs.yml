@@ -77,7 +77,7 @@ nav:
         #  - Resources : spec/resources.md
           - Secrets : spec/secrets.md
           - Storage : spec/storage.md
-          - Workspace Isolation: spec/workspaceisolation.md
+          - Workspace Isolation: spec/workspaces.md
   - Implementation: 
       - Infrastructure: implementation/architecture.md
       - ArgoCD: implementation/argocd.md

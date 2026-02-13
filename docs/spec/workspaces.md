@@ -31,6 +31,4 @@ In TREu, Projects are isolated from each other at the network level, preventing 
 
 ## FAQ
 
-- **Question**
 
-   Answer
