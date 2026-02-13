@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keytab-generator
+  namespace: ad
+automountServiceAccountToken: true
+
+---
+# This role allows the ccache job to fetch users, groups and projects,
+# so that it can create a kerberos ticket cache file for each.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: samba-identity-fetcher
+  namespace: keycloak
+rules:
+  - apiGroups: ["identity.k8tre.io", "research.k8tre.io"]
+    resources: ["users", "groups", "projects"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: samba-keytab-generator
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "update", "list", "delete", "get", "patch"]
+    
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: samba-identity-fetcher
+  namespace: keycloak
+subjects:
+  - kind: ServiceAccount
+    name: keytab-generator
+    namespace: ad
+roleRef:
+  kind: Role
+  name: samba-identity-fetcher
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: samba-keytab-generator
+  namespace: ad
+subjects:
+  - kind: ServiceAccount
+    name: keytab-generator
+    namespace: ad
+roleRef:
+  kind: ClusterRole
+  name: samba-keytab-generator
+  apiGroup: rbac.authorization.k8s.io
+  
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keytab-generator
+  namespace: ad
+spec:
+  schedule: "* * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: keytab-generator
+          restartPolicy: OnFailure
+          volumes:
+            - name: keytab
+              configMap:
+                defaultMode: 0600
+                name: administrator.keytab
+            - name: scripts
+              configMap:
+                defaultMode: 0770
+                name: keytab-job-scripts
+          containers:
+          - name: keytab-generator
+            image: docker.io/library/samba-dc:latest
+            imagePullPolicy: Never
+            volumeMounts:
+              - mountPath: /Administrator.keytab
+                name: keytab
+                subPath: Administrator.keytab
+              - mountPath: /keytab-job.sh
+                name: scripts
+                subPath: keytab-job.sh
+            command:
+              - /keytab-job.sh

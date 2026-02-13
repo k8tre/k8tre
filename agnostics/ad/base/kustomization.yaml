@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ad-service.yaml
+  - keytab-job.yaml
+
+configMapGenerator:
+  - name: keytab-job-scripts
+    namespace: ad
+    files:
+      - keytab-job.sh
+  - name: samba-init-scripts
+    namespace: ad
+    files:
+      - samba-init.sh
+      - samba-start.sh
+      - samba-health.sh

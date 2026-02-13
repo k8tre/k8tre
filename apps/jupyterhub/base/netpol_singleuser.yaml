@@ -83,6 +83,7 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
+
   ingress:
     - fromEndpoints:
         - matchLabels:
