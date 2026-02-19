@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: secret-store
+  name: crds
   namespace: argocd
 spec:
   goTemplate: true
@@ -13,18 +13,19 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/secret-store/*/envs/*
+                - path: agnostics/crds/*/envs/*
           - clusters:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
-                  secret-store: "{{index .path.segments 2}}"
+                  vendor: "{{index .path.segments 2}}"
+
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
         argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
-        argocd.argoproj.io/sync-wave: "-9"
+        # argocd.argoproj.io/sync-wave:
     spec:
       project: default
       source:
@@ -33,13 +34,8 @@ spec:
         path: "{{.path.path}}"
       destination:
         server: "{{.server}}"
-        namespace: "{{index .path.segments 1}}"
+        namespace: kube-system
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
-          # Work around
-          # CustomResourceDefinition.apiextensions.k8s.io "clustersecretstores.external-secrets.io" is invalid: metadata.annotations: Too long: may not be more than 262144 bytes
-          - ServerSideApply=true

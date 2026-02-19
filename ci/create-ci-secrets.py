@@ -4,13 +4,14 @@
 #   "kubernetes>=29.0.0",
 #   "typer>=0.16.0",
 #   "pyyaml>=6.0.0",
+#   "boto3>=1.34.0",
 # ]
 # ///
 """
 CI Secrets Management for External Secrets Operator
 
-This script creates Kubernetes secrets in a secret-store namespace for use with
-External Secrets Operator in CI environments. It reads configuration from
+This script creates secrets in a backend store (Kubernetes Secrets or AWS Parameter Store)
+for use with External Secrets Operator in CI environments. It reads configuration from
 secrets.yaml and generates necessary passwords and keys automatically.
 
 The script supports three modes:
@@ -20,18 +21,24 @@ The script supports three modes:
 
 Note: TLS secrets are now managed by cert-manager and are not created by this script.
 
+Backends:
+- Kubernetes (default): Creates Kubernetes Secrets directly
+- AWS Parameter Store: Creates SecureString parameters in AWS SSM
+
 Usage:
     uv run create-ci-secrets.py --context k3d-dev [--dry-run] [--namespace secret-store]
+    uv run create-ci-secrets.py --backend aws-ssm --region eu-west-2 [--dry-run]
     uv run create-ci-secrets.py --context k3d-dev --merge-keys [--dry-run]
-
 """
 
+import abc
 import base64
+import json
 import secrets
 import string
 import sys
 from pathlib import Path
-from typing import Annotated, Any, Dict
+from typing import Annotated, Any, Dict, List, Optional
 
 import typer
 import yaml
@@ -39,6 +46,13 @@ from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from rich.console import Console
 from rich.table import Table
+
+try:
+    import boto3
+    from botocore.exceptions import ClientError
+except ImportError:
+    boto3 = None
+    ClientError = None
 
 console = Console()
 
@@ -58,19 +72,174 @@ class SecretGenerator:
         return secrets.token_hex(length)
 
 
+class SecretsBackend(abc.ABC):
+    """Abstract base class for secrets backends."""
+
+    @abc.abstractmethod
+    def ensure_store(self, dry_run: bool):
+        pass
+
+    @abc.abstractmethod
+    def secret_exists(self, secret_name: str) -> bool:
+        pass
+
+    @abc.abstractmethod
+    def get_secret_data(self, secret_name: str) -> Dict[str, str]:
+        pass
+
+    @abc.abstractmethod
+    def delete_secret(self, secret_name: str, dry_run: bool):
+        pass
+
+    @abc.abstractmethod
+    def create_secret(self, secret_name: str, data: Dict[str, str], dry_run: bool):
+        pass
+
+
+class KubernetesBackend(SecretsBackend):
+    def __init__(self, context: str, namespace: str):
+        self.namespace = namespace
+        try:
+            config.load_kube_config(context=context)
+            self.v1 = client.CoreV1Api()
+        except Exception as e:
+            console.print(f"[red]Error: Failed to load kubectl context '{context}': {e}[/red]")
+            sys.exit(1)
+
+    def ensure_store(self, dry_run: bool):
+        if dry_run:
+            console.print(f"[yellow]Would create namespace: {self.namespace}[/yellow]")
+            return
+        try:
+            self.v1.read_namespace(name=self.namespace)
+            console.print(f"[green]✓[/green] Namespace '{self.namespace}' already exists")
+        except ApiException as e:
+            if e.status == 404:
+                namespace_body = client.V1Namespace(metadata=client.V1ObjectMeta(name=self.namespace))
+                self.v1.create_namespace(body=namespace_body)
+                console.print(f"[green]✓[/green] Created namespace: {self.namespace}")
+            else:
+                raise
+
+    def secret_exists(self, secret_name: str) -> bool:
+        try:
+            self.v1.read_namespaced_secret(name=secret_name, namespace=self.namespace)
+            return True
+        except ApiException as e:
+            if e.status == 404:
+                return False
+            raise
+
+    def get_secret_data(self, secret_name: str) -> Dict[str, str]:
+        try:
+            secret = self.v1.read_namespaced_secret(name=secret_name, namespace=self.namespace)
+            if secret.data:
+                return {k: base64.b64decode(v).decode() for k, v in secret.data.items()}
+            return {}
+        except ApiException as e:
+            if e.status == 404:
+                return {}
+            raise
+
+    def delete_secret(self, secret_name: str, dry_run: bool):
+        # dry_run check handled by caller usually, but safe to add here
+        if dry_run: return
+        try:
+            self.v1.delete_namespaced_secret(name=secret_name, namespace=self.namespace)
+        except ApiException as e:
+            if e.status != 404:
+                raise
+
+    def create_secret(self, secret_name: str, data: Dict[str, str], dry_run: bool):
+        if dry_run:
+            return
+
+        secret_body = client.V1Secret(
+            metadata=client.V1ObjectMeta(name=secret_name, namespace=self.namespace),
+            type="Opaque",
+            data={k: base64.b64encode(v.encode()).decode() for k, v in data.items()},
+        )
+        self.v1.create_namespaced_secret(namespace=self.namespace, body=secret_body)
+
+
+class AWSParameterStoreBackend(SecretsBackend):
+    def __init__(self, region: Optional[str] = None, prefix: str = ""):
+        if boto3 is None:
+            console.print("[red]Error: 'boto3' module is required for 'aws-ssm' backend.[/red]")
+            sys.exit(1)
+
+        self.region = region
+        self.prefix = prefix
+        if self.prefix and not self.prefix.endswith("/"):
+            self.prefix += "/"
+
+        self.tags = [
+            {"Key": "Environment", "Value": "dev"},
+            {"Key": "ManagedBy", "Value": "k8tre/create-ci-secrets"},
+        ]
+
+        try:
+            kwargs = {}
+            if region:
+                kwargs["region_name"] = region
+            self.ssm = boto3.client("ssm", **kwargs)
+        except Exception as e:
+             console.print(f"[red]Error: Failed to initialize AWS SSM client: {e}[/red]")
+             sys.exit(1)
+
+    def _get_name(self, secret_name: str) -> str:
+        return f"{self.prefix}{secret_name}"
+
+    def ensure_store(self, dry_run: bool):
+        pass # SSM doesn't need namespace setup
+
+    def secret_exists(self, secret_name: str) -> bool:
+        try:
+            self.ssm.get_parameter(Name=self._get_name(secret_name))
+            return True
+        except self.ssm.exceptions.ParameterNotFound:
+            return False
+        except ClientError as e:
+           console.print(f"[red]Error checking parameter existence: {e}[/red]")
+           raise
+
+    def get_secret_data(self, secret_name: str) -> Dict[str, str]:
+        try:
+            response = self.ssm.get_parameter(Name=self._get_name(secret_name), WithDecryption=True)
+            return json.loads(response["Parameter"]["Value"])
+        except Exception:
+            return {}
+
+    def delete_secret(self, secret_name: str, dry_run: bool):
+        if dry_run: return
+        try:
+            self.ssm.delete_parameter(Name=self._get_name(secret_name))
+        except self.ssm.exceptions.ParameterNotFound:
+            pass
+
+    def create_secret(self, secret_name: str, data: Dict[str, str], dry_run: bool):
+        if dry_run: return
+        self.ssm.put_parameter(
+            Name=self._get_name(secret_name),
+            Value=json.dumps(data),
+            Type="SecureString",
+            # Can't use Overwrite=True and Tags together
+            Overwrite=False,
+            Tags=self.tags
+        )
+
+
 class CISecretsManager:
     """Manages creation of CI secrets for External Secrets Operator."""
 
     def __init__(
         self,
-        context: str,
-        namespace: str = "secret-store",
+        backend: SecretsBackend,
         dry_run: bool = False,
         overwrite: bool = False,
         merge_keys: bool = False,
     ):
-        self.context = context
-        self.namespace = namespace
+        self.backend = backend
         self.dry_run = dry_run
         self.overwrite = overwrite
         self.merge_keys = merge_keys
@@ -80,16 +249,6 @@ class CISecretsManager:
         self.overwritten_secrets = []
         self.skipped_secrets = []
         self.merged_secrets = []
-
-        # Initialize Kubernetes client
-        try:
-            config.load_kube_config(context=context)
-            self.v1 = client.CoreV1Api()
-        except Exception as e:
-            console.print(
-                f"[red]Error: Failed to load kubectl context '{context}': {e}[/red]"
-            )
-            sys.exit(1)
 
     def load_secrets_config(self, config_path: str = "secrets.yaml") -> Dict[str, Any]:
         """Load secrets configuration from YAML file."""
@@ -108,25 +267,7 @@ class CISecretsManager:
 
     def ensure_namespace(self):
         """Ensure the target namespace exists."""
-        if self.dry_run:
-            console.print(f"[yellow]Would create namespace: {self.namespace}[/yellow]")
-            return
-
-        try:
-            self.v1.read_namespace(name=self.namespace)
-            console.print(
-                f"[green]✓[/green] Namespace '{self.namespace}' already exists"
-            )
-        except ApiException as e:
-            if e.status == 404:
-                # Namespace doesn't exist, create it
-                namespace_body = client.V1Namespace(
-                    metadata=client.V1ObjectMeta(name=self.namespace)
-                )
-                self.v1.create_namespace(body=namespace_body)
-                console.print(f"[green]✓[/green] Created namespace: {self.namespace}")
-            else:
-                raise
+        self.backend.ensure_store(self.dry_run)
 
     def process_secret_value(self, value: Any, secret_name: str, key: str) -> str:
         """Process a secret value, handling special generation patterns."""
@@ -157,36 +298,21 @@ class CISecretsManager:
 
     def check_secret_exists(self, secret_name: str) -> bool:
         """Check if a secret already exists in the namespace."""
-        try:
-            self.v1.read_namespaced_secret(name=secret_name, namespace=self.namespace)
-            return True
-        except ApiException as e:
-            if e.status == 404:
-                return False
-            raise
+        return self.backend.secret_exists(secret_name)
 
     def get_existing_secret_data(self, secret_name: str) -> Dict[str, str]:
         """Get the data from an existing secret."""
-        try:
-            secret = self.v1.read_namespaced_secret(name=secret_name, namespace=self.namespace)
-            if secret.data:
-                # Decode base64 values
-                return {k: base64.b64decode(v).decode() for k, v in secret.data.items()}
-            return {}
-        except ApiException as e:
-            if e.status == 404:
-                return {}
-            raise
+        return self.backend.get_secret_data(secret_name)
 
     def create_generic_secret(self, secret_name: str, data: Dict[str, str]) -> bool:
         """Create a generic secret."""
         try:
             secret_exists = self.check_secret_exists(secret_name)
             final_data = data.copy()
-            
+
             if secret_exists:
                 self.existing_secrets.append(secret_name)
-                
+
                 if self.merge_keys:
                     # Merge with existing secret data
                     existing_data = self.get_existing_secret_data(secret_name)
@@ -194,7 +320,7 @@ class CISecretsManager:
                     final_data = existing_data.copy()
                     final_data.update(data)
                     self.merged_secrets.append(secret_name)
-                    
+
                     if self.dry_run:
                         console.print(
                             f"[yellow]Would merge keys into existing secret: {secret_name}[/yellow]"
@@ -212,7 +338,7 @@ class CISecretsManager:
                 else:
                     self.overwritten_secrets.append(secret_name)
 
-            if self.dry_run and not (secret_exists and self.merge_keys):
+            if self.dry_run:
                 action = "overwrite" if secret_exists and self.overwrite else "create"
                 console.print(
                     f"[yellow]Would {action} generic secret: {secret_name} with keys: {list(final_data.keys())}[/yellow]"
@@ -221,42 +347,16 @@ class CISecretsManager:
 
             # Delete existing secret if it exists and we're overwriting (not merging)
             if secret_exists and self.overwrite and not self.merge_keys:
-                try:
-                    self.v1.delete_namespaced_secret(
-                        name=secret_name, namespace=self.namespace
-                    )
-                    console.print(
-                        f"[yellow]Overwriting existing secret: {secret_name}[/yellow]"
-                    )
-                except ApiException as e:
-                    if e.status != 404:
-                        raise
+                self.backend.delete_secret(secret_name, self.dry_run)
+                console.print(f"[yellow]Overwriting existing secret: {secret_name}[/yellow]")
             elif secret_exists and self.merge_keys:
-                # Delete existing secret to recreate with merged data
-                try:
-                    self.v1.delete_namespaced_secret(
-                        name=secret_name, namespace=self.namespace
-                    )
-                    console.print(
-                        f"[cyan]Merging keys into existing secret: {secret_name}[/cyan]"
-                    )
-                except ApiException as e:
-                    if e.status != 404:
-                        raise
+                 # Delete to recreate fresh with merged data (for immutable backend patterns or simplicity)
+                 self.backend.delete_secret(secret_name, self.dry_run)
+                 console.print(f"[cyan]Merging keys into existing secret: {secret_name}[/cyan]")
 
             # Create generic secret with final data
-            secret_body = client.V1Secret(
-                metadata=client.V1ObjectMeta(
-                    name=secret_name, namespace=self.namespace
-                ),
-                type="Opaque",
-                data={
-                    k: base64.b64encode(v.encode()).decode() for k, v in final_data.items()
-                },
-            )
+            self.backend.create_secret(secret_name, final_data, self.dry_run)
 
-            self.v1.create_namespaced_secret(namespace=self.namespace, body=secret_body)
-            
             if secret_exists and self.merge_keys:
                 console.print(f"[green]✓[/green] Merged keys into secret: {secret_name}")
             elif secret_exists and self.overwrite:
@@ -280,14 +380,14 @@ class CISecretsManager:
         total_count = len(secrets_config)
 
         console.print(
-            f"\n[bold]Processing {total_count} secrets in namespace: {self.namespace}[/bold]"
+            f"\n[bold]Processing {total_count} secrets...[/bold]"
         )
         if self.dry_run:
             console.print("[yellow]DRY RUN MODE - No changes will be made[/yellow]")
 
         if not self.overwrite and not self.merge_keys:
             console.print(
-                "[blue]ℹ Existing secrets will be skipped (use --overwrite to replace them or --merge-keys to add new keys)[/blue]"
+                "[blue]ℹ Existing secrets will be skipped (use --overwrite to replace or --merge-keys to add new keys)[/blue]"
             )
         elif self.overwrite and not self.merge_keys:
             console.print("[orange3]⚠ Existing secrets will be overwritten[/orange3]")
@@ -366,16 +466,17 @@ class CISecretsManager:
             )
         elif success:
             console.print(
-                f"\n[green]✓ All CI secrets processed successfully in namespace: {self.namespace}[/green]"
+                f"\n[green]✓ All CI secrets processed successfully[/green]"
             )
             console.print(
                 "[green]✓ Secrets are ready for use with External Secrets Operator[/green]"
             )
 
-            console.print("\nTo verify the secrets, run:")
-            console.print(
-                f"[cyan]kubectl get secrets -n {self.namespace} --context={self.context}[/cyan]"
-            )
+            if isinstance(self.backend, KubernetesBackend):
+                 console.print("\nTo verify the secrets, run:")
+                 console.print(
+                    f"[cyan]kubectl get secrets -n {self.backend.namespace} --context={self.backend.v1.api_client.configuration.host if hasattr(self.backend, 'v1') else 'context'}[/cyan]"
+                 )
 
             if self.generated_values:
                 console.print(
@@ -399,9 +500,9 @@ class CISecretsManager:
 
 
 def main(
-    context: Annotated[str, typer.Option(help="Kubernetes context to use")],
+    context: Annotated[Optional[str], typer.Option(help="Kubernetes backend: Kubernetes context to use")] = None,
     namespace: Annotated[
-        str, typer.Option(help="Namespace to create secrets in (default: secret-store)")
+        str, typer.Option(help="Kubernetes backend: Namespace to create secrets in")
     ] = "secret-store",
     dry_run: Annotated[
         bool, typer.Option(help="Only show what would be created, don't apply")
@@ -412,6 +513,9 @@ def main(
     merge_keys: Annotated[
         bool, typer.Option(help="Merge new keys into existing secrets without overwriting existing keys (default: False)")
     ] = False,
+    backend: Annotated[str, typer.Option(help="Backend to use: 'kubernetes' or 'aws-ssm'")] = "kubernetes",
+    region: Annotated[Optional[str], typer.Option(help="AWS backend: AWS Region (optional if configured in environment/profile)")] = None,
+    prefix: Annotated[str, typer.Option(help="AWS backend: Prefix for AWS SSM parameters")] = "",
     config: Annotated[
         str,
         typer.Option(
@@ -424,6 +528,7 @@ def main(
 
     Examples:
       uv run create-ci-secrets.py --context k3d-dev
+      uv run create-ci-secrets.py --backend aws-ssm --region eu-west-2
       uv run create-ci-secrets.py --context k3d-dev --dry-run
       uv run create-ci-secrets.py --context k3d-dev --overwrite
       uv run create-ci-secrets.py --context k3d-dev --merge-keys
@@ -432,16 +537,29 @@ def main(
       # Traditional python execution (requires virtual environment)
       python create-ci-secrets.py --context k3d-dev --dry-run --merge-keys
     """
-    
+
     # Validate conflicting options
     if overwrite and merge_keys:
         console.print("[red]Error: --overwrite and --merge-keys options are mutually exclusive.[/red]")
         console.print("[yellow]Use --overwrite to completely replace existing secrets, or --merge-keys to add new keys to existing secrets.[/yellow]")
         raise typer.Exit(code=1)
-    
-    # Initialize secrets manager
+
+    # Select Backend
+    secrets_backend: SecretsBackend
+    if backend == "aws-ssm":
+        secrets_backend = AWSParameterStoreBackend(region=region, prefix=prefix)
+    else:
+        if not context:
+            console.print("[red]Error: --context is required for kubernetes backend[/red]")
+            raise typer.Exit(code=1)
+        secrets_backend = KubernetesBackend(context=context, namespace=namespace)
+
+    # Initialize secrets manager with backend
     manager = CISecretsManager(
-        context=context, namespace=namespace, dry_run=dry_run, overwrite=overwrite, merge_keys=merge_keys
+        backend=secrets_backend,
+        dry_run=dry_run,
+        overwrite=overwrite,
+        merge_keys=merge_keys
     )
 
     # Load configuration and create secrets

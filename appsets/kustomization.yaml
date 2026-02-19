@@ -3,12 +3,15 @@ kind: Kustomization
 namespace: argocd
 
 resources:
+  - agnostics/crds.yaml
   - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
+  - agnostics/cluster-autoscaler.yaml
   - agnostics/cnpg.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
   - agnostics/kare-dns.yaml
+  - agnostics/loadbalancer.yaml
   - agnostics/metallb.yaml
   - agnostics/nginx.yaml
   - agnostics/secret-store.yaml
