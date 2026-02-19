@@ -46,18 +46,21 @@ async def pre_spawn_hook(spawner):
     headers = dict(spawner.handler.request.headers)
     spawner.log.info(f"Incoming headers for pre_spawn_hook: {headers}")
 
-    # Extract project from scoped username
+    # Extract project from username by matching against known projects
     username = spawner.user.name
-    # Parse project from username
-    if '-' in username:
-        parts = username.rsplit('-', 1)
-        base_user = parts[0]
-        project = parts[1]
-        spawner.log.info(f"Extracted base_user: {base_user}, project: {project}")
-    else:
-        base_user = username
-        project = None
-        spawner.log.warning(f"Username '{username}' is not project-scoped!")
+    project = None
+    base_user = username
+
+    available_projects = get_available_projects()
+    for proj in sorted(available_projects, key=len, reverse=True):
+        if username.endswith(f"-{proj}"):
+            project = proj
+            base_user = username[:-len(f"-{proj}")]
+            spawner.log.info(f"Extracted base_user: {base_user}, project: {project}")
+            break
+
+    if not project:
+        spawner.log.warning(f"Could not extract project from username: {username}")
 
     # Validate project from headers
     header_project = headers.get("X-Auth-Project", "")

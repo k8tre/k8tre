@@ -13,12 +13,26 @@ BACKEND_URL = os.environ.get(
     f"https://portal.{K8TRE_ENV}.{K8TRE_DOMAIN}"
 )
 
+SA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+def _get_internal_headers():
+    """ Get the pod's SA token
+    """
+    try:
+        with open(SA_TOKEN_PATH) as f:
+            token = f.read().strip()
+        return {"Authorization": f"Bearer {token}"}
+    except Exception as e:
+        print(f"Failed to read SA token: {e}")
+        return {}
+
 def get_available_projects():
     """ Call the backend API to fetch available projects
     """
     try:
         response = requests.get(
-            f"{BACKEND_URL}/api/projects",
+            f"{BACKEND_URL}/internal/projects",
+            headers=_get_internal_headers(),
             verify=False,
             timeout=30
         )
@@ -32,14 +46,15 @@ def get_available_projects():
         return []
 
 def get_project_from_spawner_user(spawner):
-    """Extract project from the scoped username
+    """ Extract project from the scoped username by matching against known projects.
     """
     try:
         username = spawner.user.name
-        if '-' in username:
-            parts = username.rsplit('-', 1)  # Split from right to handle usernames with dashes
-            if len(parts) == 2:
-                project = parts[1]
+        available_projects = get_available_projects()
+
+        # Match longest name first to avoid partial matches
+        for project in sorted(available_projects, key=len, reverse=True):
+            if username.endswith(f"-{project}"):
                 spawner.log.info(f"Profile filtering - Extracted project from username: {project}")
                 return project
 
@@ -95,6 +110,7 @@ def get_workspaces(spawner: KubeSpawner):
         if requested_project:
             response = requests.get(
                 f'{BACKEND_URL}/internal/projects/{requested_project}/profiles',
+                headers=_get_internal_headers(),
                 verify=False,
                 timeout=30
             )

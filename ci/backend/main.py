@@ -143,6 +143,37 @@ try:
 except Exception:
     config.load_kube_config()
 k8s_api = client.CustomObjectsApi()
+k8s_auth_api = client.AuthenticationV1Api()
+
+# Service accounts allowed to call /internal/* endpoints
+ALLOWED_INTERNAL_SAS = {
+    "system:serviceaccount:jupyterhub:hub",
+}
+
+def verify_internal_token(authorization=Header(None)):
+    """ Verify K8s SA token for internal endpoints
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authorisation header")
+
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        review = client.V1TokenReview(
+            spec=client.V1TokenReviewSpec(token=token)
+        )
+        result = k8s_auth_api.create_token_review(review)
+        if not result.status.authenticated:
+            raise HTTPException(status_code=401, detail="Token not authenticated")
+
+        sa_identity = result.status.user.username
+        if sa_identity not in ALLOWED_INTERNAL_SAS:
+            print(f"Rejected internal API call from: {sa_identity}", flush=True)
+            raise HTTPException(status_code=403, detail="Service account not authorised")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"TokenReview failed: {e}", flush=True)
+        raise HTTPException(status_code=401, detail="Token verification failed")
 
 active_user_sessions = {}
 
@@ -1124,7 +1155,24 @@ def get_apps(project: str, request: Request, user=Depends(require_user)):
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": f"Project not found: {e}"})
 
-@app.get("/internal/projects/{project}/profiles")
+@app.get("/internal/projects", dependencies=[Depends(verify_internal_token)])
+def get_projects_internal():
+    """ List all project names for internal use
+    """
+    try:
+        project_list = k8s_api.list_namespaced_custom_object(
+            "research.karectl.io", "v1alpha1", NAMESPACE, "projects"
+        )
+        projects = [{"name": p["metadata"]["name"]} for p in project_list.get("items", [])]
+        return {"projects": projects}
+    except ApiException as e:
+        print(f"K8s API error listing projects: {e}", flush=True)
+        raise HTTPException(status_code=e.status, detail=f"Failed to list projects: {e.reason}")
+    except Exception as e:
+        print(f"Unexpected error listing projects: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Failed to list projects")
+
+@app.get("/internal/projects/{project}/profiles", dependencies=[Depends(verify_internal_token)])
 def get_profiles_internal(project: str):
     """ To get all the profiles associated with a project
         It is mainly used for jupyterhub custom spawn
