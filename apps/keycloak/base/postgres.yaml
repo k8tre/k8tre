@@ -6,7 +6,6 @@ metadata:
   name: keycloak-postgres-cluster
   namespace: keycloak
 spec:
-  enablePDB: false
   instances: 1
   storage:
     size: 512Mi # Reduced from 1Gi to use less storage

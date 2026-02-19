@@ -5,3 +5,6 @@ namespace: gitea
 
 resources:
   - ../../base
+
+patches:
+  - path: patch-cnpg-pdb.yaml
