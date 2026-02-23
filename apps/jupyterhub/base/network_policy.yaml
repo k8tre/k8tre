@@ -50,7 +50,7 @@ spec:
   # Apply to all pods EXCEPT project namespaces as they have custom policies.
   endpointSelector:
     matchExpressions:
-    - key: io.cilium.k8s.namespace.labels.karectl.io/resource-type
+    - key: io.cilium.k8s.namespace.labels.k8tre.io/resource-type
       operator: NotIn
       values:
       - project-namespace

@@ -31,21 +31,21 @@ from kubernetes.client.exceptions import ApiException
 # Load env variables
 load_dotenv()
 
-KARECTL_ENV = os.environ.get("KARECTL_ENV", "dev")
-KARECTL_EXTERNAL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "k8tre.internal")
-KARECTL_PLATFORM = os.environ.get("KARECTL_PLATFORM", "k3s")
+K8TRE_ENV = os.environ.get("K8TRE_ENV", "dev")
+K8TRE_EXTERNAL_DOMAIN = os.environ.get("K8TRE_EXTERNAL_DOMAIN", "k8tre.internal")
+K8TRE_PLATFORM = os.environ.get("K8TRE_PLATFORM", "k3s")
 
 def build_service_url(service, path=""):
     """ Build service URL using configured environment and domain """
-    return f"https://{service}.{KARECTL_EXTERNAL_DOMAIN}{path}"
+    return f"https://{service}.{K8TRE_EXTERNAL_DOMAIN}{path}"
 
 def get_session_domain():
     """ Get cookie domain for session management """
-    return f".{KARECTL_EXTERNAL_DOMAIN}"
+    return f".{K8TRE_EXTERNAL_DOMAIN}"
 
 
 GUACAMOLE_HOST = os.environ.get("GUACAMOLE_HOST", build_service_url("guacamole"))
-KARECTL_BACKEND = os.environ.get("KARECTL_BACKEND", build_service_url("portal"))
+K8TRE_BACKEND = os.environ.get("K8TRE_BACKEND", build_service_url("portal"))
 
 JSON_SECRET_KEY = os.environ["JSON_SECRET_KEY"]
 AUTH_SIG_SECRET = os.environ.get("AUTH_SIG_SECRET", "change-me")
@@ -135,7 +135,7 @@ oauth.register(
     }
 )
 
-NAMESPACE = os.environ.get("KARECTL_NAMESPACE", "default")
+NAMESPACE = os.environ.get("K8TRE_NAMESPACE", "default")
 
 # K8s config
 try:
@@ -193,14 +193,14 @@ def _list_vdi_instances():
     all_items = []
     try:
         projects = k8s_api.list_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects"
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects"
         )
         for proj in projects.get("items", []):
             proj_name = proj["metadata"]["name"]
             ns = get_proj_namespace(proj_name)
             try:
                 crd = k8s_api.list_namespaced_custom_object(
-                    group="karectl.io", version="v1alpha1",
+                    group="k8tre.io", version="v1alpha1",
                     namespace=ns, plural="vdiinstances"
                 )
                 all_items.extend(crd.get("items", []))
@@ -1285,14 +1285,14 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                     "image": "ghcr.io/karectl/vdi-mate:v1.0.0-light",
                     "connection": "rdp",
                     "env": [
-                        {"name": "KARECTL_TOKEN", "value": valid_token},
-                        {"name": "KARECTL_REFRESH_TOKEN", "value": refresh_token},
-                        {"name": "KARECTL_PROJECT", "value": project},
-                        {"name": "KARECTL_USER", "value": username},
-                        {"name": "KARECTL_BACKEND_URL", "value": build_service_url("portal")},
-                        {"name": "KARECTL_SESSION_ID", "value": request.session.get("_session_id", "")},
-                        {"name": "KARECTL_ENVIRONMENT", "value": KARECTL_ENV},
-                        {"name": "KARECTL_DOMAIN", "value": KARECTL_EXTERNAL_DOMAIN}
+                        {"name": "K8TRE_TOKEN", "value": valid_token},
+                        {"name": "K8TRE_REFRESH_TOKEN", "value": refresh_token},
+                        {"name": "K8TRE_PROJECT", "value": project},
+                        {"name": "K8TRE_USER", "value": username},
+                        {"name": "K8TRE_BACKEND_URL", "value": build_service_url("portal")},
+                        {"name": "K8TRE_SESSION_ID", "value": request.session.get("_session_id", "")},
+                        {"name": "K8TRE_ENVIRONMENT", "value": K8TRE_ENV},
+                        {"name": "K8TRE_DOMAIN", "value": K8TRE_EXTERNAL_DOMAIN}
                     ]
                 }
             }

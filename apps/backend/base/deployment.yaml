@@ -21,7 +21,7 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: KARECTL_NAMESPACE
+            - name: K8TRE_NAMESPACE
               value: "keycloak"
             - name: KEYCLOAK_INTERNAL_URL
               valueFrom:
@@ -60,11 +60,11 @@ spec:
                   key: GUACAMOLE_JSON_SECRET_KEY
             - name: GUACAMOLE_HOST
               value: "https://guacamole.${DOMAIN}"
-            - name: KARECTL_BACKEND
+            - name: K8TRE_BACKEND
               value: "https://portal.${DOMAIN}"
             - name: SESSION_HTTPS_ONLY
               value: "true"
-            - name: KARECTL_ENV
+            - name: K8TRE_ENV
               value: "${ENVIRONMENT}"
-            - name: KARECTL_EXTERNAL_DOMAIN
+            - name: K8TRE_EXTERNAL_DOMAIN
               value: "${DOMAIN}"

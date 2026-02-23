@@ -527,7 +527,7 @@ data:
       "templating": {
         "list": [
           {
-            "current": { "text": "karectl-metrics", "value": "karectl-metrics" },
+            "current": { "text": "k8tre-metrics", "value": "k8tre-metrics" },
             "label": "datasource",
             "name": "DS_PROMETHEUS",
             "options": [],

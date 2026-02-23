@@ -6,11 +6,11 @@ import requests
 import urllib.parse
 
 
-KARECTL_ENV = os.environ.get("KARECTL_ENV", "stg")
-KARECTL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "k8tre.org")
+K8TRE_ENV = os.environ.get("K8TRE_ENV", "stg")
+K8TRE_DOMAIN = os.environ.get("K8TRE_EXTERNAL_DOMAIN", "k8tre.org")
 BACKEND_URL = os.environ.get(
-    "KARECTL_BACKEND_URL",
-    f"https://portal.{KARECTL_ENV}.{KARECTL_DOMAIN}"
+    "K8TRE_BACKEND_URL",
+    f"https://portal.{K8TRE_ENV}.{K8TRE_DOMAIN}"
 )
 
 
@@ -70,16 +70,16 @@ async def pre_spawn_hook(spawner):
 
     # Set environment variables
     spawner.environment = spawner.environment or {}
-    spawner.environment["KARECTL_USER"] = base_user
-    spawner.environment["KARECTL_BASE_USER"] = base_user
-    spawner.environment["KARECTL_PROJECT"] = project or ""
+    spawner.environment["K8TRE_USER"] = base_user
+    spawner.environment["K8TRE_BASE_USER"] = base_user
+    spawner.environment["K8TRE_PROJECT"] = project or ""
     spawner.environment["SELECTED_PROJECT"] = project or ""
 
     # Set project namespace and labels
     if project:
         spawner.extra_labels = spawner.extra_labels or {}
-        spawner.extra_labels['karectl.io/project'] = project
-        spawner.extra_labels['karectl.io/user'] = base_user
+        spawner.extra_labels['k8tre.io/project'] = project
+        spawner.extra_labels['k8tre.io/user'] = base_user
 
         namespace = f"project-{project}"
         spawner.namespace = namespace

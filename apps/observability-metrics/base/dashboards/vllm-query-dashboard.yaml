@@ -695,7 +695,7 @@ data:
       "templating": {
         "list": [
           {
-            "current": { "text": "karectl-metrics", "value": "karectl-metrics" },
+            "current": { "text": "k8tre-metrics", "value": "k8tre-metrics" },
             "label": "datasource",
             "name": "DS_PROMETHEUS",
             "options": [],
@@ -761,7 +761,7 @@ data:
       "time": { "from": "now-12h", "to": "now" },
       "timepicker": {},
       "timezone": "browser",
-      "title": "KARECTL vLLM Query Stats",
+      "title": "K8TRE vLLM Query Stats",
       "uid": "query-statistics4",
       "version": 2,
       "weekStart": ""

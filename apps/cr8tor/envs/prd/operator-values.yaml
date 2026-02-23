@@ -6,7 +6,7 @@ image:
 
 keycloak:
   adminSecretName: "keycloak-admin-credentials"
-  realmConfigMapName: "karectl-realm-config"
+  realmConfigMapName: "k8tre-realm-config"
 
 config:
   logLevel: "INFO"

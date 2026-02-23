@@ -349,7 +349,7 @@ metadata:
   name: <app>
   namespace: argocd
   labels:
-    karectl.io/appset: <app>  # Critical for local development isolation
+    k8tre.io/appset: <app>  # Critical for local development isolation
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]

@@ -1405,7 +1405,7 @@ grafana:
       defaultDatasourceEnabled: true
       isDefaultDatasource: true
 
-      name: karectl-metrics
+      name: k8tre-metrics
       uid: prometheus
 
       ## Extra jsonData properties to add to the datasource
