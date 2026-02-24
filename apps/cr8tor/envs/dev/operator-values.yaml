@@ -1,7 +1,7 @@
 image:
   registry: ghcr.io
   repository: karectl-crates/cr8tor-operator
-  tag: "dev-operator"
+  tag: "0.1.0-beta.2"
   pullPolicy: Always
 
 keycloak:
