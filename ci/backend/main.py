@@ -1161,7 +1161,7 @@ def get_projects_internal():
     """
     try:
         project_list = k8s_api.list_namespaced_custom_object(
-            "research.karectl.io", "v1alpha1", NAMESPACE, "projects"
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects"
         )
         projects = [{"name": p["metadata"]["name"]} for p in project_list.get("items", [])]
         return {"projects": projects}
