@@ -117,14 +117,14 @@ storage:
     pvcs:
       staging:
         name: lsc-staging
-        create: true
+        create: false
         storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
 
       production:
         name: lsc-prod
-        create: true
+        create: false
         storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
