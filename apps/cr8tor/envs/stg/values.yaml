@@ -75,23 +75,23 @@ storage:
         storageClassName: rwx-default
         accessModes:
         - ReadWriteMany
-    lsc:
-      env: TARGET_STORAGE_ACCOUNT_LSC_SDE_MNT_PATH
-      mountPath: /home/appuser/outputs/lsc
-      pvcs:
-        staging:
-          name: lsc-staging
-          create: true
-          storageClassName: rwx-default
-          accessModes:
-          - ReadWriteMany
+  lsc:
+    env: TARGET_STORAGE_ACCOUNT_LSC_SDE_MNT_PATH
+    mountPath: /home/appuser/outputs/lsc
+    pvcs:
+      staging:
+        name: lsc-staging
+        create: true
+        storageClassName: rwx-default
+        accessModes:
+        - ReadWriteMany
 
-        production:
-          name: lsc-prod
-          create: true
-          storageClassName: rwx-default
-          accessModes:
-          - ReadWriteMany
+      production:
+        name: lsc-prod
+        create: true
+        storageClassName: rwx-default
+        accessModes:
+        - ReadWriteMany
   nw:
     env: TARGET_STORAGE_ACCOUNT_NW_SDE_MNT_PATH
     mountPath: /home/appuser/outputs/nw
