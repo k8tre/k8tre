@@ -1,0 +1,194 @@
+# SeaweedFS Helm Chart Values
+# SeaweedFS replication disabled (000) to avoid redundancy
+
+global:
+  imagePullPolicy: IfNotPresent
+  monitoring:
+    enabled: false
+    gatewayHost: null
+    gatewayPort: null
+  enableSecurity: false
+
+# Master: Manages volume metadata and cluster coordination
+master:
+  enabled: true
+  replicas: 1
+  port: 9333
+  grpcPort: 19333
+  metricsPort: 9324
+  
+  # Longhorn-backed persistent storage
+  data:
+    type: "persistentVolumeClaim"
+    size: "10Gi"
+    storageClass: "longhorn"
+  
+  # No SeaweedFS-level replication (Longhorn handles HA)
+  defaultReplication: "000"
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /cluster/status
+      port: 9333
+      scheme: HTTP
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /cluster/status
+      port: 9333
+      scheme: HTTP
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# Volume: Stores actual data blocks
+volume:
+  enabled: true
+  replicas: 1
+  port: 8080
+  grpcPort: 18080
+  metricsPort: 9325
+  
+  # Longhorn-backed persistent storage
+  dataDirs:
+  - name: data1
+    type: "persistentVolumeClaim"
+    size: "25Gi"
+    storageClass: "longhorn"
+    maxVolumes: 0
+  
+  minFreeSpacePercent: 1
+  
+  
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /status
+      port: 8080
+      scheme: HTTP
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /status
+      port: 8080
+      scheme: HTTP
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# Filer: Provides S3 API and file system interface
+filer:
+  enabled: true
+  replicas: 1
+  port: 8888
+  grpcPort: 18888
+  metricsPort: 9326
+  
+  # Longhorn-backed persistent storage
+  data:
+    type: "persistentVolumeClaim"
+    size: "10Gi"
+    storageClass: "longhorn"
+  
+  # S3 API configuration
+  s3:
+    enabled: true
+    port: 8333
+    httpsPort: null
+    existingConfigSecret: seaweedfs-s3-secret
+    enableAuth: true
+    skipAuthSecretCreation: true
+  
+  # LevelDB2 backend for metadata storage
+  extraEnvironmentVars:
+    WEED_LEVELDB2_ENABLED: "true"
+    WEED_LEVELDB2_DIR: "/data/filerldb2"
+  
+  defaultReplicaPlacement: "000"
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 8888
+      scheme: HTTP
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: 8888
+      scheme: HTTP
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    successThreshold: 1
+    failureThreshold: 3
+
+# S3 service configuration
+s3:
+  enabled: true
+  port: 8333
+  service:
+    type: ClusterIP
+    annotations: {}
+
+
+# Security context for all pods
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
