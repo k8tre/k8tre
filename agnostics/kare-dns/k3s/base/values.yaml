@@ -15,13 +15,13 @@ servers:
   - name: template
     parameters: IN SOA ${DOMAIN}
     configBlock: |-
-      match ^${ENVIRONMENT}\.${DOMAIN}\.$
+      match ^${DOMAIN}\.$
       answer "{{ .Name }} 60 IN SOA ns1.${DOMAIN}. admin.${DOMAIN}. 2025091100 3600 1800 604800 86400"
       fallthrough
   - name: template
     parameters: IN NS ${DOMAIN}
     configBlock: |-
-      match ^${ENVIRONMENT}\.${DOMAIN}\.$
+      match ^${DOMAIN}\.$
       answer "{{ .Name }} 60 IN NS ns1.${DOMAIN}."
       fallthrough
   - name: cache
