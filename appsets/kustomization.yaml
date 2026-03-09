@@ -8,6 +8,7 @@ resources:
   - agnostics/cert-manager.yaml
   - agnostics/cluster-autoscaler.yaml
   - agnostics/cnpg.yaml
+  - agnostics/default-network-policy.yaml
   - agnostics/external-dns.yaml
   - agnostics/external-secrets.yaml
   - agnostics/kare-dns.yaml
