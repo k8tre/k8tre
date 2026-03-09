@@ -31,21 +31,21 @@ from kubernetes.client.exceptions import ApiException
 # Load env variables
 load_dotenv()
 
-KARECTL_ENV = os.environ.get("KARECTL_ENV", "dev")
-KARECTL_EXTERNAL_DOMAIN = os.environ.get("KARECTL_EXTERNAL_DOMAIN", "k8tre.internal")
-KARECTL_PLATFORM = os.environ.get("KARECTL_PLATFORM", "k3s")
+K8TRE_ENV = os.environ.get("K8TRE_ENV", "dev")
+K8TRE_EXTERNAL_DOMAIN = os.environ.get("K8TRE_EXTERNAL_DOMAIN", "k8tre.internal")
+K8TRE_PLATFORM = os.environ.get("K8TRE_PLATFORM", "k3s")
 
 def build_service_url(service, path=""):
     """ Build service URL using configured environment and domain """
-    return f"https://{service}.{KARECTL_ENV}.{KARECTL_EXTERNAL_DOMAIN}{path}"
+    return f"https://{service}.{K8TRE_EXTERNAL_DOMAIN}{path}"
 
 def get_session_domain():
     """ Get cookie domain for session management """
-    return f".{KARECTL_ENV}.{KARECTL_EXTERNAL_DOMAIN}"
+    return f".{K8TRE_EXTERNAL_DOMAIN}"
 
 
 GUACAMOLE_HOST = os.environ.get("GUACAMOLE_HOST", build_service_url("guacamole"))
-KARECTL_BACKEND = os.environ.get("KARECTL_BACKEND", build_service_url("portal"))
+K8TRE_BACKEND = os.environ.get("K8TRE_BACKEND", build_service_url("portal"))
 
 JSON_SECRET_KEY = os.environ["JSON_SECRET_KEY"]
 AUTH_SIG_SECRET = os.environ.get("AUTH_SIG_SECRET", "change-me")
@@ -135,7 +135,7 @@ oauth.register(
     }
 )
 
-NAMESPACE = os.environ.get("KARECTL_NAMESPACE", "default")
+NAMESPACE = os.environ.get("K8TRE_NAMESPACE", "default")
 
 # K8s config
 try:
@@ -143,6 +143,37 @@ try:
 except Exception:
     config.load_kube_config()
 k8s_api = client.CustomObjectsApi()
+k8s_auth_api = client.AuthenticationV1Api()
+
+# Service accounts allowed to call /internal/* endpoints
+ALLOWED_INTERNAL_SAS = {
+    "system:serviceaccount:jupyterhub:hub",
+}
+
+def verify_internal_token(authorization=Header(None)):
+    """ Verify K8s SA token for internal endpoints
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid authorisation header")
+
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        review = client.V1TokenReview(
+            spec=client.V1TokenReviewSpec(token=token)
+        )
+        result = k8s_auth_api.create_token_review(review)
+        if not result.status.authenticated:
+            raise HTTPException(status_code=401, detail="Token not authenticated")
+
+        sa_identity = result.status.user.username
+        if sa_identity not in ALLOWED_INTERNAL_SAS:
+            print(f"Rejected internal API call from: {sa_identity}", flush=True)
+            raise HTTPException(status_code=403, detail="Service account not authorised")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"TokenReview failed: {e}", flush=True)
+        raise HTTPException(status_code=401, detail="Token verification failed")
 
 active_user_sessions = {}
 
@@ -182,16 +213,47 @@ async def _get_guac_auth_token(data: dict):
         r.raise_for_status()
         return r.json()["authToken"]
 
+def get_proj_namespace(project_name):
+    """ Get the namespace for the project"""
+    return f"project-{project_name}"
+
+
+def _list_vdi_instances():
+    """ List all VDI instances from all project namespaces.
+    """
+    all_items = []
+    try:
+        projects = k8s_api.list_namespaced_custom_object(
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects"
+        )
+        for proj in projects.get("items", []):
+            proj_name = proj["metadata"]["name"]
+            ns = get_proj_namespace(proj_name)
+            try:
+                crd = k8s_api.list_namespaced_custom_object(
+                    group="k8tre.io", version="v1alpha1",
+                    namespace=ns, plural="vdiinstances"
+                )
+                all_items.extend(crd.get("items", []))
+            except Exception as e:
+                print(
+                    f"Error listing VDI instances in namespace '{ns}' for project '{proj_name}': {e}",
+                    flush=True,
+                )
+                continue
+    except Exception as e:
+        print(f"Error listing VDI instances across namespaces: {e}", flush=True)
+    return all_items
+
+
 def _build_connections_for_user(username):
-    """ Create vdi connections pers user which are already created
+    """ Create vdi connections per user which are already created
         We filter those existing CRDs based on user name
     """
     conns = {}
-    crd = k8s_api.list_namespaced_custom_object(
-        group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
-    )
+    vdi_items = _list_vdi_instances()
 
-    for vdi in crd.get("items", []):
+    for vdi in vdi_items:
         spec = vdi.get("spec", {})
         status = vdi.get("status", {})
         v_user = spec.get("user")
@@ -205,7 +267,7 @@ def _build_connections_for_user(username):
         if v_user == username and pwd and phase in ("Ready", "Running"):
             conn_id = f"{v_proj}-desktop"
             print(f"Adding connection: {conn_id} for VDI {vdi_name} with Linux user: {linux_user}", flush=True)
-            hostname = f"vdi-{v_user}-{v_proj}.jupyterhub.svc.cluster.local"
+            hostname = f"vdi-{v_user}-{v_proj}.{get_proj_namespace(v_proj)}.svc.cluster.local"
             conns[conn_id] = {
                 "protocol": "rdp",
                 "parameters": {
@@ -273,7 +335,7 @@ def _is_user_vdi(username, project):
         vdi_cr = k8s_api.get_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=vdi_name
         )
@@ -316,14 +378,9 @@ def _is_request_vdi_pod(request: Request, username: str):
     client_ip = _get_client_ip(request)
     try:
         # Get all VDI instances for this user
-        all_vdis = k8s_api.list_namespaced_custom_object(
-            group="k8tre.io",
-            version="v1alpha1",
-            namespace="jupyterhub",
-            plural="vdiinstances"
-        )
+        all_vdis = _list_vdi_instances()
         v1 = client.CoreV1Api()
-        for vdi in all_vdis.get("items", []):
+        for vdi in all_vdis:
             spec = vdi.get("spec", {})
             status = vdi.get("status", {})
             vdi_user = spec.get("user")
@@ -337,7 +394,7 @@ def _is_request_vdi_pod(request: Request, username: str):
             # Get the pod IP for this VDI
             try:
                 pod_name = f"vdi-{username}-{vdi_project}".lower()
-                pod = v1.read_namespaced_pod(name=pod_name, namespace="jupyterhub")
+                pod = v1.read_namespaced_pod(name=pod_name, namespace=get_proj_namespace(vdi_project))
                 pod_ip = pod.status.pod_ip
                 if pod_ip and client_ip == pod_ip:
                     print(f"Request from inside VDI pod: {pod_name} (IP: {pod_ip})", flush=True)
@@ -1098,7 +1155,24 @@ def get_apps(project: str, request: Request, user=Depends(require_user)):
     except Exception as e:
         return templates.TemplateResponse("error.html", {"request": request, "error": f"Project not found: {e}"})
 
-@app.get("/internal/projects/{project}/profiles")
+@app.get("/internal/projects", dependencies=[Depends(verify_internal_token)])
+def get_projects_internal():
+    """ List all project names for internal use
+    """
+    try:
+        project_list = k8s_api.list_namespaced_custom_object(
+            "research.k8tre.io", "v1alpha1", NAMESPACE, "projects"
+        )
+        projects = [{"name": p["metadata"]["name"]} for p in project_list.get("items", [])]
+        return {"projects": projects}
+    except ApiException as e:
+        print(f"K8s API error listing projects: {e}", flush=True)
+        raise HTTPException(status_code=e.status, detail=f"Failed to list projects: {e.reason}")
+    except Exception as e:
+        print(f"Unexpected error listing projects: {e}", flush=True)
+        raise HTTPException(status_code=500, detail="Failed to list projects")
+
+@app.get("/internal/projects/{project}/profiles", dependencies=[Depends(verify_internal_token)])
 def get_profiles_internal(project: str):
     """ To get all the profiles associated with a project
         It is mainly used for jupyterhub custom spawn
@@ -1251,7 +1325,7 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                 "kind": "VDIInstance",
                 "metadata": {
                     "name": vdi_name,
-                    "namespace": "jupyterhub"
+                    "namespace": get_proj_namespace(project)
                 },
                 "spec": {
                     "user": username,
@@ -1259,14 +1333,14 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                     "image": "ghcr.io/karectl/vdi-mate:v1.0.0-light",
                     "connection": "rdp",
                     "env": [
-                        {"name": "KARECTL_TOKEN", "value": valid_token},
-                        {"name": "KARECTL_REFRESH_TOKEN", "value": refresh_token},
-                        {"name": "KARECTL_PROJECT", "value": project},
-                        {"name": "KARECTL_USER", "value": username},
-                        {"name": "KARECTL_BACKEND_URL", "value": build_service_url("portal")},
-                        {"name": "KARECTL_SESSION_ID", "value": request.session.get("_session_id", "")},
-                        {"name": "KARECTL_ENVIRONMENT", "value": KARECTL_ENV},
-                        {"name": "KARECTL_DOMAIN", "value": KARECTL_EXTERNAL_DOMAIN}
+                        {"name": "K8TRE_TOKEN", "value": valid_token},
+                        {"name": "K8TRE_REFRESH_TOKEN", "value": refresh_token},
+                        {"name": "K8TRE_PROJECT", "value": project},
+                        {"name": "K8TRE_USER", "value": username},
+                        {"name": "K8TRE_BACKEND_URL", "value": build_service_url("portal")},
+                        {"name": "K8TRE_SESSION_ID", "value": request.session.get("_session_id", "")},
+                        {"name": "K8TRE_ENVIRONMENT", "value": K8TRE_ENV},
+                        {"name": "K8TRE_DOMAIN", "value": K8TRE_EXTERNAL_DOMAIN}
                     ]
                 }
             }
@@ -1277,7 +1351,7 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
                 crd_client.create_namespaced_custom_object(
                     group="k8tre.io",
                     version="v1alpha1",
-                    namespace="jupyterhub",
+                    namespace=get_proj_namespace(project),
                     plural="vdiinstances",
                     body=vdi_spec
                 )
@@ -1494,7 +1568,7 @@ async def get_vdi_status(username: str, project: str, user=Depends(require_user)
         vdi_cr = k8s_api.get_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=instance_name
         )
@@ -1507,14 +1581,14 @@ async def get_vdi_status(username: str, project: str, user=Depends(require_user)
         is_ready = False
         if phase in ("Running", "Ready") and has_password:
             service_name = f"vdi-{username}-{project}"
-            hostname = f"{service_name}.jupyterhub.svc.cluster.local"
+            hostname = f"{service_name}.{get_proj_namespace(project)}.svc.cluster.local"
 
             service_ready = False
             try:
                 v1 = client.CoreV1Api()
                 endpoints = v1.read_namespaced_endpoints(
                     name=service_name,
-                    namespace="jupyterhub"
+                    namespace=get_proj_namespace(project)
                 )
                 if endpoints.subsets:
                     for subset in endpoints.subsets:
@@ -1591,7 +1665,7 @@ def delete_vdi_instance(username: str = Path(...), project: str = Path(...)):
         k8s_api.delete_namespaced_custom_object(
             group="k8tre.io",
             version="v1alpha1",
-            namespace="jupyterhub",
+            namespace=get_proj_namespace(project),
             plural="vdiinstances",
             name=instance_name,
             body=client.V1DeleteOptions()
@@ -1619,11 +1693,9 @@ def get_vdi_instances(request: Request, user=Depends(require_user)):
     try:
         # Get all VDI instances for this user
         vdi_instances = []
-        crd = k8s_api.list_namespaced_custom_object(
-            group="k8tre.io", version="v1alpha1", namespace="jupyterhub", plural="vdiinstances"
-        )
-        
-        for vdi in crd.get("items", []):
+        vdi_items = _list_vdi_instances()
+
+        for vdi in vdi_items:
             spec = vdi.get("spec", {})
             status = vdi.get("status", {})
             metadata = vdi.get("metadata", {})

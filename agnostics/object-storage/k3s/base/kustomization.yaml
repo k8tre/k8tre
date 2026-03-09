@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+helmCharts:
+  - name: seaweedfs
+    repo: https://seaweedfs.github.io/seaweedfs/helm
+    version: 4.0.407
+    releaseName: seaweedfs
+    namespace: object-storage
+    valuesFile: seaweedfs-values.yaml
+    includeCRDs: true
+
+resources:
+  - s3-external-secret.yaml
+  - network-policy.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: tre-infrastructure
+      app.kubernetes.io/managed-by: argocd
+
+

@@ -5,6 +5,6 @@ metadata:
   namespace: cr8tor
 data:
   realm-name: k8tre-app
-  realm-display-name: Karectl Application Realm
-  keycloak-url: "https://keycloak.${ENVIRONMENT}.${DOMAIN}/"
+  realm-display-name: K8tre Application Realm
+  keycloak-url: "https://keycloak.${DOMAIN}/"
   keycloak-verify-tls: "false"

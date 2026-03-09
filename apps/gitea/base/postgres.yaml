@@ -13,6 +13,7 @@ spec:
   instances: 1
   storage:
     size: 5Gi
+    storageClass: rwo-default
   imagePullPolicy: IfNotPresent
   resources:
     requests:

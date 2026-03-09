@@ -1,0 +1,21 @@
+image:
+  registry: ghcr.io
+  repository: karectl-crates/cr8tor-operator
+  tag: "0.1.0-beta.2"
+  pullPolicy: Always
+
+keycloak:
+  adminSecretName: "keycloak-admin-credentials"
+  realmConfigMapName: "k8tre-realm-config"
+
+config:
+  logLevel: "DEBUG"
+
+# Storage configuration for dev
+storage:
+  defaultStorageClass: "rwo-default"
+  defaultVdiSize: "2Gi"
+  defaultNotebookSize: "2Gi"
+  maxVdiSize: "5Gi"
+  maxNotebookSize: "2Gi"
+  defaultPersist: false

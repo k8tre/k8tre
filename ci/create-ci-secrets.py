@@ -57,6 +57,12 @@ class SecretGenerator:
         """Generate a random hex key."""
         return secrets.token_hex(length)
 
+    @staticmethod
+    def generate_s3_access_key() -> str:
+        """Generate a random S3 access key (20 chars total: AKIA + 16 random)."""
+        alphabet = string.ascii_uppercase + string.digits  # 36 chars
+        random_part = "".join(secrets.choice(alphabet) for _ in range(16))
+        return f"AKIA{random_part}"
 
 class CISecretsManager:
     """Manages creation of CI secrets for External Secrets Operator."""
@@ -151,6 +157,10 @@ class CISecretsManager:
                 length_str = value.split("(")[1].split(")")[0]
                 length = int(length_str)
                 generated = self.generator.generate_hex_key(length)
+                self.generated_values[f"{secret_name}.{key}"] = generated
+                return generated
+            elif value == "{{ generate_s3_access_key() }}":
+                generated = self.generator.generate_s3_access_key()
                 self.generated_values[f"{secret_name}.{key}"] = generated
                 return generated
         return str(value)

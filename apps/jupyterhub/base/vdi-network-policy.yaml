@@ -58,7 +58,6 @@ spec:
 
     # Allow external access to domains
     - toFQDNs:
-      - matchPattern: "*.${ENVIRONMENT}.${DOMAIN}"
       - matchPattern: "*.${DOMAIN}"
       toPorts:
       - ports:

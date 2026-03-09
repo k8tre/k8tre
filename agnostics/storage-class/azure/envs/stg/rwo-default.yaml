@@ -1,0 +1,14 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: rwo-default
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    description: "ReadWriteOnce - Azure Managed Disk"
+provisioner: disk.csi.azure.com
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  storageaccounttype: Standard_LRS
+  kind: Managed

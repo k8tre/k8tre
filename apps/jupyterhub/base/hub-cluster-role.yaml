@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jupyterhub-hub-spawner
+  labels:
+    app: jupyterhub
+rules:
+  # To read/watch pods across project-* namespaces
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jupyterhub-hub-spawner
+  labels:
+    app: jupyterhub
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jupyterhub-hub-spawner
+subjects:
+  - kind: ServiceAccount
+    name: hub
+    namespace: jupyterhub

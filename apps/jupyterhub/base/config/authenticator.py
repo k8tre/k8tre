@@ -41,14 +41,22 @@ class JWTDirectAuthenticator(Authenticator):
         """
         self.log.info("=== JWT DIRECT AUTHENTICATION START ===")
         self.log.info(f"Request URL: {handler.request.uri}")
-        
+
         # Get all headers for debugging
         headers = dict(handler.request.headers)
         self.log.info("All headers received:")
         for name, value in headers.items():
             if any(keyword in name.lower() for keyword in ['auth', 'user', 'remote']):
                 self.log.info(f"  {name}: {value}")
-        
+
+        # Get PVC from query
+        try:
+            pvc_param = handler.get_argument('pvc', None)
+            if pvc_param:
+                self.log.info(f"Notebook PVC from query: {pvc_param}")
+        except:
+            pvc_param = None
+
         # Method 1: Check headers set by your backend (primary method)
         remote_user = headers.get('Remote-User', '').strip()
         x_auth_user = headers.get('X-Auth-User', '').strip()
@@ -77,7 +85,8 @@ class JWTDirectAuthenticator(Authenticator):
                         'email': auth_email,
                         'auth_method': 'signed_headers',
                         'project': proj,
-                        'base_user': user_hdr
+                        'base_user': user_hdr,
+                        'notebook_pvc': pvc_param
                     }
                 }
             else:
@@ -87,6 +96,7 @@ class JWTDirectAuthenticator(Authenticator):
         try:
             token_param = handler.get_argument('token', None)
             project_param = handler.get_argument('project', None)
+            pvc_param = handler.get_argument('pvc', None)
 
             if token_param:
                 self.log.info("Found token in query parameters, attempting decode...")
@@ -103,13 +113,17 @@ class JWTDirectAuthenticator(Authenticator):
                         scoped_username = username
                         self.log.warning(f"No project available, using username without scope: '{scoped_username}'")
 
+                    if pvc_param:
+                        self.log.info(f"Notebook PVC from query: {pvc_param}")
+
                     return {
                         'name': scoped_username,
                         'auth_model': {
                             'email': email,
                             'auth_method': 'jwt_query_param',
                             'project': project_param,
-                            'base_user': username
+                            'base_user': username,
+                            'notebook_pvc': pvc_param
                         }
                     }
         except Exception as e:
@@ -149,7 +163,8 @@ class JWTDirectAuthenticator(Authenticator):
                             'email': email,
                             'auth_method': 'jwt_auth_header',
                             'project': project_param,
-                            'base_user': username
+                            'base_user': username,
+                            'notebook_pvc': pvc_param
                         }
                     }
             except Exception as e:

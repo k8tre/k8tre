@@ -6,7 +6,7 @@ namespace: backend
 resources:
   - ../../base
 
-# Image patch for prd environment
+
 patches:
   - path: image-patch.yaml
     target:

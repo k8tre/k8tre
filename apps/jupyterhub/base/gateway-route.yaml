@@ -8,7 +8,7 @@ spec:
   - name: internal-gateway
     namespace: gateway
   hostnames:
-    - "jupyter.${ENVIRONMENT}.${DOMAIN}"
+    - "jupyter.${DOMAIN}"
   rules:
     - backendRefs:
         - name: jhub-auth-proxy

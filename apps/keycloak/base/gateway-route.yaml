@@ -8,7 +8,7 @@ spec:
     - name: internal-gateway
       namespace: gateway
   hostnames:
-    - "keycloak.${ENVIRONMENT}.${DOMAIN}"
+    - "keycloak.${DOMAIN}"
   rules:
     - matches:
         - path:

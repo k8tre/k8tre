@@ -36,7 +36,7 @@ spec:
                   \"service.beta.kubernetes.io/azure-load-balancer-internal\": \"true\",
                   \"service.beta.kubernetes.io/azure-load-balancer-internal-subnet\": \"snet-clusteringressservices\",
                   \"service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path\": \"/healthz\",
-                  \"external-dns.alpha.kubernetes.io/hostname\": \"*.${ENVIRONMENT}.${EXTERNAL_DOMAIN}\"
+                  \"external-dns.alpha.kubernetes.io/hostname\": \"*.${EXTERNAL_DOMAIN}\"
                 }
               }
             }"

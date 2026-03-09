@@ -4,6 +4,9 @@ kind: Kustomization
 resources:
   - ../../base
 
+patches:
+  - path: patch-cnpg-pdb.yaml
+
 configMapGenerator:
   - name: keycloak-config
     literals:

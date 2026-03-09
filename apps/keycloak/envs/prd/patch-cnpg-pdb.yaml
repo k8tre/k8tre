@@ -1,0 +1,7 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-postgres-cluster
+  namespace: keycloak
+spec:
+  enablePDB: true

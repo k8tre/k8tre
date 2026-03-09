@@ -7,9 +7,9 @@ spec:
   secretName: gitea-tls
   privateKey:
     rotationPolicy: Always
-  commonName: gitea.${ENVIRONMENT}.${DOMAIN}
+  commonName: gitea.${DOMAIN}
   dnsNames:
-    - gitea.${ENVIRONMENT}.${DOMAIN}
+    - gitea.${DOMAIN}
   usages: [ "digital signature", "key encipherment", "server auth" ]
   issuerRef:
     name: selfsigned

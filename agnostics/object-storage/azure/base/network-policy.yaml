@@ -1,0 +1,78 @@
+# Allow internal SeaweedFS communication and access from other namespaces
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-seaweedfs-access
+  namespace: object-storage
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
+  
+  ingress:
+    # Allow from all pods (applications can connect to S3) but only on the S3 port
+    - fromEndpoints:
+      - {}
+      toPorts:
+        - ports:
+            - port: "8333"
+              protocol: TCP
+    
+    # Allow internal SeaweedFS component communication on all required ports
+    - fromEndpoints:
+      - matchLabels:
+          app.kubernetes.io/name: seaweedfs
+      toPorts:
+        - ports:
+            - port: "8080"   # Volume server
+              protocol: TCP
+            - port: "18080"  # Volume gRPC
+              protocol: TCP
+            - port: "8888"   # Filer
+              protocol: TCP
+            - port: "18888"  # Filer gRPC
+              protocol: TCP
+            - port: "9333"   # Master
+              protocol: TCP
+            - port: "19333"  # Master gRPC
+              protocol: TCP
+  
+  egress:
+    # Allow to SeaweedFS pods (SeaweedFS components communicate internally)
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: seaweedfs
+      toPorts:
+        - ports:
+            - port: "8080"   # Volume server
+              protocol: TCP
+            - port: "18080"  # Volume gRPC
+              protocol: TCP
+            - port: "8888"   # Filer
+              protocol: TCP
+            - port: "18888"  # Filer gRPC
+              protocol: TCP
+            - port: "9333"   # Master
+              protocol: TCP
+            - port: "19333"  # Master gRPC
+              protocol: TCP
+            - port: "8333"   # S3
+              protocol: TCP
+    
+    # Allow DNS resolution
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    
+    # Allow Kubernetes API, host access (Azure CSI driver uses kubelet)
+    - toEntities:
+      - cluster
+      - host
+      - kube-apiserver

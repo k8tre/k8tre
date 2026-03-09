@@ -13,14 +13,14 @@ resources:
   - agnostics/nginx.yaml
   - agnostics/secret-store.yaml
   - agnostics/storage-class.yaml
+  - agnostics/object-storage.yaml
   - federation/cr8tor.yaml
   - identity/keycloak.yaml
   - identity/backend.yaml
-  - workspaces/awms.yaml
   - workspaces/jupyterhub.yaml
   - workspaces/guacamole.yaml
   - workspaces/gitea.yaml
-  - workspaces/pulumi.yaml
+  - observability/observability-metrics.yaml
 
 patches:
 # https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Controlling-Resource-Modification/#allow-temporarily-toggling-auto-sync

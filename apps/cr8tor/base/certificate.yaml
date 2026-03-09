@@ -7,9 +7,9 @@ spec:
   secretName: xk8tre-tls
   privateKey:
     rotationPolicy: Always
-  commonName: cr8tor.${ENVIRONMENT}.${DOMAIN}
+  commonName: cr8tor.${DOMAIN}
   dnsNames:
-    - cr8tor.${ENVIRONMENT}.${DOMAIN}
+    - cr8tor.${DOMAIN}
   usages:
     - digital signature
     - key encipherment

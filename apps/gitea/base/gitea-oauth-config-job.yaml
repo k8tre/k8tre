@@ -43,7 +43,7 @@ spec:
                   name: gitea-oidc-credentials
                   key: client-secret
             - name: KEYCLOAK_BASE_URL
-              value: "https://keycloak.${ENVIRONMENT}.${DOMAIN}"
+              value: "https://keycloak.${DOMAIN}"
             - name: KEYCLOAK_REALM
               value: "k8tre-app"
           command:

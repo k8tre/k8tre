@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-longhorn-internal
+  namespace: storage-system
+spec:
+  endpointSelector: {}
+  ingress:
+  - fromEndpoints:
+    - {}
+  egress:
+  - toEndpoints:
+    - {}
+  - toEntities:
+    - cluster
+    - host
+    - kube-apiserver
