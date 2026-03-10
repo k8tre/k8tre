@@ -5,8 +5,9 @@ resources:
   - ../../base
   - gateway-service-patch.yaml
 
-patches:
-  - path: gateway-cert-issuer-patch.yaml
-    target:
-      kind: Gateway
-      name: internal-gateway
+# TODO: Re-enable later, or use AWS ACM instead
+# patches:
+#   - path: gateway-cert-issuer-patch.yaml
+#     target:
+#       kind: Gateway
+#       name: internal-gateway
