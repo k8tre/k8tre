@@ -1,0 +1,154 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: samba-ad-data
+  namespace: ad
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: rwo-default
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: samba
+  namespace: ad
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: samba
+  namespace: ad
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "update", "get", "list", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: samba
+  namespace: ad
+subjects:
+  - kind: ServiceAccount
+    name: samba
+    namespace: ad
+roleRef:
+  kind: Role
+  name: samba
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: samba
+  namespace: ad
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: samba
+  template:
+    metadata:
+      labels:
+        app: samba
+    spec:
+      hostname: dc0      
+      volumes:
+        - name: samba-ad-data
+          persistentVolumeClaim:
+            claimName: samba-ad-data
+        - name: samba-init
+          configMap:
+            name: samba-init-scripts
+            defaultMode: 0770
+      serviceAccountName: samba
+      initContainers:
+        - name: samba-config
+          image: ghcr.io/manics/k8tre-samba-dc:main
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: samba-ad-data
+              mountPath: /samba
+            - name: samba-init
+              mountPath: /samba-init.sh
+              subPath: samba-init.sh
+          securityContext:
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - NET_BIND_SERVICE
+          command:
+            - "/samba-init.sh"
+      containers:
+        - name: samba          
+          image: ghcr.io/manics/k8tre-samba-dc:main
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: samba-ad-data
+              mountPath: /samba
+            - name: samba-init
+              mountPath: /samba-start.sh
+              subPath: samba-start.sh
+            - name: samba-init
+              mountPath: /samba-health.sh
+              subPath: samba-health.sh
+          securityContext:
+            # Unfortunately this is needed due to the way Samba manages ACLs.
+            privileged: true
+            allowPrivilegeEscalation: true
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - "/samba-start.sh 2>&1 > /startup.log"
+          livenessProbe:
+            exec:
+              command:
+                - "/samba-health.sh"
+            periodSeconds: 10
+            initialDelaySeconds: 30
+          ports:
+            - { name: "dns-udp"    , containerPort: 53  , protocol: "UDP" }
+            - { name: "dns-tcp"    , containerPort: 53  , protocol: "TCP" }
+            - { name: "krb-udp"    , containerPort: 88  , protocol: "UDP" }
+            - { name: "krb-tcp"    , containerPort: 88  , protocol: "TCP" }
+            - { name: "rpc"        , containerPort: 135 , protocol: "TCP" }
+            - { name: "smb"        , containerPort: 445 , protocol: "TCP" }
+            - { name: "kpasswd"    , containerPort: 464 , protocol: "TCP" }
+            - { name: "ldap"       , containerPort: 389 , protocol: "TCP" }    
+            - { name: "ldaps"      , containerPort: 636 , protocol: "TCP" }
+            - { name: "ldap-gc"    , containerPort: 3268, protocol: "TCP" }
+            - { name: "ldaps-gc"   , containerPort: 3269, protocol: "TCP" }
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: samba
+  namespace: ad
+spec:
+  selector:
+    app: samba
+  ports:
+    - { name: "dns-udp"    , port: 53  , targetPort: 53  , protocol: "UDP" }
+    - { name: "dns-tcp"    , port: 53  , targetPort: 53  , protocol: "TCP" }
+    - { name: "krb-udp"    , port: 88  , targetPort: 88  , protocol: "UDP" }
+    - { name: "krb-tcp"    , port: 88  , targetPort: 88  , protocol: "TCP" }
+    - { name: "rpc"        , port: 135 , targetPort: 135 , protocol: "TCP" }
+    - { name: "smb"        , port: 445 , targetPort: 445 , protocol: "TCP" }
+    - { name: "kpasswd"    , port: 464 , targetPort: 464 , protocol: "TCP" }
+    - { name: "ldap"       , port: 389 , targetPort: 389 , protocol: "TCP" }    
+    - { name: "ldaps"      , port: 636 , targetPort: 636 , protocol: "TCP" }
+    - { name: "ldap-gc"    , port: 3268, targetPort: 3268, protocol: "TCP" }
+    - { name: "ldaps-gc"   , port: 3269, targetPort: 3269, protocol: "TCP" }

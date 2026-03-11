@@ -55,7 +55,7 @@ spec:
     - toEndpoints:
       - matchLabels:
           k8s:io.kubernetes.pod.namespace: cr8tor
-
+          
     # Allow external access to domains
     - toFQDNs:
       - matchPattern: "*.${DOMAIN}"

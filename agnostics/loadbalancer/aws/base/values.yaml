@@ -1,0 +1,14 @@
+clusterName: k8tre-dev
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+
+# If pods are blocked from accessing the EC2 metadata server
+# then we need to specify the region and VPC
+# https://github.com/terraform-aws-modules/terraform-aws-eks/issues/3333
+# https://github.com/aws/eks-charts/blob/v0.0.210/stable/aws-load-balancer-controller/values.yaml#L164-L172
+region: eu-west-2
+vpcTags:
+  Name: k8tre-dev
+
+logLevel: debug
