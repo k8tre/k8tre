@@ -13,17 +13,20 @@ spec:
               repoURL: https://github.com/k8tre/k8tre.git
               revision: main
               directories:
-                - path: agnostics/ad/*/envs/*
+                - path: agnostics/ad/envs/*
           - clusters:
               selector:
                 matchLabels:
-                  environment: "{{index .path.segments 4}}"
-                  vendor: "k3s"
+                  environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-ad
+                    operator: NotIn
+                    values: ["true"]
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"
       annotations:
-        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 4}}"
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
     spec:
       project: default
       source:
@@ -34,7 +37,7 @@ spec:
           name: kustomize-with-envsubst-v1.0
           env:
             - name: ENVIRONMENT
-              value: "{{index .path.segments 4}}"
+              value: "{{index .path.segments 3}}"
             - name: DOMAIN
               value: "{{index .metadata.labels \"external-domain\"}}"
       destination:
