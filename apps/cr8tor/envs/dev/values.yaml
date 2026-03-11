@@ -80,18 +80,8 @@ publishService:
       value: opal-administrator-password
 
 ingress:
-  enabled: true
-  annotations:
-    nginx.ingress.kubernetes.io/ssl-redirect : "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect : "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: 64m
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "1860"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "1800"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "1800"
-  className: nginx
-  host: cr8tor.${DOMAIN}
-  tls:
-    secretName: xk8tre-tls
+  # Using HTTPRoute/cr8tor-approval-route
+  enabled: false
 
 storage: 
   k8tre:
