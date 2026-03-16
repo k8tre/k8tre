@@ -1,0 +1,19 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-k8tre-tls
+  namespace: monitoring
+spec:
+  secretName: grafana-k8tre-tls
+  privateKey:
+    rotationPolicy: Always
+  commonName: grafana.base.k8tre.internal
+  dnsNames:
+    - grafana.base.k8tre.internal
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer

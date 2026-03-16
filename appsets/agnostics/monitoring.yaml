@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/k8tre/k8tre.git
+              revision: main
+              directories:
+                - path: agnostics/monitoring/envs/*
+          - clusters:
+              selector:
+                matchLabels:
+                  environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-monitoring
+                    operator: NotIn
+                    values: ["true"]
+  template:
+    metadata:
+      name: "{{index .path.segments 1}}-{{.nameNormalized}}"
+      annotations:
+        argocd.argoproj.io/instance: "{{index .path.segments 1}}-{{index .path.segments 3}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/k8tre/k8tre.git
+        targetRevision: main
+        path: "{{.path.path}}"
+      destination:
+        server: "{{.server}}"
+        namespace: monitoring
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
