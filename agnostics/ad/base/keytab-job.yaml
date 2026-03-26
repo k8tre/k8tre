@@ -86,8 +86,8 @@ spec:
                 name: keytab-job-scripts
           containers:
           - name: keytab-generator
-            image: docker.io/library/samba-dc:latest
-            imagePullPolicy: Never
+            image: ghcr.io/manics/k8tre-samba-dc:main
+            imagePullPolicy: IfNotPresent
             volumeMounts:
               - mountPath: /Administrator.keytab
                 name: keytab
