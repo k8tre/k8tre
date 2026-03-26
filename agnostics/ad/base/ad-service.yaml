@@ -9,7 +9,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: local-path
+  storageClassName: rwo-default
 
 ---
 apiVersion: v1
@@ -73,8 +73,8 @@ spec:
       serviceAccountName: samba
       initContainers:
         - name: samba-config
-          image: docker.io/library/samba-dc:latest
-          imagePullPolicy: Never
+          image: ghcr.io/manics/k8tre-samba-dc:main
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: samba-ad-data
               mountPath: /samba
@@ -90,8 +90,8 @@ spec:
             - "/samba-init.sh"
       containers:
         - name: samba          
-          image: docker.io/library/samba-dc:latest
-          imagePullPolicy: Never
+          image: ghcr.io/manics/k8tre-samba-dc:main
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: samba-ad-data
               mountPath: /samba
