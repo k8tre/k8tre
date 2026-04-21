@@ -604,11 +604,11 @@ async def homepage(request: Request):
     """
     user = request.session.get("user")
     if not user:
-        return templates.TemplateResponse("login.html", {"request": request})
+        return templates.TemplateResponse(request, "login.html")
 
     username = user.get("preferred_username")
     return templates.TemplateResponse(
-        "home.html", {"request": request, "user": user, "username": username}
+        request, "home.html", {"user": user, "username": username}
     )
 
 @app.options("/login")
@@ -730,7 +730,7 @@ async def logout(request: Request):
 async def logged_out(request: Request):
     """ Simple logged out page that doesn't require authentication
     """
-    return templates.TemplateResponse("logged_out.html", {"request": request})
+    return templates.TemplateResponse(request, "logged_out.html")
 
 async def revoke_user_tokens(username, token=None, refresh_token=None):
     """ Revoke tokens for a specific user
@@ -1069,8 +1069,9 @@ async def custom_http_exception_handler(request: Request, exc: FastAPIHTTPExcept
     """
     if exc.status_code == 401:
         return templates.TemplateResponse(
-            "error.html", 
-            {"request": request, "error": "You are not authenticated. Please login to continue."},
+            request,
+            "error.html",
+            {"error": "You are not authenticated. Please login to continue."},
             status_code=401
         )
 
@@ -1095,15 +1096,10 @@ def get_projects(request: Request, user=Depends(require_user)):
     vdi_context = request.session.get("vdi_context", False)
     vdi_project = request.session.get("vdi_project")
 
-    groups = user_cr['spec'].get('groups', [])
-    projects = set()
-    for group_name in groups:
-        try:
-            group_cr = k8s_api.get_namespaced_custom_object(
-                "identity.k8tre.io", "v1alpha1", NAMESPACE, "groups", group_name)
-            projects.update(group_cr['spec'].get('projects', []))
-        except Exception:
-            continue
+    try:
+        _, projects = _get_user_groups_and_projects(username)
+    except Exception as e:
+        return templates.TemplateResponse(request, "error.html", {"error": f"Failed to resolve projects: {e}"})
 
     # Filter projects if in VDI context
     if vdi_context and vdi_project:
@@ -1123,8 +1119,9 @@ def get_projects(request: Request, user=Depends(require_user)):
             continue
 
     return templates.TemplateResponse(
+        request,
         "projects.html",
-        {"request": request, "projects": project_objs, "vdi_context": vdi_context}
+        {"projects": project_objs, "vdi_context": vdi_context}
     )
 
 @app.get("/projects/{project}/apps", response_class=HTMLResponse)
@@ -1139,8 +1136,9 @@ def get_apps(project: str, request: Request, user=Depends(require_user)):
     if vdi_context and vdi_project and project != vdi_project:
         print(f"BLOCKED: User in VDI context (project: {vdi_project}) attempting to view apps for project: {project}", flush=True)
         return templates.TemplateResponse(
+            request,
             "project-restricted.html",
-            {"request": request, "vdi_project": vdi_project, "requested_project": project}
+            {"vdi_project": vdi_project, "requested_project": project}
         )
 
     try:
@@ -1148,12 +1146,13 @@ def get_apps(project: str, request: Request, user=Depends(require_user)):
             "research.k8tre.io", "v1alpha1", NAMESPACE, "projects", project)
         apps = project_cr['spec'].get('apps', [])
         return templates.TemplateResponse(
+            request,
             "apps.html",
-            {"request": request, "project": project, "apps": apps, "vdi_context": vdi_context}
+            {"project": project, "apps": apps, "vdi_context": vdi_context}
         )
 
     except Exception as e:
-        return templates.TemplateResponse("error.html", {"request": request, "error": f"Project not found: {e}"})
+        return templates.TemplateResponse(request, "error.html", {"error": f"Project not found: {e}"})
 
 @app.get("/internal/projects", dependencies=[Depends(verify_internal_token)])
 def get_projects_internal():
@@ -1285,16 +1284,18 @@ async def launch_app(project: str, app: str, request: Request, user=Depends(requ
     if vdi_context and app in ["vdi", "guacamole"]:
         print(f"WARNING: User attempting to launch VDI from within VDI (project: {vdi_project})", flush=True)
         return templates.TemplateResponse(
+            request,
             "vdi-warning.html",
-            {"request": request, "project": vdi_project}
+            {"project": vdi_project}
         )
 
     # Prevent access to other projects
     if vdi_context and vdi_project and project != vdi_project:
         print(f"BLOCKED: User in VDI context (project: {vdi_project}) attempting to access different project: {project}", flush=True)
         return templates.TemplateResponse(
+            request,
             "project-restricted.html",
-            {"request": request, "vdi_project": vdi_project, "requested_project": project}
+            {"vdi_project": vdi_project, "requested_project": project}
         )
 
     # Get or refresh project token
@@ -1499,8 +1500,9 @@ async def vdi_reconnect_helper(request: Request, project: str = Query(None)):
     """ Detects project and redirects to logout endpoint
     """
     return templates.TemplateResponse(
+        request,
         "guacamole-redirect-helper.html",
-        {"request": request, "project": project}
+        {"project": project}
     )
 
 
@@ -1549,8 +1551,9 @@ async def vdi_status_page(username: str, project: str, request: Request, auto_co
         raise HTTPException(status_code=403, detail="Access denied")
 
     return templates.TemplateResponse(
+        request,
         "vdi-status.html",
-        {"request": request, "username": username, "project": project, "auto_connect": auto_connect}
+        {"username": username, "project": project, "auto_connect": auto_connect}
     )
 
 
@@ -1711,14 +1714,16 @@ def get_vdi_instances(request: Request, user=Depends(require_user)):
                 })
         
         return templates.TemplateResponse(
+            request,
             "vdi.html",
-            {"request": request, "user": user, "vdi_instances": vdi_instances}
+            {"user": user, "vdi_instances": vdi_instances}
         )
         
     except Exception as e:
         return templates.TemplateResponse(
-            "error.html", 
-            {"request": request, "error": f"Failed to fetch VDI instances: {e}"}
+            request,
+            "error.html",
+            {"error": f"Failed to fetch VDI instances: {e}"}
         )
 
 @app.post("/api/vdi/refresh-token")
