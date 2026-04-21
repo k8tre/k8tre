@@ -223,7 +223,7 @@ disable:
   - servicelb
 EOF
 
-curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.32.4+k3s1 sh -
+curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.34.6+k3s1 sh -
 ```
 
 **2. Cluster Access**
@@ -244,7 +244,7 @@ kubectl get pods -n kube-system
 K8TRE uses the Kubernetes Gateway API for ingress routing. Install the Gateway API CRDs before configuring the cluster networking:
 
 ```shell
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.1/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
 
 ```
 
@@ -264,7 +264,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 
 Then install cilium into the k3s cluster with Gateway API support and Hubble observability:
 ```shell
-CILIUM_VERSION=1.17.5
+CILIUM_VERSION=1.19.3
 K3S_POD_CIDR=10.42.0.0/16
 cilium install --version $CILIUM_VERSION \
     --set ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR" \
@@ -278,7 +278,7 @@ cilium install --version $CILIUM_VERSION \
 In addition, install the portmap cilium CNI plugin for hostport support:
 ```shell
 sudo mkdir -p /opt/cni/bin/
-curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-${CLI_ARCH}-v1.7.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
+curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.9.1/cni-plugins-linux-${CLI_ARCH}-v1.9.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
 ``` 
 
 To ensure that Cilium is ready and configured in the cluster run:
@@ -325,15 +325,39 @@ Then re-run to confirm cluster DNS forwarding is working:
 kubectl run dnsutils --image=busybox:1.28 --restart=Never -it --rm -- nslookup github.com
 ```
 
+## Operating system prerequisites
+
+A development installation of K8TRE uses Longhorn for storage, which requires the host system to support mounting NFS volumes.
+For example, on Ubuntu install the `nfs-common` package.
+
+Kubernetes utilities use the kernel inotify subsystem to monitor filess.
+Check the number of inotify instances/watches:
+
+```shell
+sysctl fs.inotify.max_user_instances
+sysctl fs.inotify.max_user_watches
+```
+
+Increase them to the following if necessary:
+
+```shell
+sudo tee /etc/sysctl.d/99-k8tre.conf << EOF
+fs.inotify.max_user_instances=512
+fs.inotify.max_user_watches=524288
+EOF
+
+sudo sysctl --system
+```
+
 ## ArgoCD
 K8TRE follows a declarative approach to deploy all agnostic and application-level components into a target cluster from a source git repository. To manage and automate this process, K8TRE relies on ArgoCD. If ArgoCD and GitOps model is unfamiliar, we first recommand gaining a brief understanding of what Argo is and why it is central to K8TRE [here](https://argo-cd.readthedocs.io/en/stable/).
 
 **1. Install to Cluster**
 
 ```shell
-ARGOCD_VERSION=v3.1.8
+ARGOCD_VERSION=v3.3.7
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
+kubectl apply --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
 sleep 10
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 ```
@@ -348,7 +372,7 @@ sudo chmod a+x /usr/local/bin/argocd
 
 Expose ArgoCD (running in the k8s cluster) and provide access via the ArgoCD CLI tool and web-based management UI:
 ```shell
-kubectl port-forward svc/argocd-server -n argocd 8080:443 --address 0.0.0.0 &
+kubectl port-forward svc/argocd-server -n argocd 8080:443 &
 ```
 Before attempting to login to ArgoCD via CLI or web portal, first extract the initial password set up for the admin user:
 ```shell

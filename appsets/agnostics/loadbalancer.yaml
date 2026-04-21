@@ -39,6 +39,8 @@ spec:
               value: "{{index .metadata.labels \"cluster-name\"}}"
             - name: REGION
               value: "{{index .metadata.labels \"region\"}}"
+            - name: METALLB_IP_RANGE
+              value: "{{index .metadata.labels \"metallb-ip-range\"}}"
       destination:
         server: "{{.server}}"
         namespace: loadbalancer
