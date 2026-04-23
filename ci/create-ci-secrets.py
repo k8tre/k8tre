@@ -34,6 +34,7 @@ Usage:
 import abc
 import base64
 import json
+import os
 import secrets
 import string
 import sys
@@ -310,6 +311,13 @@ class CISecretsManager:
                 generated = self.generator.generate_s3_access_key()
                 self.generated_values[f"{secret_name}.{key}"] = generated
                 return generated
+            elif value.startswith("{{ lookup_env(") and value.endswith(") }}"):
+                var_name = value[len("{{ lookup_env("):-len(") }}")].strip()
+                env_value = os.environ.get(var_name)
+                if env_value is None:
+                    console.print(f"[red]✗[/red] Environment variable '{var_name}' is not set (required for {secret_name}.{key})")
+                    sys.exit(1)
+                return env_value
         return str(value)
 
     def check_secret_exists(self, secret_name: str) -> bool:
