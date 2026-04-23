@@ -34,6 +34,7 @@ Usage:
 import abc
 import base64
 import json
+import os
 import secrets
 import string
 import sys
