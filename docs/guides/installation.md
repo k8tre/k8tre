@@ -3,67 +3,55 @@ This guide provides instruction to quickly get K8TRE up and running on a local k
 
 Before we can get cracking with K8TRE, we first need a Kubernetes (K8s) cluster available on your local host machine along with a single linux-based virtual machine to run the k8s cluster on.
 
-!!! note
+!!! Notes
     All code blocks below coloured blue should be run on the host machine, while grey block commands should be run inside the Ubuntu VM
 
 ## Prepare VM node 
 There are multiple ways to stand up and access a linux-based VM whether on a local machine or via some remote cloud resource. This guide assumes you have a local machine (Laptop?) without any existing framework for managing and deploying VMs. Although, if you already have an available framework setup (e.g. VirtualBox, VMware, etc) feel free to skip to the next section. 
 
+!!! Update
+    This deployment guide has been updated to new versions of K3s (v1.35.3), Cilium (1.19.3) & ArgoCD (3.3.8) along with additional configuration to handle a larger k8tre cluster deployment footprint using native virtualisation on MacOS.
+
 To spin up a local Ubuntu-based VM follow the instructions below based on your local machine OS:
 
 === "MacOS"
-    [Multipass](https://canonical.com/multipass) provides a simple approach to quickly spin up Ubuntu-based VMs on demand.
 
-    1. Install Multipass by downloading the installer [here](https://canonical.com/multipass/download/macos) or using brew in Terminal:
-        <div class="code-blue">
-        ```shell
-        brew install --cask multipass
-        ```
+    UTM provides a framework for the creation of performant Linux-based VMs that directly uses Apple's virtualization framework. This is in contrast to [Multipass](https://canonical.com/multipass) which emulates hardware using QEMU.
+
+    1. Install UTM by downloading the installer [here](https://mac.getutm.app/).
+
+    2. Download the Ubuntu 26.04 (Racoon) Server ISO image [here](https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso)  
        
-    2. Check multipass is installed and accessible from terminal:
-       <div class="code-blue">
-        ```shell
-            multipass version
-        ```
-        </div>
-    3. Create a VM in multipass with Ubuntu 24.04. Note, you may need to adjust the VM spec based on your resource availability.
-       <div class="code-blue">
-        ```shell
-        multipass launch 24.04 \
-            --name k8tre-vm \
-            --cpus 2 \
-            --memory 8G \
-            --disk 40G
-        ```
-        </div>
-    4. Check the VM is up and running:
-        <div class="code-blue">
-        ```shell
-        multipass info k8tre-vm
-        ```
-        </div>
-        You should see output similar to:
-        ```shell
-        Name:           k8tre-vm
-        State:          Running
-        Snapshots:      0
-        IPv4:           192.168.64.8
-                        10.42.0.27
-        Release:        Ubuntu 24.04.3 LTS
-        Image hash:     267449473631 (Ubuntu 24.04 LTS)
-        CPU(s):         2
-        Load:           0.96 0.91 0.88
-        Disk usage:     7.8GiB out of 11.5GiB
-        Memory usage:   1.9GiB out of 3.8GiB
-        Mounts:         --
-        ```
-    5. To install Kubernetes on the VM you will need to open a terminal to the VM itself. To do this run:
-        <div class="code-blue">
-        ```shell
-        multipass shell k8tre-vm
-        ```
-        </div>
-        
+    3. Open the UTM app and select the + button to start the creation of the VM. Select Virtualize > Linux.
+    
+    4. Set appropriate hardware allocations for memory and CPU Cores depending on your host machine. For deploying the full KARECTL stack we recommend a minimum of 16GB RAM and 8 CPU Cores. 
+
+    5. In the next pane, tick the 'Use Apple Virtualization' box and select Boot from ISO Image. Click Browse... and select the Ubuntu Server ISO image
+  
+    6. Set the Storage size on the next pane to a minimum of 50GiB. Click continue until you reach the summary pane.
+
+    7. Click Save and then select the 'play' button to run the VM.
+
+    8. On booting, follow the Ubuntu installation steps and keep the defaults as suggested. As part of this, ensure the OpenSSH Server is installed.
+
+    9. Login into the VM with the username and password you specified in the Ubuntu installation steps.
+
+    10. Confirm the VM's IP address:
+    ```shell
+      ip -4 addr show enp0s1
+      
+      2: enp0s1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+      altname enx5a3f3e1fc8b0
+      inet 10.32.102.227/20 metric 100 brd 10.32.111.255 scope global dynamic enp0s1
+      valid_lft 5914sec preferred_lft 5914sec
+    ```
+    11. Minimise the UTM VM window, open Terminal and ssh into the VM:
+    
+    ```shell
+      ssh <USER_NAME>@<VM_IP> e.g. ssh mike@10.12.104.227
+    ```
+
+
 === "Windows"
 
     ### Option 1: Multipass
@@ -202,6 +190,33 @@ To spin up a local Ubuntu-based VM follow the instructions below based on your l
         - SSH to the VM using the IP shown in VMware (run `ip a` in VM to find IP)
     
 
+## Configure Ubuntu VM
+Prepare the VM to run KARECTL on K3s by installing the following packages and applying configuration settings below:
+  
+```shell
+sudo apt-get install -y nfs-common
+
+sudo mkdir -p /etc/systemd/system.conf.d
+sudo tee /etc/systemd/system.conf.d/limits.conf > /dev/null <<EOF
+[Manager]
+DefaultLimitNOFILE=1048576
+DefaultLimitNPROC=32768
+DefaultLimitINOTIFY=524288
+EOF
+
+sudo tee /etc/sysctl.d/99-inotify.conf <<EOF
+fs.inotify.max_user_watches=524288
+fs.inotify.max_user_instances=2048
+fs.inotify.max_queued_events=65536
+EOF
+
+sudo sysctl --system
+sudo systemctl daemon-reexec
+
+# Ensure iscsid is available and enabled for Longhorn volume management support. If not, run sudo apt-get install -y open-iscsi && sudo systemctl enable --now iscsid
+sudo systemctl status iscsid
+```
+
 ## Kubernetes Cluster (K3s)
 At this point, we're ready to install [K3s](https://k3s.io/), a lightweight Kubernetes cluster distribution. You should have a target VM running Ubuntu 24.04 on your local host machine (or maybe remotely) accessible via your chosen command line tool.
 
@@ -214,7 +229,7 @@ sudo mkdir -p /etc/rancher/k3s
 sudo tee /etc/rancher/k3s/config.yaml << EOF
 node-name: k8tre-vm
 tls-san:
-  - k8tre-stg
+  - k8tre-dev
 cluster-init: true
 flannel-backend: none
 disable-network-policy: true
@@ -223,7 +238,7 @@ disable:
   - servicelb
 EOF
 
-curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.32.4+k3s1 sh -
+curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.35.3+k3s1 sh -
 ```
 
 **2. Cluster Access**
@@ -244,8 +259,7 @@ kubectl get pods -n kube-system
 K8TRE uses the Kubernetes Gateway API for ingress routing. Install the Gateway API CRDs before configuring the cluster networking:
 
 ```shell
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.1/standard-install.yaml
-
+kubectl apply --force-conflicts --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml
 ```
 
 **4. Cluster Networking**
@@ -264,7 +278,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 
 Then install cilium into the k3s cluster with Gateway API support and Hubble observability:
 ```shell
-CILIUM_VERSION=1.17.5
+CILIUM_VERSION=1.19.3
 K3S_POD_CIDR=10.42.0.0/16
 cilium install --version $CILIUM_VERSION \
     --set ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR" \
@@ -278,7 +292,7 @@ cilium install --version $CILIUM_VERSION \
 In addition, install the portmap cilium CNI plugin for hostport support:
 ```shell
 sudo mkdir -p /opt/cni/bin/
-curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-${CLI_ARCH}-v1.7.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
+curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.9.1/cni-plugins-linux-${CLI_ARCH}-v1.9.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
 ``` 
 
 To ensure that Cilium is ready and configured in the cluster run:
@@ -331,9 +345,9 @@ K8TRE follows a declarative approach to deploy all agnostic and application-leve
 **1. Install to Cluster**
 
 ```shell
-ARGOCD_VERSION=v3.1.8
+ARGOCD_VERSION=v3.3.8
 kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
+kubectl apply --force-conflicts --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
 sleep 10
 kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 ```
@@ -374,7 +388,7 @@ https://<IP_OF_VM>:8080/
 This command sets required labels on the target cluster which ArgoCD uses to ensure the correct agnostic/application configurations are applied for the given k8s distribution, in this example, definitions for k3s.
 
 !!! note
-    The `external-domain` label defines the base domain used for all K8TRE services (e.g., `keycloak.stg.k8tre.org`, `jupyter.stg.k8tre.org`). Change `k8tre.org` to your own domain name.
+    The `external-domain` label defines the base domain used for all K8TRE services (e.g., `keycloak.dev.k8tre.org`, `jupyter.dev.k8tre.org`). Change `k8tre.org` to your own domain name.
 
 !!! note
     Specify a IP range for the local load balancer (metallb-ip-range) that is accessible from the bridge network your VM is bound. To check the network in use, follow the steps for your host OS below:  
@@ -394,11 +408,12 @@ Using 172.26.64.1 (and assuming a 255.255.255.0 net mask) i.e. 172.26.64.0-172.2
 
 ```shell
 argocd cluster set in-cluster \
-    --label environment=stg \
+    --label environment=dev \
     --label secret-store=kubernetes \
     --label vendor=k3s \
-    --label external-domain=k8tre.org \
+    --label external-domain=dev.k8tre.org \
     --label external-dns=k3s \
+    --label storage-class=k3s \
     --label metallb-ip-range=<e.g. 172.26.64.240-172.26.64.250>
 ```
 
@@ -575,7 +590,7 @@ The health status of K8TRE applications can be viewed via the ArgoCD web portal 
 You have two options to access K8TRE from your host machine- custom DNS forwarding, or running a remote desktop _alongside_ K8TRE.
 
 ### Host DNS Configuration
-For your host machine to resolve K8TRE service domains (e.g., `portal.stg.k8tre.org`), configure split DNS forwarding to route environment-specific domains to kare-dns.
+For your host machine to resolve K8TRE service domains (e.g., `portal.dev.k8tre.org`), configure split DNS forwarding to route environment-specific domains to kare-dns.
 
 Get the kare-dns LoadBalancer IP:
 ```shell
@@ -591,7 +606,7 @@ On your host machine, create a persistent DNS configuration matching the environ
     ```
     
     ```shell
-    sudo tee /etc/resolver/stg.k8tre.org << EOF
+    sudo tee /etc/resolver/dev.k8tre.org << EOF
     nameserver <kare-dns-EXTERNAL-IP>
     EOF
     ```
@@ -613,16 +628,16 @@ On your host machine, create a persistent DNS configuration matching the environ
     EOF
     ```
 
-    For example, with `environment=stg` and `external-domain=k8tre.org`:
+    For example, with `environment=dev` and `external-domain=dev.k8tre.org`:
     ```shell
     sudo tee /etc/systemd/resolved.conf.d/k8tre.conf << EOF
     [Resolve]
     DNS=192.168.64.240
-    Domains=~stg.k8tre.org
+    Domains=~dev.k8tre.org
     EOF
     ```
 
-    The `~` prefix enables split DNS only `stg.k8tre.org` queries forward to kare-dns, all others use upstream DNS.
+    The `~` prefix enables split DNS only `dev.k8tre.org` queries forward to kare-dns, all others use upstream DNS.
 
     Restart systemd-resolved to apply:
     ```shell
@@ -642,10 +657,10 @@ On your host machine, create a persistent DNS configuration matching the environ
     ```
     Result: vEthernet (Default Switch) - the Hyper-V adapter
 
-    Only queries for stg.k8tre.org go to kare-dns
+    Only queries for dev.k8tre.org go to kare-dns
     
     ```shell
-    Add-DnsClientNrptRule -Namespace "stg.k8tre.org" -NameServers @("172.26.64.212")
+    Add-DnsClientNrptRule -Namespace "dev.k8tre.org" -NameServers @("172.26.64.212")
     ```
     
     Set primary and secondary DNS servers
@@ -660,7 +675,7 @@ On your host machine, create a persistent DNS configuration matching the environ
     ```
     Test split DNS - should resolve via kare-dns
     ```shell
-    Resolve-DnsName -Name portal.stg.k8tre.org -Type A
+    Resolve-DnsName -Name portal.dev.k8tre.org -Type A
     ```
 
     Result: 172.26.71.212
