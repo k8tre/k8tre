@@ -992,8 +992,22 @@ async def auth_validate(request: Request):
         print("No token found -> 401", flush=True)
         return Response(status_code=401)
 
-    # Verify JWT
-    claims = verify_token(f"Bearer {token}")
+    # Verify JWT - if verification fails, try a silent token refresh before giving up
+    try:
+        claims = verify_token(f"Bearer {token}")
+    except HTTPException:
+        print("Token verification failed in auth/validate, attempting refresh...", flush=True)
+        new_token = await refresh_access_token(request, project=project or None)
+        if not new_token:
+            print("Refresh failed -> 401", flush=True)
+            return Response(status_code=401)
+        token = new_token
+        try:
+            claims = verify_token(f"Bearer {token}")
+        except HTTPException:
+            print("Refreshed token also invalid -> 401", flush=True)
+            return Response(status_code=401)
+
     username = claims.get("preferred_username", "")
 
     if (path.startswith("/hub") or path.startswith("/user/")) and not project:
