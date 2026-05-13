@@ -64,6 +64,18 @@ class BackendType(str, Enum):
     aws_ssm = "aws-ssm"
 
 
+class MissingEnvVarError(Exception):
+    """Raised when a {{ lookup_env(VAR) }} reference with an unset env var."""
+
+    def __init__(self, var_name, secret_name, key):
+        self.var_name = var_name
+        self.secret_name = secret_name
+        self.key = key
+        super().__init__(
+            f"Environment variable '{var_name}' not set (required for {secret_name}.{key})"
+        )
+
+
 class SecretGenerator:
     """Generates various types of secrets like passwords and hex keys."""
 
@@ -251,17 +263,30 @@ class CISecretsManager:
         dry_run: bool = False,
         overwrite: bool = False,
         merge_keys: bool = False,
+        strict: bool = False,
     ):
         self.backend = backend
         self.dry_run = dry_run
         self.overwrite = overwrite
         self.merge_keys = merge_keys
+        self.strict = strict
         self.generator = SecretGenerator()
         self.generated_values = {}
         self.existing_secrets = []
         self.overwritten_secrets = []
         self.skipped_secrets = []
         self.merged_secrets = []
+        self.skip_env_secrets: list[tuple[str, list[str]]] = []
+
+        # Initialize Kubernetes client
+        try:
+            config.load_kube_config(context=context)
+            self.v1 = client.CoreV1Api()
+        except Exception as e:
+            console.print(
+                f"[red]Error: Failed to load kubectl context '{context}': {e}[/red]"
+            )
+            sys.exit(1)
 
     def load_secrets_config(self, config_path: str) -> Dict[str, Any]:
         """Load secrets configuration from YAML file."""
@@ -315,8 +340,7 @@ class CISecretsManager:
                 var_name = value[len("{{ lookup_env("):-len(") }}")].strip()
                 env_value = os.environ.get(var_name)
                 if env_value is None:
-                    console.print(f"[red]✗[/red] Environment variable '{var_name}' is not set (required for {secret_name}.{key})")
-                    sys.exit(1)
+                    raise MissingEnvVarError(var_name, secret_name, key)
                 return env_value
         return str(value)
 
@@ -430,12 +454,39 @@ class CISecretsManager:
                 # Handle generic/opaque secrets
                 data_list = secret_config.get("data", [])
                 processed_data = {}
+                missing_vars: set[str] = set()
+                keys_before = set(self.generated_values)
 
                 for item in data_list:
                     key = item.get("key")
                     value = item.get("value")
-                    processed_value = self.process_secret_value(value, secret_name, key)
-                    processed_data[key] = processed_value
+                    try:
+                        processed_data[key] = self.process_secret_value(
+                            value, secret_name, key
+                        )
+                    except MissingEnvVarError as exc:
+                        missing_vars.add(exc.var_name)
+
+                if missing_vars:
+                    sorted_missing = sorted(missing_vars)
+                    # Ignore any generated values produced for skipped secret
+                    for gen_key in list(self.generated_values):
+                        if gen_key not in keys_before:
+                            del self.generated_values[gen_key]
+                    self.skip_env_secrets.append((secret_name, sorted_missing))
+                    if self.strict:
+                        console.print(
+                            f"[red]Secret '{secret_name}' requires unset env "
+                            f"vars: {', '.join(sorted_missing)} (--strict)[/red]"
+                        )
+                        continue
+                    console.print(
+                        f"[yellow]Skipping '{secret_name}': env "
+                        f"var(s) not set: {', '.join(sorted_missing)}[/yellow]"
+                    )
+                    # Skip and not failure
+                    success_count += 1
+                    continue
 
                 if self.create_generic_secret(secret_name, processed_data):
                     success_count += 1
@@ -484,17 +535,42 @@ class CISecretsManager:
                 for secret in self.skipped_secrets:
                     console.print(f"  - {secret}")
 
+        if self.skip_env_secrets:
+            count = len(self.skip_env_secrets)
+            if self.strict:
+                console.print(
+                    f"\n[red]Failed {count} secrets due to unset env vars (--strict):[/red]"
+                )
+            else:
+                console.print(
+                    f"\n[yellow]Skipped {count} secrets due to unset env vars (pass --strict to fail instead):[/yellow]"
+                )
+            for secret, vars_ in self.skip_env_secrets:
+                console.print(f"  - {secret} (missing: {', '.join(vars_)})")
+
         if self.dry_run:
             console.print(
                 "\n[yellow]DRY RUN completed - no secrets were actually created[/yellow]"
             )
         elif success:
-            console.print(
-                f"\n[green]✓ All CI secrets processed successfully[/green]"
-            )
-            console.print(
-                "[green]✓ Secrets are ready for use with External Secrets Operator[/green]"
-            )
+            if self.skip_env_secrets:
+                console.print(
+                    f"\n[yellow]Completed with {len(self.skip_env_secrets)} "
+                    f"secret(s) skipped due to unset env vars in namespace: "
+                    f"{self.namespace}[/yellow]"
+                )
+                console.print(
+                    "[yellow]Skipped secrets are not available to External "
+                    "Secrets Operator. Set the missing env vars and re-run "
+                    "if you need them.[/yellow]"
+                )
+            else:
+                console.print(
+                    f"\n[green]✓ All CI secrets processed successfully in namespace: {self.namespace}[/green]"
+                )
+                console.print(
+                    "[green]✓ Secrets are ready for use with External Secrets Operator[/green]"
+                )
 
             if isinstance(self.backend, KubernetesBackend):
                 console.print("\nTo verify the secrets, run:")
@@ -537,6 +613,12 @@ def main(
     merge_keys: Annotated[
         bool, typer.Option(help="Merge new keys into existing secrets without overwriting existing keys (default: False)")
     ] = False,
+    strict: Annotated[
+        bool,
+        typer.Option(
+            help="Fail when a secret references unset env vars (default: skip with warning)"
+        ),
+    ] = False,
     backend: Annotated[BackendType, typer.Option(help="Backend to use")] = BackendType.kubernetes,
     region: Annotated[Optional[str], typer.Option(help="AWS backend: AWS Region (optional if configured in environment/profile)")] = None,
     prefix: Annotated[str, typer.Option(help="AWS backend: Prefix for AWS SSM parameters")] = "",
@@ -557,6 +639,7 @@ def main(
       uv run create-ci-secrets.py --context k3d-dev --overwrite
       uv run create-ci-secrets.py --context k3d-dev --merge-keys
       uv run create-ci-secrets.py --context k3d-dev --namespace my-secret-store
+      uv run create-ci-secrets.py --context k3d-dev --strict
 
       # Traditional python execution (requires virtual environment)
       python create-ci-secrets.py --context k3d-dev --dry-run --merge-keys
@@ -585,7 +668,8 @@ def main(
         backend=secrets_backend,
         dry_run=dry_run,
         overwrite=overwrite,
-        merge_keys=merge_keys
+        merge_keys=merge_keys,
+        strict=strict,
     )
 
     # Load configuration and create secrets
