@@ -278,16 +278,6 @@ class CISecretsManager:
         self.merged_secrets = []
         self.skip_env_secrets: list[tuple[str, list[str]]] = []
 
-        # Initialize Kubernetes client
-        try:
-            config.load_kube_config(context=context)
-            self.v1 = client.CoreV1Api()
-        except Exception as e:
-            console.print(
-                f"[red]Error: Failed to load kubectl context '{context}': {e}[/red]"
-            )
-            sys.exit(1)
-
     def load_secrets_config(self, config_path: str) -> Dict[str, Any]:
         """Load secrets configuration from YAML file."""
         try:
@@ -556,8 +546,7 @@ class CISecretsManager:
             if self.skip_env_secrets:
                 console.print(
                     f"\n[yellow]Completed with {len(self.skip_env_secrets)} "
-                    f"secret(s) skipped due to unset env vars in namespace: "
-                    f"{self.namespace}[/yellow]"
+                    f"secret(s) skipped due to unset env vars[/yellow]"
                 )
                 console.print(
                     "[yellow]Skipped secrets are not available to External "
@@ -566,7 +555,7 @@ class CISecretsManager:
                 )
             else:
                 console.print(
-                    f"\n[green]✓ All CI secrets processed successfully in namespace: {self.namespace}[/green]"
+                    f"\n[green]✓ All CI secrets processed successfully[/green]"
                 )
                 console.print(
                     "[green]✓ Secrets are ready for use with External Secrets Operator[/green]"
