@@ -47,7 +47,7 @@ mkdocs==1.6.1
     #   -r requirements.in
     #   mkdocs-macros-plugin
     #   mkdocs-material
-mkdocs-get-deps==0.2.0
+mkdocs-get-deps==0.2.2
     # via mkdocs
 mkdocs-macros-plugin==1.4.0
     # via -r requirements.in
