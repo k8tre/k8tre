@@ -220,4 +220,4 @@ c.Authenticator.auto_login = True
 c.JupyterHub.allow_named_servers = False
 c.JupyterHub.redirect_to_server = False
 c.Authenticator.refresh_pre_spawn = True
-c.JupyterHub.cookie_max_age_days = 0.1
+c.JupyterHub.cookie_max_age_days = 0.5

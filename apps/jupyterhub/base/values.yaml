@@ -57,7 +57,7 @@ hub:
       import logging
       logging.getLogger('jupyterhub').setLevel(logging.DEBUG)
 
-      c.KubeSpawner.delete_grace_period = 30
+      c.KubeSpawner.delete_grace_period = 60
       c.KubeSpawner.start_timeout = 600
       c.KubeSpawner.http_timeout = 60
 
