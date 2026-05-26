@@ -17,7 +17,7 @@ spec:
   # Source configuration defines where to find the application manifests
   source:
     # The Git repository containing all application definitions
-    repoURL: https://github.com/k8tre/k8tre.git
+    repoURL: https://github.com/eggai-tech/k8tre.git
     # The branch or tag to use - typically the main branch
     # Create a copy of this tile and change this to a feature branch for development
     # Use kubectl apply -k root-app-of-apps.yaml to deploy the application in your development environment
@@ -35,10 +35,10 @@ spec:
           patch: |-
             - op: replace
               path: /spec/generators/0/matrix/generators/0/git/repoURL
-              value: https://github.com/k8tre/k8tre.git
+              value: https://github.com/eggai-tech/k8tre.git
             - op: replace
               path: /spec/template/spec/source/repoURL
-              value: https://github.com/k8tre/k8tre.git
+              value: https://github.com/eggai-tech/k8tre.git
             - op: replace
               path: /spec/generators/0/matrix/generators/0/git/revision
               value: main
@@ -64,6 +64,6 @@ spec:
       selfHeal: true # Automatically sync when drift is detected between Git and cluster state
   info:
     - name: K8TRE App of Apps
-      value: "https://github.com/k8tre/k8tre"
+      value: "https://github.com/eggai-tech/k8tre"
     - name: K8TRE Documentation
       value: "https://k8tre.github.io/k8tre/"
