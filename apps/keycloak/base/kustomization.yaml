@@ -13,10 +13,10 @@ resources:
   - postgres.yaml
 
   # Custom resources
-  - identity-management/users.yaml
-  - identity-management/groups.yaml
-  - identity-management/projects.yaml
-  - identity-management/keycloak.yaml
+  # - identity-management/users.yaml
+  # - identity-management/groups.yaml
+  # - identity-management/projects.yaml
+  # - identity-management/keycloak.yaml
 
 patches:
   - path: projects-patch.yaml
