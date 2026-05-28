@@ -26,13 +26,19 @@ data:
 
     # Get IP from CoreDNS
     CONFIGURED_IP=$(kubectl get cm coredns -n kube-system -o jsonpath='{.data.Corefile}' | \
-      grep -A 2 "${DOMAIN}:53" | grep "forward" | awk '{print $3}' | cut -d: -f1)
+      grep -A 5 "${DOMAIN}:53" | grep "forward \. " | awk '{print $3}' | cut -d: -f1)
+
+    SAMBA_IP=$(kubectl get svc samba -n ad -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+    CONFIGURED_SAMBA_IP=$(kubectl get cm coredns -n kube-system -o jsonpath='{.data.Corefile}' | \
+      grep -A 5 "${DOMAIN}:53" | grep "forward ad\.${DOMAIN}\. " | awk '{print $3}' | cut -d: -f1)
 
     echo "Current kare-dns IP: $CURRENT_IP"
     echo "Configured CoreDNS IP: $CONFIGURED_IP"
+    echo "Current samba IP: $SAMBA_IP"
+    echo "Configured samba IP: $CONFIGURED_SAMBA_IP"
 
     # Update if there's a mismatch
-    if [ "$CURRENT_IP" = "$CONFIGURED_IP" ]; then
+    if [ "$CURRENT_IP" = "$CONFIGURED_IP" ] && [ "$SAMBA_IP" = "$CONFIGURED_SAMBA_IP" ] ; then
       echo "DNS configuration is correct, no action needed"
       exit 0
     fi
@@ -41,7 +47,13 @@ data:
     cat > /tmp/new-corefile << 'COREFILE'
     ${DOMAIN}:53 {
         errors
+        forward in-addr.arpa. ${SAMBA_IP}:53
+        forward ad.${DOMAIN}. ${SAMBA_IP}:53
+        forward ad. ${SAMBA_IP}:53                
         forward . ${CURRENT_IP}:53
+    }
+    in-addr.arpa:53 {
+        forward . ${SAMBA_IP}:53
     }
     .:53 {
         errors
@@ -57,7 +69,10 @@ data:
             fallthrough
         }
         prometheus :9153
+        forward in-addr.arpa. ${SAMBA_IP}:53
+        forward ad.${DOMAIN}. ${SAMBA_IP}:53
         forward . ${UPSTREAM_DNS}
+
         cache 30
         loop
         reload
@@ -68,7 +83,7 @@ data:
     COREFILE
 
     # Substitute env
-    sed -i "s/\${ENVIRONMENT}/$ENVIRONMENT/g; s/\${DOMAIN}/$DOMAIN/g; s/\${CURRENT_IP}/$CURRENT_IP/g; s/\${UPSTREAM_DNS}/$UPSTREAM_DNS/g" /tmp/new-corefile
+    sed -i "s/\${ENVIRONMENT}/$ENVIRONMENT/g; s/\${DOMAIN}/$DOMAIN/g; s/\${CURRENT_IP}/$CURRENT_IP/g; s/\${UPSTREAM_DNS}/$UPSTREAM_DNS/g;  s/\${SAMBA_IP}/$SAMBA_IP/g" /tmp/new-corefile
 
     # Update and restart
     kubectl patch configmap coredns -n kube-system --patch "{\"data\":{\"Corefile\":\"$(cat /tmp/new-corefile | sed 's/$/\\n/' | tr -d '\n' | sed 's/\\n$//')\"}}"

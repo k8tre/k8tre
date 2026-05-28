@@ -18,6 +18,7 @@ serviceAccount:
 sources:
   - gateway-httproute
   - ingress
+  - pod
   # - gateway-tlsroute
 
 policy: sync
