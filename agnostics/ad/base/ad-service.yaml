@@ -76,7 +76,7 @@ spec:
       serviceAccountName: samba
       initContainers:
         - name: samba-config
-          image: ghcr.io/manics/k8tre-samba-dc:main
+          image: ghcr.io/k8tre/k8tre-samba-dc:v0.1.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: samba-ad-data
@@ -93,7 +93,7 @@ spec:
             - "/samba-init.sh"
       containers:
         - name: samba
-          image: ghcr.io/manics/k8tre-samba-dc:main
+          image: ghcr.io/k8tre/k8tre-samba-dc:v0.1.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: samba-ad-data
