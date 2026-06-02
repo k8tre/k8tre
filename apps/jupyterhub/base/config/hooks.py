@@ -129,6 +129,7 @@ c.JupyterHub.allow_named_servers = False
 c.JupyterHub.redirect_to_server = False
 
 # Add Kerberos keytab and configuration, if enabled
+c.KubeSpawner.environment["KRB5_KTNAME"] = "/keytab/keytab"
 c.KubeSpawner.volumes.append({
   "name": "keytab",
   "configMap": {
