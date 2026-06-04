@@ -41,9 +41,18 @@ spec:
       destination:
         server: "{{.server}}"
         namespace: storage-system
+      ignoreDifferences:
+        # Longhorn CRDs ship with `default` and `x-kubernetes-int-or-string`
+        # fields that ArgoCD and the kube-apiserver normalize differently,
+        # producing permanent OutOfSync noise on an otherwise Healthy app.
+        - group: apiextensions.k8s.io
+          kind: CustomResourceDefinition
+          jsonPointers:
+            - /spec/versions
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
         syncOptions:
           - CreateNamespace=true
+          - ServerSideApply=true

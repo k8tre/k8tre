@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kustomize-with-envsubst-v1-0
+  namespace: argocd
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: kustomize-with-envsubst-v1.0
+    spec:
+      generate:
+        command: ["sh", "-c"]
+        args:
+          - |
+            export CLUSTER_NAME="${ARGOCD_ENV_CLUSTER_NAME:-}"
+            export REGION="${ARGOCD_ENV_REGION:-}"
+            export METALLB_IP_RANGE="${ARGOCD_ENV_METALLB_IP_RANGE:-}"
+            export DOMAIN="${ARGOCD_ENV_DOMAIN:-}"
+            export ENVIRONMENT="${ARGOCD_ENV_ENVIRONMENT:-}"
+            kustomize build --enable-helm --load-restrictor LoadRestrictionsNone | envsubst '$CLUSTER_NAME $REGION $METALLB_IP_RANGE $DOMAIN $ENVIRONMENT'
+      discover:
+        find:
+          command: [sh, -c, "find . -name 'kustomization.yaml' | head -1"]
