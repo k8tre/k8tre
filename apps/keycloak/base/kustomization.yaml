@@ -18,8 +18,15 @@ resources:
   # - identity-management/projects.yaml
   # - identity-management/keycloak.yaml
 
-patches:
-  - path: projects-patch.yaml
+# projects-patch.yaml targets Project.research.k8tre.io resources that are
+# included via identity-management/projects.yaml — currently commented out
+# because the CRDs are not yet available (see commit ecb12b7). Keeping the
+# patch entry while the targets are absent makes `kustomize build` fail and
+# ArgoCD renders the keycloak app as zero-resource (Healthy but empty
+# namespace, no keycloak pods, login redirects 404). Re-enable both lines
+# together when the Project CRD lands.
+# patches:
+#   - path: projects-patch.yaml
 
 helmCharts:
   - name: keycloakx
