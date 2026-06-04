@@ -1,6 +1,11 @@
 # SeaweedFS Helm Chart Values
 # SeaweedFS replication disabled (000) to avoid redundancy
 
+# Required: the kustomize+helm inflator does not propagate Chart.Name, so the
+# chart's seaweedfs.name template would otherwise produce an empty string and
+# generate malformed -ip/-peers args (e.g. `-master-0.-master.X:9333`).
+fullnameOverride: seaweedfs
+
 global:
   imagePullPolicy: IfNotPresent
   monitoring:
