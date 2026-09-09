@@ -59,6 +59,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Lay Summary: lay-summary.md
   - Specification:
       - Introduction: spec/README.md
       - Glossary: spec/glossary.md
