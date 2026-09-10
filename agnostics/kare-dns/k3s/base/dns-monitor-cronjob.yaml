@@ -43,13 +43,18 @@ data:
       exit 0
     fi
 
+    SAMBA_CONF=""
+    if [ ! -z "$SAMBA_IP" ] ; then
+      SAMBA_CONF="    forward in-addr.arpa. ${SAMBA_IP}:53
+        forward ad.${DOMAIN}. ${SAMBA_IP}:53
+        forward ad. ${SAMBA_IP}:53"
+    fi
+
     echo "IP mismatch detected! Updating CoreDNS..."
     cat > /tmp/new-corefile << 'COREFILE'
     ${DOMAIN}:53 {
         errors
-        forward in-addr.arpa. ${SAMBA_IP}:53
-        forward ad.${DOMAIN}. ${SAMBA_IP}:53
-        forward ad. ${SAMBA_IP}:53                
+    $SAMBA_CONF
         forward . ${CURRENT_IP}:53
     }
     in-addr.arpa:53 {
