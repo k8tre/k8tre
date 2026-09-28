@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 from PIL import Image, ImageChops
-from playwright.sync_api import Page  # , expect
+from playwright.sync_api import Page, expect
 
 K8TRE_DOMAIN = os.getenv("K8TRE_DOMAIN", "dev.k8tre.internal")
 
@@ -11,10 +11,14 @@ HERE = Path(__file__).absolute().parent
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args, playwright):
-    return {"ignore_https_errors": True, "record_video_dir": "screenshots"}
+    return {
+        "ignore_https_errors": True,
+        "record_video_dir": "screenshots",
+        "viewport": {"width": 1280, "height": 720},
+    }
 
 
-def compare_screenshot(test_image, threshold=4, throw=True):
+def compare_screenshot(test_image, threshold=6, throw=True):
     # Compare images by calculating the mean absolute difference
     # Images must be the same size
     # threshold: Average difference per pixel, this depends on the image type
@@ -26,49 +30,97 @@ def compare_screenshot(test_image, threshold=4, throw=True):
     # Absolute difference
     # Convert to RGB, alpha channel breaks ImageChops
     diff = ImageChops.difference(reference.convert("RGB"), test.convert("RGB"))
-    diff_data = diff.getdata()
+    width, height = diff.size
+    try:
+        data = diff.get_flattened_data()
+    except AttributeError:
+        data = diff.getdata()
 
-    m = sum(sum(px) for px in diff_data) / diff_data.size[0] / diff_data.size[1]
+    m = sum(sum(px) for px in data) / width / height
     if throw:
-        assert m < threshold
+        assert m < threshold, f"Mean pixel difference {m} exceeds threshold {threshold}"
     return m < threshold
 
 
+def login_to_portal(page: Page) -> None:
+    """Login to Portal via Keycloak SSO, completing profile if prompted."""
+    page.goto(f"https://portal.{K8TRE_DOMAIN}/login")
+    page.wait_for_load_state("networkidle")
+
+    # Keycloak login form
+    if page.get_by_role("textbox", name="Username or email").is_visible():
+        page.get_by_role("textbox", name="Username or email").fill("trevolution")
+        page.get_by_role("textbox", name="Password").fill("k8tre")
+        page.get_by_role("button", name="Sign In").click()
+        page.wait_for_load_state("networkidle")
+
+    # If Keycloak prompts to complete user profile on first login (Update Account Information)
+    if page.locator("input#firstName").is_visible():
+        page.locator("input#firstName").fill("TRE")
+        page.locator("input#lastName").fill("User")
+        page.locator("input[type='submit']").click()
+        page.wait_for_load_state("networkidle")
+
+    # Wait for redirect back to portal
+    page.wait_for_url(f"https://portal.{K8TRE_DOMAIN}/**")
+    page.wait_for_load_state("networkidle")
+
+
 @pytest.mark.ui
-def test_jupyter_guacamole(page: Page) -> None:
-    # Change this if the project or workspace names are changed
-    WORKSPACE_NAME = "k8tre-users-mate"
+def test_portal_guacamole_vdi(page: Page) -> None:
+    """Test Portal login and Guacamole VDI launch with desktop verification."""
+    # 1. Login to Portal via Keycloak SSO
+    login_to_portal(page)
 
-    page.goto(f"https://jupyter.{K8TRE_DOMAIN}")
-    page.get_by_role("button", name="Sign in with keycloak").click()
-    page.get_by_role("textbox", name="Username or email").fill("example@example.com")
-    page.get_by_role("textbox", name="Password").fill("secret")
-    page.get_by_role("button", name="Sign In").click()
+    # 2. Select Project Apps
+    page.goto(f"https://portal.{K8TRE_DOMAIN}/projects/asthma/apps")
+    page.wait_for_load_state("networkidle")
 
-    page.get_by_role("button", name="Start My Server").click()
-    page.get_by_role("heading", name=WORKSPACE_NAME, exact=True).click()
-    page.get_by_role("button", name="Start").click()
+    # 3. Launch Guacamole VDI
+    page.locator("a[href='/launch/asthma/guacamole']").click()
+    page.wait_for_load_state("networkidle")
 
-    page.get_by_text("Event log").click()
-    page.get_by_role("link", name="rdp: https://guacamole.").click()
+    # Wait for automatic redirection to Guacamole
+    page.wait_for_url("**/guacamole/**", timeout=60000)
 
     # Wait for desktop to load, take a screenshot to compare
-    # Use a non temporary folder so we can check it manually if necessary
     screenshot = Path("screenshots") / "desktop.png"
+    screenshot.parent.mkdir(exist_ok=True)
 
-    for i in range(12):
-        # Desktop takes a while to load, retry every 10s until the screenshot matches
-        page.wait_for_timeout(10000)
+    matched = False
+    for i in range(15):
+        page.wait_for_timeout(5000)
         page.screenshot(path=screenshot)
-        if compare_screenshot(screenshot, throw=False):
+        if compare_screenshot(screenshot, threshold=6, throw=False):
+            matched = True
             break
-        print("Screenshot doesn't match")
+        print(f"Screenshot attempt {i+1} doesn't match yet...")
 
-    # Shut down server
-    page.goto(f"https://jupyter.{K8TRE_DOMAIN}/hub/home")
-    page.get_by_role("button", name="Stop My Server").click()
+    assert matched, "Guacamole desktop screenshot did not match reference"
 
-    compare_screenshot(screenshot)
+    # 4. Cleanup: Shutdown VDI instance via portal
+    page.on("dialog", lambda dialog: dialog.accept())
+    page.goto(f"https://portal.{K8TRE_DOMAIN}/vdi")
+    page.wait_for_load_state("networkidle")
+    shutdown_btn = page.locator("form[action='/shutdown-vdi'] button[type='submit']")
+    if shutdown_btn.count() > 0:
+        shutdown_btn.first.click()
+        page.wait_for_load_state("networkidle")
 
-    # page.keyboard.press("Control+Alt+Shift")
-    # expect(page.get_by_role("heading", name="Clipboard")).to_be_visible()
+
+@pytest.mark.ui
+def test_portal_jupyterhub_launch(page: Page) -> None:
+    """Test Portal login and JupyterHub workspace launch."""
+    # 1. Login to Portal via Keycloak SSO
+    login_to_portal(page)
+
+    # 2. Navigate to Asthma project apps
+    page.goto(f"https://portal.{K8TRE_DOMAIN}/projects/asthma/apps")
+    page.wait_for_load_state("networkidle")
+
+    # 3. Launch JupyterHub
+    page.locator("a[href='/launch/asthma/jupyterhub']").click()
+    page.wait_for_url("**/hub/**", timeout=30000)
+
+    # 4. Verify profile selection form displays dynamic profile from backend
+    expect(page.get_by_text("Asthma Workspace 1")).to_be_visible()

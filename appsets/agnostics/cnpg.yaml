@@ -28,6 +28,10 @@ spec:
                 matchLabels:
                   # This will match the environment from the path segment
                   environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-cnpg
+                    operator: NotIn
+                    values: ["true"]
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"

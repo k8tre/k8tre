@@ -224,7 +224,7 @@ At this point, we're ready to install [K3s](https://k3s.io/), a lightweight Kube
 
 Execute the following commands in terminal to download and install K3s onto the VM:
 
-```shell
+```shell {.ci}
 sudo mkdir -p /etc/rancher/k3s
 sudo tee /etc/rancher/k3s/config.yaml << EOF
 node-name: k8tre-vm
@@ -244,8 +244,12 @@ curl -sfSL https://get.k3s.io | INSTALL_K3S_VERSION=v1.35.3+k3s1 sh -
 **2. Cluster Access**
 
 Ensure the logged in user (e.g. ubuntu) can access the cluster by setting the user's kube/config:
-```shell
+```shell {.ci}
 mkdir -p ~/.kube
+for i in $(seq 1 30); do
+  [ -f /etc/rancher/k3s/k3s.yaml ] && break
+  sleep 1
+done
 sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/config
 echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc; source ~/.bashrc 
 ``` 
@@ -258,7 +262,7 @@ kubectl get pods -n kube-system
 
 K8TRE uses the Kubernetes Gateway API for ingress routing. Install the Gateway API CRDs before configuring the cluster networking:
 
-```shell
+```shell {.ci}
 kubectl apply --force-conflicts --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/experimental-install.yaml
 ```
 
@@ -266,7 +270,7 @@ kubectl apply --force-conflicts --server-side -f https://github.com/kubernetes-s
 
 K8TRE requires the target k8s cluster supports the Cilium container network interface (CNI) that provides modern support for network routing (e.g. cilium gateway) and access control management capabilities. The following commands install the cilium CLI on the ubuntu VM:
 
-```shell
+```shell {.ci}
 CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
 CLI_ARCH=amd64
 if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
@@ -277,7 +281,11 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 ```
 
 Then install cilium into the k3s cluster with Gateway API support and Hubble observability:
-```shell
+
+!!! note
+    `gatewayAPI.hostNetwork.enabled` binds Envoy directly to host ports 80/443, eliminating the need for an external LoadBalancer (MetalLB) in single-node VM and CI environments. `keepCapNetBindService` retains `CAP_NET_BIND_SERVICE` so Envoy can bind to privileged ports 80/443.
+
+```shell {.ci}
 CILIUM_VERSION=1.19.3
 K3S_POD_CIDR=10.42.0.0/16
 cilium install --version $CILIUM_VERSION \
@@ -285,18 +293,21 @@ cilium install --version $CILIUM_VERSION \
     --set cni.chainingMode=portmap \
     --set kubeProxyReplacement=true \
     --set gatewayAPI.enabled=true \
+    --set gatewayAPI.hostNetwork.enabled=true \
+    --set envoy.securityContext.capabilities.keepCapNetBindService=true \
+    --set envoy.securityContext.capabilities.envoy="{NET_ADMIN,SYS_ADMIN,NET_BIND_SERVICE}" \
     --set hubble.relay.enabled=true \
     --set hubble.ui.enabled=true
 ```
 
 In addition, install the portmap cilium CNI plugin for hostport support:
-```shell
+```shell {.ci}
 sudo mkdir -p /opt/cni/bin/
 curl -sfSL https://github.com/containernetworking/plugins/releases/download/v1.9.1/cni-plugins-linux-${CLI_ARCH}-v1.9.1.tgz | sudo tar -zxvf - -C /opt/cni/bin/ ./portmap
 ``` 
 
 To ensure that Cilium is ready and configured in the cluster run:
-```shell
+```shell {.ci}
 cilium status --wait
 ```
 
@@ -339,12 +350,45 @@ Then re-run to confirm cluster DNS forwarding is working:
 kubectl run dnsutils --image=busybox:1.28 --restart=Never -it --rm -- nslookup github.com
 ```
 
+### Storage Classes (rwo-default & rwx-default)
+
+K8TRE applications abstract persistent storage through two standard storage classes:
+- `rwo-default` (`ReadWriteOnce`): Used for single-pod volumes (e.g., databases, user notebooks).
+- `rwx-default` (`ReadWriteMany`): Used for shared multi-pod storage (e.g., project staging/production outputs).
+
+On a single-node K3s cluster or CI environment, both classes can be backed by K3s's built-in `local-path-provisioner`. By default, `local-path-provisioner` only permits `ReadWriteOnce`. To enable `ReadWriteMany` (RWX) volumes without running heavy distributed storage (like Longhorn), configure `sharedFileSystemPath` on the provisioner:
+
+```shell {.ci}
+# 1. Configure local-path-provisioner to support ReadWriteMany (RWX)
+kubectl patch configmap local-path-config -n kube-system --type merge -p '{"data":{"config.json":"{\n  \"nodePathMap\":[],\n  \"sharedFileSystemPath\": \"/var/lib/rancher/k3s/storage\"\n}"}}'
+kubectl rollout restart deployment local-path-provisioner -n kube-system
+
+# 2. Create standard rwo-default and rwx-default storage classes
+cat << 'EOF' | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: rwo-default
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: rwx-default
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+EOF
+```
+
 ## ArgoCD
 K8TRE follows a declarative approach to deploy all agnostic and application-level components into a target cluster from a source git repository. To manage and automate this process, K8TRE relies on ArgoCD. If ArgoCD and GitOps model is unfamiliar, we first recommand gaining a brief understanding of what Argo is and why it is central to K8TRE [here](https://argo-cd.readthedocs.io/en/stable/).
 
 **1. Install to Cluster**
 
-```shell
+```shell {.ci}
 ARGOCD_VERSION=v3.3.8
 kubectl create namespace argocd
 kubectl apply --force-conflicts --server-side -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml
@@ -353,7 +397,7 @@ kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
 ```
 
 Then install the argocd CLI tool:
-```shell
+```shell {.ci}
 sudo curl -sfSL https://github.com/argoproj/argo-cd/releases/download/$ARGOCD_VERSION/argocd-linux-${CLI_ARCH} -o /usr/local/bin/argocd
 sudo chmod a+x /usr/local/bin/argocd
 ```
@@ -406,21 +450,64 @@ default via 172.26.64.1 dev eth0 proto dhcp src 172.26.68.121 metric 100
 
 Using 172.26.64.1 (and assuming a 255.255.255.0 net mask) i.e. 172.26.64.0-172.26.64.255 a example subnet for metallb-ip-range could be **172.26.64.240-172.26.64.250**
 
-```shell
+!!! note "Minimal vs Full Install"
+    For resource-constrained single-node VMs or CI environments (e.g. 16 GB RAM), use the minimal profile flags (`profile=minimal` and the `skip-*` labels) to deploy core TRE components (Keycloak, Portal, cr8tor, JupyterHub, Guacamole, Active Directory).
+    Users with larger development clusters who wish to deploy and test all components (including Longhorn and Prometheus observability metrics) can omit `profile=minimal` and the `skip-*` labels.
+
+```shell {.ci}
+# For a minimal / CI install on a single-node VM (using hostNetwork gateway without MetalLB):
+# Note: --core allows setting cluster labels directly via Kubernetes API without requiring an active port-forward/login session
+kubectl config set-context --current --namespace=argocd
 argocd cluster set in-cluster \
     --label environment=dev \
     --label secret-store=kubernetes \
     --label vendor=k3s \
-    --label external-domain=dev.k8tre.org \
-    --label external-dns=k3s \
-    --label storage-class=k3s \
-    --label metallb-ip-range=<e.g. 172.26.64.240-172.26.64.250>
+    --label external-domain=${K8TRE_DOMAIN:-dev.k8tre.internal} \
+    --label profile=minimal \
+    --label skip-observability-metrics=true \
+    --label skip-external-dns=true \
+    --label skip-storage-class=true \
+    --core
+kubectl config set-context --current --namespace=default
+```
+
+For minimal installs without `kare-dns`, configure CoreDNS to resolve K8TRE domains to the node IP so that in-cluster pods (e.g. cr8tor-operator, backend) can communicate via the Gateway API, and resolve Active Directory domains (`dc0.ad.${DOMAIN}`) to the samba service:
+```shell {.ci}
+NODE_IP=$(hostname -I | awk '{print $1}')
+DOMAIN=${K8TRE_DOMAIN:-dev.k8tre.internal}
+kubectl apply -f - << EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  k8tre.server: |
+    ad.${DOMAIN}:53 {
+      rewrite stop name exact dc0.ad.${DOMAIN} samba.ad.svc.cluster.local
+      rewrite stop name exact ad.${DOMAIN} samba.ad.svc.cluster.local
+      kubernetes cluster.local in-addr.arpa ip6.arpa {
+        pods insecure
+        fallthrough
+      }
+      forward . /etc/resolv.conf
+    }
+    ${DOMAIN}:53 {
+      hosts {
+        ${NODE_IP} ${DOMAIN} argocd.${DOMAIN} cr8tor.${DOMAIN} guacamole.${DOMAIN} jupyter.${DOMAIN} keycloak.${DOMAIN} portal.${DOMAIN} gitea.${DOMAIN}
+        fallthrough
+      }
+      forward . /etc/resolv.conf
+    }
+EOF
+kubectl rollout restart deployment/coredns -n kube-system
+kubectl rollout status deployment/coredns -n kube-system --timeout=60s
 ```
 
 **4. Enable Kustomize Helm**
 
 This configuration update to ArgoCD allows kustomize (which argoCD uses under the hood) to render helm charts inside a build. Several K8TRE components (e.g. external-dns) install resources using Helm charts.
-```shell
+```shell {.ci}
 cat << EOF > argocd-cm-patch.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -443,7 +530,7 @@ kubectl rollout restart deployment argocd-repo-server -n argocd
 K8TRE uses a custom ArgoCD plugin to enable environment variable substitution in Kustomize builds. This allows dynamic configuration across different environments (dev, stg, prd).
 
 First, create the plugin configuration:
-```shell
+```shell {.ci}
 cat << EOF > cmp-plugin.yaml
 apiVersion: v1
 kind: ConfigMap
@@ -462,6 +549,7 @@ data:
         command: [sh, -c]
         args:
           - |
+            set -e -o pipefail
             # Environment variables ENVIRONMENT, DOMAIN, and METALLB_IP_RANGE are passed from ApplicationSet via plugin.env
             # ArgoCD makes them available as \$ARGOCD_ENV_<NAME> in the plugin container
             # Replace patterns: \${VAR}, .ENVIRONMENT., .DOMAIN, and standalone ENVIRONMENT/DOMAIN
@@ -473,7 +561,8 @@ kubectl apply -f cmp-plugin.yaml
 ```
 
 Then patch the ArgoCD repo-server to add the plugin sidecar:
-```shell
+```shell {.ci}
+ARGOCD_VERSION=${ARGOCD_VERSION:-v3.3.8}
 cat << EOF > add-cmp-sidecar.yaml
 - op: add
   path: /spec/template/spec/containers/-
@@ -519,7 +608,7 @@ kubectl rollout status deployment argocd-repo-server -n argocd
 
 The command below adds a networking policy that allows specific argocd services egress:
  
-```shell
+```shell {.ci}
 kubectl apply -f - << 'EOF'
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -573,14 +662,16 @@ git clone -b $GITHUB_REVISION https://github.com/$GITHUB_ORG/$GITHUB_REPOSITORY.
 ```
 Modify the default K8TRE root app-of-apps manifest so that it reads from the correct git repository and branch: 
 
-```shell
-sed -i -e "s%/k8tre/k8tre%/${GITHUB_ORG}/${GITHUB_REPOSITORY}%" -e "s%main%${GITHUB_REVISION}%" app_of_apps/root-app-of-apps.yaml
+```shell {.ci}
+REPO=${GITHUB_REPOSITORY:-${GITHUB_ORG:-k8tre}/${GITHUB_REPO:-k8tre}}
+REVISION=${GITHUB_SHA:-${GITHUB_REVISION:-main}}
+sed -i -e "s%k8tre/k8tre%${REPO}%" -e "s%main%${REVISION}%" app_of_apps/root-app-of-apps.yaml
 ```
 
 **3. Apply K8TRE App Of Apps Manifest**
 
 This command applies the K8TRE AoA definition into the cluster which ArgoCD will begin to reconcile resources into the k3s cluster based on the agnostic/app definitions specified in the target repository.
-```shell
+```shell {.ci}
 kubectl apply -f app_of_apps/root-app-of-apps.yaml
 ```
 The health status of K8TRE applications can be viewed via the ArgoCD web portal (i.e. http://<localhost or IP>:8080) or via the command line using kubectl.
@@ -733,7 +824,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env
 ```
 Then execute the following command to create the secrets in the cluster:
-```shell
+```shell {.ci}
 uv run ci/create-ci-secrets.py --context default
 ```
 

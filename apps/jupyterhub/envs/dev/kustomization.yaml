@@ -15,7 +15,7 @@ resources:
 configMapGenerator:
   - name: jupyterhub-config
     files:
-    - ../../base/config/authenticator.py
-    - ../../base/config/spawner.py
-    - ../../base/config/hooks.py
-    - ../../base/config/profile-form.html
+      - ../../base/config/authenticator.py
+      - ../../base/config/spawner.py
+      - ../../base/config/hooks.py
+      - ../../base/config/profile-form.html

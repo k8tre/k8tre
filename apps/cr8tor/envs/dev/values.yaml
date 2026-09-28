@@ -12,8 +12,6 @@ approvalService:
   env:
     - name: ENVIRONMENT
       value: "${ENVIRONMENT}"
-    - name: PUBLISH_CONTAINER_NAME
-      value: cr8tor-publish.${DOMAIN}
 
 metadataService:
   image: "ghcr.io/lsc-sde-crates/cr8tor-publisher/cr8tor-metadata-service:0.1.65"

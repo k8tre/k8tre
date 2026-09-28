@@ -20,6 +20,13 @@ spec:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-gitea
+                    operator: NotIn
+                    values: ["true"]
+                  - key: profile
+                    operator: NotIn
+                    values: ["minimal"]
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"

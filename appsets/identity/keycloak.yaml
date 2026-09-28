@@ -18,6 +18,10 @@ spec:
               selector:
                 matchLabels:
                   environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-keycloak
+                    operator: NotIn
+                    values: ["true"]
   template:
     metadata:
       name: "{{index .path.segments 1}}-{{.nameNormalized}}"

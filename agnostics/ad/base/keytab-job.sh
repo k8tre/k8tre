@@ -66,7 +66,11 @@ while read project <&3 ; do
     (echo "$current_groups" | grep "^project-$project$" >/dev/null) || (
         samba-tool group add "project-$project" $SAMBA_OPTS
     )
-	kubectl -n "project-$project" create configmap "krb5.conf" --from-file /config -o yaml --dry-run=client | kubectl apply -f -
+    if kubectl get namespace "project-$project" >/dev/null 2>&1; then
+        kubectl -n "project-$project" create configmap "krb5.conf" --from-file /config -o yaml --dry-run=client | kubectl apply -f -
+    else
+        echo "Namespace project-$project does not exist yet; skipping krb5.conf ConfigMap creation"
+    fi
 done 3< /tmp/projects.txt
 rm /tmp/projects.txt
 
@@ -84,8 +88,12 @@ function gen_user_keytab() {
         echo "wkt /keytab"
     ) | ktutil
 
-    current_kvno=$(ldbsearch $LDB_OPTS "samAccountName=$username" msDS-KeyVersionNumber | grep ^msDS-KeyVersionNumber | awk '{ print $2 }')    
-    kubectl -n "project-$project" create configmap "$username.keytab" --from-file /keytab --from-literal "kvno=$current_kvno" -o yaml --dry-run=client | kubectl apply -f -
+    if kubectl get namespace "project-$project" >/dev/null 2>&1; then
+        current_kvno=$(ldbsearch $LDB_OPTS "samAccountName=$username" msDS-KeyVersionNumber | grep ^msDS-KeyVersionNumber | awk '{ print $2 }')    
+        kubectl -n "project-$project" create configmap "$username.keytab" --from-file /keytab --from-literal "kvno=$current_kvno" -o yaml --dry-run=client | kubectl apply -f -
+    else
+        echo "Namespace project-$project does not exist yet; skipping $username.keytab ConfigMap creation"
+    fi
 
     rm /keytab
 }
@@ -101,14 +109,18 @@ while read username project <&3 ; do
         continue
     )
 
-    # Verify kvno
-    current_kvno=$(ldbsearch $LDB_OPTS "samAccountName=$username" msDS-KeyVersionNumber | grep ^msDS-KeyVersionNumber | awk '{ print $2 }')
-    exported_kvno=$(kubectl -n "project-$project" get configmap "$username.keytab" -o yaml -o=jsonpath='{.data.kvno}' || echo 0)
-    echo "$username - Current KVNO: $current_kvno, Exported KVNO: $exported_kvno"
+    if kubectl get namespace "project-$project" >/dev/null 2>&1; then
+        # Verify kvno
+        current_kvno=$(ldbsearch $LDB_OPTS "samAccountName=$username" msDS-KeyVersionNumber | grep ^msDS-KeyVersionNumber | awk '{ print $2 }')
+        exported_kvno=$(kubectl -n "project-$project" get configmap "$username.keytab" -o yaml -o=jsonpath='{.data.kvno}' 2>/dev/null || echo 0)
+        echo "$username - Current KVNO: $current_kvno, Exported KVNO: $exported_kvno"
 
-    if [ "$current_kvno" != "$exported_kvno" ] ; then
-        echo "Updating $username.keytab"
-        gen_user_keytab "$username"
+        if [ "$current_kvno" != "$exported_kvno" ] ; then
+            echo "Updating $username.keytab"
+            gen_user_keytab "$username"
+        fi
+    else
+        echo "Namespace project-$project does not exist yet; skipping verification for $username"
     fi
 done 3< /tmp/usernames.txt
 

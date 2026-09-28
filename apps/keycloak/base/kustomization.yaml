@@ -11,6 +11,7 @@ resources:
   - keycloak-realm-config.yaml
   - gateway-route.yaml
   - postgres.yaml
+  - service-alias.yaml
 
   # Custom resources
   - identity-management/users.yaml

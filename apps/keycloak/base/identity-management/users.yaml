@@ -55,6 +55,7 @@ kind: User
 metadata:
   name: trevolution
 spec:
+  # TODO: Add firstName and lastName once supported by cr8tor-operator (e.g. firstName: "TRE", lastName: "User")
   username: trevolution
   email: trevolution@k8tre.io
   enabled: true

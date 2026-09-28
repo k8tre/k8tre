@@ -19,6 +19,13 @@ spec:
                 matchLabels:
                   environment: "{{index .path.segments 4}}"
                   vendor: "{{index .path.segments 2}}"
+                matchExpressions:
+                  - key: skip-object-storage
+                    operator: NotIn
+                    values: ["true"]
+                  - key: profile
+                    operator: NotIn
+                    values: ["minimal"]
   template:
     metadata:
       name: "object-storage-{{index .path.segments 2}}-{{index .path.segments 4}}"

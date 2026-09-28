@@ -4,29 +4,40 @@ metadata:
   name: allow-jhub-auth-proxy-to-alpine-repos
   namespace: jupyterhub
 spec:
-  description: "Allow jupyterHub auth-proxy init container to access alpine package repos"
+  description: "Allow jupyterHub auth-proxy minimal egress strictly to DNS, Portal auth validate, and JupyterHub proxy"
   endpointSelector:
     matchLabels:
       app: jhub-auth-proxy
   egress:
-    # Allow access for apk package installation
-    - toFQDNs:
-        - matchPattern: "*.alpinelinux.org"
-      toPorts:
-        - ports:
-            - port: "443"
-              protocol: TCP
-            - port: "80"
-              protocol: TCP
-    # Allow dns lookups
+    # 1. DNS resolution to CoreDNS
     - toEndpoints:
         - matchLabels:
-            k8s:io.kubernetes.pod.namespace: kube-system
-            k8s:k8s-app: kube-dns
+            "k8s:io.kubernetes.pod.namespace": kube-system
+            "k8s:k8s-app": kube-dns
       toPorts:
         - ports:
             - port: "53"
-              protocol: ANY
-          rules:
-            dns:
-              - matchPattern: "*"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # 2. Portal backend session validation (/auth/validate)
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": backend
+            app: backend
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+    # 3. JupyterHub public proxy upstream (proxy-public)
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": jupyterhub
+            app: jupyterhub
+            component: proxy
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+            - port: "80"
+              protocol: TCP

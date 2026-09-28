@@ -23,6 +23,9 @@ jobs:
 
     env:
       K8TRE_DOMAIN: dev.k8tre.internal
+      ARGOCD_VERSION: v3.3.8
+      CLI_ARCH: amd64
+      CILIUM_VERSION: 1.19.3
 
     steps:
 
@@ -45,22 +48,23 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r dev-requirements.txt
-          playwright install
+          playwright install --with-deps chromium
 
       - name: Modify hosts to resolve k8tre.internal URLs
         run: |
-          K8TRE_SUBDOMAINS="jupyter.$K8TRE_DOMAIN guacamole.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN"
-          h=$(grep "$(hostname -i) " /etc/hosts)
-          if [ -n "$h" ]; then
-            sudo sed -i -re "s/$h/$h $K8TRE_SUBDOMAINS/" /etc/hosts
-          else
-            echo $(hostname -i) $K8TRE_SUBDOMAINS | sudo tee -a /etc/hosts
-          fi
+          K8TRE_SUBDOMAINS="portal.$K8TRE_DOMAIN jupyter.$K8TRE_DOMAIN guacamole.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN cr8tor.$K8TRE_DOMAIN argocd.$K8TRE_DOMAIN gitea.$K8TRE_DOMAIN $K8TRE_DOMAIN"
+          NODE_IP=$(hostname -I | awk '{print $1}')
+          echo "Mapping subdomains to $NODE_IP and 127.0.0.1:"
+          echo "$NODE_IP $K8TRE_SUBDOMAINS" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 $K8TRE_SUBDOMAINS" | sudo tee -a /etc/hosts
           cat /etc/hosts
 
       - name: Install deployment
         run: |
-          ./ci/run_codeblocks.py docs/development/k3s-dev.md --run
+          ./ci/run_codeblocks.py docs/guides/installation.md --tag ci --run
+
+      - name: Wait for K8TRE applications to be Healthy and Synced
+        run: ./ci/wait_for_deployment.py
 
       - name: Run tests (not UI)
         run: |
@@ -76,39 +80,11 @@ jobs:
         with:
           name: screenshots
           path: screenshots/*
-          if-no-files-found: error
+          if-no-files-found: ignore
 
-      - name: Get ArgoCD logs, including on failure
+      - name: Collect diagnostics, including on failure
         if: always()
-        run: |
-          echo "::group::argocd-server"
-          kubectl -nargocd logs deploy/argocd-server
-          echo "::endgroup::"
-
-      - name: Get ArgoCD apps, including on failure
-        if: always()
-        run: |
-          for kind in appprojects applicationsets applications; do
-            echo "::group::argocd $kind"
-            kubectl describe $kind -A
-            echo "::endgroup::"
-          done
-
-      - name: Get main K8s resources, including on failure
-        if: always()
-        run: |
-          # Ignore errors since this is for debugging
-          set +e
-          for namespace in $(kubectl get namespace -ojsonpath='{.items[*].metadata.name}'); do
-            echo "***** $namespace *****"
-            for kind in daemonset deployment statefulset ingress service pod; do
-              for name in $(kubectl -n$namespace get $kind -ojsonpath='{.items[*].metadata.name}'); do
-                echo "::group::$kind/$name"
-                kubectl -n$namespace describe $kind/$name
-                echo "::endgroup::"
-              done
-            done
-          done
+        run: ./ci/collect_diagnostics.sh
 
   # Set a single status check for the whole workflow, so that we can use it in a
   # branch protection rule

@@ -35,6 +35,10 @@ spec:
                   # This will match the environment from the path segment
                   # e.g., if path is apps/jupyterhub/envs/dev, it will match clusters with label environment: dev
                   environment: "{{index .path.segments 3}}"
+                matchExpressions:
+                  - key: skip-jupyterhub
+                    operator: NotIn
+                    values: ["true"]
 
   # Template for generating Application resources
   template:

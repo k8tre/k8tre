@@ -1,9 +1,8 @@
 # Allows internal cluster communication to specific namespaces
 apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
+kind: CiliumClusterwideNetworkPolicy
 metadata:
   name: vdi-egress-restrictions
-  namespace: jupyterhub
 spec:
   endpointSelector:
     matchLabels:
@@ -22,10 +21,6 @@ spec:
           protocol: UDP
         - port: "53"
           protocol: TCP
-    # Allow same namespace access
-    - toEndpoints:
-      - matchLabels:
-          k8s:io.kubernetes.pod.namespace: jupyterhub
 
     # Allow access to JupyterHub
     - toEndpoints:
@@ -55,6 +50,17 @@ spec:
     - toEndpoints:
       - matchLabels:
           k8s:io.kubernetes.pod.namespace: cr8tor
+
+    # Allow access to gateway on host ports (for local VM / hostNetwork installs)
+    - toEntities:
+      - host
+      - remote-node
+      toPorts:
+      - ports:
+        - port: "443"
+          protocol: TCP
+        - port: "80"
+          protocol: TCP
 
     # Allow external access to domains
     - toFQDNs:
