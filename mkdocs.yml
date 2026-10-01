@@ -34,6 +34,11 @@ theme:
 plugins:
   - search
   - macros
+  - redirects:
+      redirect_maps:
+        development/k3s-dev.md: guides/installation.md
+        development/k3s.md: guides/installation.md
+
 extra_css:
   - css/colour-blocks.css
 
@@ -88,8 +93,6 @@ nav:
   #     - Installation: deployment/installation.md
   - Development:
       - Introduction: development/introduction.md
-      - K3S Single-Cluster Setup: development/k3s-dev.md
-      - K3S Multi-Cluster Setup: development/k3s.md
       - Application Development: development/developer-guide.md
   - Guides:
       - Installation: guides/installation.md
