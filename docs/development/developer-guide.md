@@ -1,10 +1,10 @@
 # K8TRE Developer Guide
 
-This guide provides comprehensive instructions for developers to start building applications on K8TRE. It assumes you have completed the initial workspace setup as described in the [Installation Guide](installation.md).
+This guide provides comprehensive instructions for developers to start building applications on K8TRE. It assumes you have completed the initial workspace setup as described in the [Installation Guide](../guides/installation.md).
 
 ## Prerequisites
 
-Before starting application development on K8TRE, ensure you have a working Kubernetes cluster with K8TRE deployed. Follow the detailed [Installation Guide](installation.md) to set up:
+Before starting application development on K8TRE, ensure you have a working Kubernetes cluster with K8TRE deployed. Follow the detailed [Installation Guide](../guides/installation.md) to set up:
 
 - ✅ **Workspace Setup** - Local K3s cluster or access to AKS cluster
 - ✅ **K8TRE Platform Installation** - ArgoCD, Cilium, External Secrets, CNPG operators

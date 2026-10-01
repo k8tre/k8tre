@@ -18,8 +18,8 @@ There are two primary groups of developers working with K8TRE:
 - Platform testing and CI/CD pipelines
 
 **Getting started:**
-- Follow the [K3s Development Environment](k3s-dev.md) setup guide
-- Review the [Contributing Guidelines](../../CONTRIBUTING.md)
+- Follow the [K3s Installation Environment](../guides/installation.md) setup guide
+- Review the [Contributing Guidelines](../contributing.md)
 - Explore the `agnostics/`, `appsets/`, and `apps/` directories
 - Join discussions at [GitHub Discussions](https://github.com/orgs/k8tre/discussions)
 

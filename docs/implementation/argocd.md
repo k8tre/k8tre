@@ -34,7 +34,7 @@ graph LR
 
 !!! tip "Single cluster setup"
     For local testing and development purposes, it is possible to deploy all the applications for any particular environment into the same cluster that ArgoCD is deployed to. 
-    This is described in the [development documentation](../development/k3s-dev.md). 
+    This is described in the [installation guide](../guides/installation.md). 
     This is not recommended for production deployments.
 
 ## Directory Structure
