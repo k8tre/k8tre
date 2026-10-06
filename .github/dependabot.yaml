@@ -1,5 +1,8 @@
 # https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
 
+# Default cooldown is 3 days (ignored for security updates)
+# https://github.blog/changelog/2026-07-14-dependabot-version-updates-introduce-default-package-cooldown/
+
 version: 2
 updates:
   # Maintain dependencies in our GitHub Workflows
@@ -7,6 +10,13 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
 
   # Maintain Python dependencies for building documentation
   - package-ecosystem: pip
@@ -16,3 +26,10 @@ updates:
       - dependency-type: all
     schedule:
       interval: weekly
+    groups:
+      docs-pip:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
