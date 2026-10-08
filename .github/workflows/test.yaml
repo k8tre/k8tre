@@ -5,6 +5,7 @@ on:
       - main
   push:
     branches:
+      - interactive-ci-access
       - main
       - "dev-*"
   workflow_dispatch:
@@ -19,13 +20,14 @@ jobs:
 
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && 60 || 20 }}
+    timeout-minutes: 60
 
     env:
-      K8TRE_DOMAIN: dev.k8tre.internal
       ARGOCD_VERSION: v3.3.8
       CLI_ARCH: amd64
       CILIUM_VERSION: 1.19.3
+      NETBIRD_SETUP_KEY: ${{ secrets.NETBIRD_SETUP_KEY }}
 
     steps:
 
@@ -50,10 +52,15 @@ jobs:
           pip install -r dev-requirements.txt
           playwright install --with-deps chromium
 
+      - name: Set hostname and domain
+        run: |
+          NODE_IP=$(hostname -I | awk '{print $1}')
+          echo "NODE_IP=$NODE_IP" >> "$GITHUB_ENV"
+          echo "K8TRE_DOMAIN=$NODE_IP.nip.io" >> "$GITHUB_ENV"
+
       - name: Modify hosts to resolve k8tre.internal URLs
         run: |
           K8TRE_SUBDOMAINS="portal.$K8TRE_DOMAIN jupyter.$K8TRE_DOMAIN guacamole.$K8TRE_DOMAIN keycloak.$K8TRE_DOMAIN cr8tor.$K8TRE_DOMAIN argocd.$K8TRE_DOMAIN gitea.$K8TRE_DOMAIN $K8TRE_DOMAIN"
-          NODE_IP=$(hostname -I | awk '{print $1}')
           echo "Mapping subdomains to $NODE_IP and 127.0.0.1:"
           echo "$NODE_IP $K8TRE_SUBDOMAINS" | sudo tee -a /etc/hosts
           echo "127.0.0.1 $K8TRE_SUBDOMAINS" | sudo tee -a /etc/hosts
@@ -62,6 +69,21 @@ jobs:
       - name: Install deployment
         run: |
           ./ci/run_codeblocks.py docs/guides/installation.md --tag ci --run
+
+      - name: Deploy Netbird debug pod
+        if: env.NETBIRD_SETUP_KEY != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+        run: |
+          kubectl create namespace netbird --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create secret generic netbird-secret -n netbird \
+            --from-literal=NB_SETUP_KEY="$NETBIRD_SETUP_KEY" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -k ci/netbird
+          kubectl -n netbird set env deployment/netbird NB_HOSTNAME="k8tre-${GITHUB_RUN_ID}"
+          kubectl -n netbird rollout status deployment/netbird --timeout=120s
+
+          # Display Netbird status
+          NETBIRD_POD=$(kubectl -n netbird get pods -l app=netbird -o jsonpath='{.items[0].metadata.name}')
+          kubectl -n netbird exec "$NETBIRD_POD" -- netbird status || true
 
       - name: Wait for K8TRE applications to be Healthy and Synced
         run: ./ci/wait_for_deployment.py
@@ -85,6 +107,20 @@ jobs:
       - name: Collect diagnostics, including on failure
         if: always()
         run: ./ci/collect_diagnostics.sh
+
+      - name: Check Netbird status
+        if: always() && env.NETBIRD_SETUP_KEY != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+        run: |
+          NETBIRD_POD=$(kubectl -n netbird get pods -l app=netbird -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          if [ -n "$NETBIRD_POD" ]; then
+            kubectl -n netbird exec "$NETBIRD_POD" -- netbird status || true
+          fi
+
+      - name: Sleep for Netbird debugging
+        if: ${{ !cancelled() && env.NETBIRD_SETUP_KEY != '' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') }}
+        run: |
+          echo "Netbird debugging pod is available. Sleeping for 30 minutes..."
+          sleep 30m
 
   # Set a single status check for the whole workflow, so that we can use it in a
   # branch protection rule

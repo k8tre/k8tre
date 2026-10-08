@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbird
+  namespace: netbird
+  labels:
+    app: netbird
+    app.kubernetes.io/name: netbird
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netbird
+  template:
+    metadata:
+      labels:
+        app: netbird
+        app.kubernetes.io/name: netbird
+    spec:
+      hostPID: true
+      containers:
+        - name: netbird
+          image: netbirdio/netbird:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: NB_SETUP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: netbird-secret
+                  key: NB_SETUP_KEY
+            - name: NB_HOSTNAME
+              value: "k8tre-cluster-debug"
+            - name: NB_ALLOW_SERVER_SSH
+              value: "true"
+            - name: NB_ENABLE_SSH_ROOT
+              value: "true"
+            - name: NB_LOG_LEVEL
+              value: "debug"
+          volumeMounts:
+            - name: dev-tun
+              mountPath: /dev/net/tun
+            - name: netbird-state
+              mountPath: /var/lib/netbird
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: dev-tun
+          hostPath:
+            path: /dev/net/tun
+        - name: netbird-state
+          emptyDir: {}

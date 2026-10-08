@@ -286,7 +286,7 @@ Then install cilium into the k3s cluster with Gateway API support and Hubble obs
     `gatewayAPI.hostNetwork.enabled` binds Envoy directly to host ports 80/443, eliminating the need for an external LoadBalancer (MetalLB) in single-node VM and CI environments. `keepCapNetBindService` retains `CAP_NET_BIND_SERVICE` so Envoy can bind to privileged ports 80/443.
 
 ```shell {.ci}
-CILIUM_VERSION=1.19.3
+CILIUM_VERSION=1.20.2
 K3S_POD_CIDR=10.42.0.0/16
 cilium install --version $CILIUM_VERSION \
     --set ipam.operator.clusterPoolIPv4PodCIDRList="$K3S_POD_CIDR" \
