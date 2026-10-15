@@ -85,7 +85,7 @@ persistence:
   enabled: true
   size: 10Gi
   accessModes: [ "ReadWriteOnce" ]
-  # storageClass: managed-standard  # uncomment only if you must pin a class
+  storageClass: rwo-default
 
 resources:
   requests: { cpu: "200m", memory: "512Mi" }
