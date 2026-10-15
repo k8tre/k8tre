@@ -194,5 +194,6 @@
     ],
     "defaultOptionalClientScopes": [
       "offline_access", "groups"
-    ]
+    ],
+    "eventsListeners": ["jboss-logging"]
   }

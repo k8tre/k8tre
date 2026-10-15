@@ -1,0 +1,65 @@
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_FEATURES
+    value: opentelemetry,user-event-metrics
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_EVENT_METRICS_USER_ENABLED
+    value: "true"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_LOG_CONSOLE_OUTPUT
+    value: default
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_HTTP_METRICS_HISTOGRAMS_ENABLED
+    value: "true"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_ENABLED
+    value: "true"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_ENDPOINT
+    value: http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_PROTOCOL
+    value: grpc
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_SERVICE_NAME
+    value: keycloak
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_SAMPLER_TYPE
+    value: parentbased_traceidratio
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TRACING_SAMPLER_RATIO
+    value: "0.1"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TELEMETRY_LOGS_ENABLED
+    value: "true"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TELEMETRY_LOGS_ENDPOINT
+    value: http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: KC_TELEMETRY_LOGS_PROTOCOL
+    value: grpc

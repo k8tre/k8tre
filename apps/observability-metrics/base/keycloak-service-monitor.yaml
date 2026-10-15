@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+
+metadata:
+  name: keycloak-metrics
+  namespace: observability
+  labels:
+    release: prometheus-community
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloakx
+  namespaceSelector:
+    matchNames:
+      - keycloak
+  endpoints:
+    - port: http-internal
+      path: /metrics
+      interval: 30s

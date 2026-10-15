@@ -1,0 +1,123 @@
+# DaemonSet agent — one pod per node, tails /var/log/pods/** from the host
+# and forwards parsed, k8s-enriched logs to Loki via OTLP HTTP.
+# The existing otel-collector deployment handles OTLP from services.
+mode: daemonset
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+serviceAccount:
+  create: true
+  name: otel-collector-agent
+
+# Mount the host log directories read-only
+extraVolumes:
+  - name: varlogpods
+    hostPath:
+      path: /var/log/pods
+  - name: varlogcontainers
+    hostPath:
+      path: /var/log/containers
+
+extraVolumeMounts:
+  - name: varlogpods
+    mountPath: /var/log/pods
+    readOnly: true
+  - name: varlogcontainers
+    mountPath: /var/log/containers
+    readOnly: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Disable the default OTLP ports — this agent only reads files, not receives OTLP
+ports:
+  otlp:
+    enabled: false
+  otlp-http:
+    enabled: false
+
+config:
+  receivers:
+    filelog:
+      include:
+        - /var/log/pods/*/*/*.log
+      exclude:
+        # Prevent the agent tailing its own logs (feedback loop)
+        - /var/log/pods/observability_otel-collector-agent*/*/*.log
+      start_at: end
+      include_file_path: true
+      include_file_name: false
+      operators:
+        # Parses both Docker JSON and containerd/CRI-O log formats automatically
+        - type: container
+          id: container-parser
+          max_log_size: 102400
+
+  processors:
+    memory_limiter:
+      check_interval: 5s
+      limit_mib: 200
+      spike_limit_mib: 50
+
+    # Enrich each log record with pod/namespace/deployment metadata
+    k8sattributes:
+      auth_type: serviceAccount
+      passthrough: false
+      extract:
+        metadata:
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.deployment.name
+          - k8s.namespace.name
+          - k8s.node.name
+          - k8s.pod.start_time
+        labels:
+          - tag_name: app.kubernetes.io/name
+            key: app.kubernetes.io/name
+            from: pod
+          - tag_name: app.kubernetes.io/component
+            key: app.kubernetes.io/component
+            from: pod
+      pod_association:
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.uid
+        - sources:
+            - from: resource_attribute
+              name: k8s.pod.ip
+        - sources:
+            - from: connection
+
+    # Tag every log with the cluster environment for Grafana filtering
+    resource:
+      attributes:
+        - key: k8s.cluster.name
+          value: "${ENVIRONMENT}"
+          action: upsert
+        - key: k8s.cluster.domain
+          value: "${DOMAIN}"
+          action: upsert
+
+    batch:
+      timeout: 5s
+      send_batch_size: 512
+
+  exporters:
+    # Send to Loki via its native OTLP endpoint (Loki 3.x+)
+    otlphttp/loki:
+      endpoint: http://loki.observability.svc.cluster.local:3100/otlp
+      tls:
+        insecure: true
+
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]
+        processors: [memory_limiter, k8sattributes, resource, batch]
+        exporters: [otlphttp/loki]

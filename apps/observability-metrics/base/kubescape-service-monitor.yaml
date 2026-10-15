@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubescape-metrics
+  namespace: observability
+  labels:
+    release: prometheus-community
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/instance: kubescape-operator
+  namespaceSelector:
+    matchNames:
+      - kubescape
+  endpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 30s

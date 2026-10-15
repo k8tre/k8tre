@@ -3,17 +3,13 @@ kind: Kustomization
 
 resources:
   - grafana-secret.yaml
+  - alertmanager-msteams-secret.yaml
   - dcqm-service-monitor.yaml
+  - kubescape-service-monitor.yaml
+  - keycloak-service-monitor.yaml
   - gateway-route.yaml
   - dashboards/vllm-query-dashboard.yaml
   - dashboards/nvidia-dcgm-dashboard.yaml
   - dashboards/lmcache-dashboard.yaml
-
-helmCharts:
-  - name: kube-prometheus-stack
-    releaseName: prometheus-community
-    version: 80.14.0
-    repo: https://prometheus-community.github.io/helm-charts
-    namespace: observability
-    valuesFile: values.yaml
-    includeCRDs: false
+  - dashboards/k8tre-usage-dashboard.yaml
+  - dashboards/kubescape-dashboard.yaml

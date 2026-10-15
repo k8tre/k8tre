@@ -1,0 +1,298 @@
+grafana:
+  admin:
+    existingSecret: observability-grafana-secret
+    userKey: grafana-admin-user
+    passwordKey: grafana-admin-password
+  persistence:
+    enabled: true
+    type: sts
+    storageClassName: "rwo-default"
+    size: 1Gi
+  sidecar:
+    provider:
+      dashboards:
+        allowUiUpdates: true
+        disableDeletion: false
+      datasources:
+        name: k8tre-metrics
+        uid: prometheus
+        url: http://prometheus-community-kube-prometheus.observability.svc.cluster.local:9090/
+
+  # Additional datasources provisioned alongside the default Prometheus one.
+  # Correlations wire Tempo traces → Loki logs for one-click drill-down,
+  # which is the foundation for future LLM-assisted auto-remediation.
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.observability.svc.cluster.local:3100
+      access: proxy
+      jsonData:
+        maxLines: 1000
+        derivedFields:
+          - name: TraceID
+            matcherRegex: "traceID=(\\w+)"
+            url: "$${__value.raw}"
+            datasourceUid: tempo
+
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo.observability.svc.cluster.local:3100
+      access: proxy
+      jsonData:
+        httpMethod: GET
+        # Jump from a trace span directly to the correlated Loki logs
+        tracesToLogsV2:
+          datasourceUid: loki
+          spanStartTimeShift: "-5m"
+          spanEndTimeShift: "5m"
+          filterByTraceID: true
+          filterBySpanID: false
+        # Render the service graph from Tempo metrics-generator data
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
+        search:
+          hide: false
+
+additionalPrometheusRulesMap:
+  pvc-health:
+    groups:
+      - name: pvc-alerts
+        rules:
+          - alert: ProjectPVCPending
+            expr: kube_persistentvolumeclaim_status_phase{phase="Pending", namespace=~"project-.+"} == 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PVC stuck in Pending ({{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }})"
+              description: >
+                PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }}
+                has been in Pending state for more than 5 minutes.
+
+prometheus:
+  prometheusSpec:
+    # Enable the remote-write receiver so otel-collector can push OTLP metrics
+    enableFeatures:
+      - remote-write-receiver
+    retention: 5d
+    externalLabels:
+      env: ${ENVIRONMENT}
+      domain: ${DOMAIN}
+    securityContext:
+      fsGroup: 65534
+      fsGroupChangePolicy: OnRootMismatch
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 65534
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  podSecurityContext:
+    fsGroup: 65534
+    fsGroupChangePolicy: OnRootMismatch
+  metricLabelsAllowlist:
+    - pods=[*]
+  rbac:
+    extraRules:
+      - apiGroups: ["identity.k8tre.io"]
+        resources: ["users"]
+        verbs: ["list", "watch"]
+      - apiGroups: ["research.k8tre.io"]
+        resources: ["projects"]
+        verbs: ["list", "watch"]
+      - apiGroups: ["identity.k8tre.io"]
+        resources: ["groups"]
+        verbs: ["list", "watch"]
+      - apiGroups: ["apiextensions.k8s.io"]
+        resources: ["customresourcedefinitions"]
+        verbs: ["list", "watch"]
+  customResourceState:
+    enabled: true
+    config:
+      spec:
+        resources:
+          - groupVersionKind:
+              group: identity.k8tre.io
+              version: v1alpha1
+              kind: User
+            metricNamePrefix: k8tre_user
+            labelsFromPath:
+              name: [metadata, name]
+            metrics:
+              - name: info
+                help: "TRE user identity and organisational affiliation"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      id: [spec, id]
+                      email: [spec, email]
+                      username: [spec, username]
+                      affiliation: [spec, affiliation]
+              - name: enabled
+                help: "Whether the TRE user account is enabled (1) or disabled (0)"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [spec, enabled]
+                    booleanTrue: 1
+                    booleanFalse: 0
+                    nilIsZero: true
+              - name: status_phase
+                help: "Current reconciliation phase of the TRE user"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+          - groupVersionKind:
+              group: research.k8tre.io
+              version: v1alpha1
+              kind: Project
+            metricNamePrefix: k8tre_project
+            labelsFromPath:
+              project: [metadata, name]
+            metrics:
+              - name: info
+                help: "TRE project, one series per Project resource"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      name: [metadata, name]
+              - name: workspace
+                help: "One series per workspace (JupyterHub profile) defined on a TRE project"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, profiles]
+                    labelsFromPath:
+                      workspace: [slug]
+              - name: status_phase
+                help: "Current reconciliation phase of the TRE project"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+          - groupVersionKind:
+              group: identity.k8tre.io
+              version: v1alpha1
+              kind: Group
+            metricNamePrefix: k8tre_group
+            labelsFromPath:
+              group_name: [metadata, name]
+            metrics:
+              - name: member
+                help: "One series per group member, use to count project memberships per user"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, members]
+                    labelsFromPath:
+                      username: []
+              - name: project
+                help: "One series per project the group grants access to"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, projects]
+                    labelsFromPath:
+                      project: []
+
+prometheus-node-exporter:
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+
+alertmanager:
+  alertmanagerSpec:
+    volumes:
+      - name: msteams-webhook
+        secret:
+          secretName: observability-alertmanager-msteams
+          optional: true
+    volumeMounts:
+      - name: msteams-webhook
+        mountPath: /etc/alertmanager/secrets/msteams
+        readOnly: true
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers:
+          - 'severity = critical'
+        target_matchers:
+          - 'severity =~ warning|info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'severity = warning'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+          - 'alertname'
+      - source_matchers:
+          - 'alertname = InfoInhibitor'
+        target_matchers:
+          - 'severity = info'
+        equal:
+          - 'namespace'
+      - target_matchers:
+          - 'alertname = InfoInhibitor'
+    route:
+      group_by: ['namespace', 'k8s_namespace_name', 'k8s_pod_name', 'k8s_cluster_domain', 'alertname', 'severity']
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1h
+      receiver: 'null'
+      routes:
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
+        - receiver: 'msteams'
+          matchers:
+            - severity =~ "critical|warning"
+          group_wait: 10s
+          group_interval: 1m
+          repeat_interval: 1h
+    receivers:
+      - name: 'null'
+      - name: 'msteams'
+        msteamsv2_configs: 
+          - webhook_url_file: /etc/alertmanager/secrets/msteams/webhook_url
+            http_config:
+              follow_redirects: true
+            title: 'K8TRE @ {{ .CommonLabels.domain }} Alert: {{ .CommonLabels.alertname }}'
+            text: |
+              **Status:** {{ .Status }}
+
+              {{ range .Alerts }}
+              - **Pod:** {{ if .Labels.pod }}{{ .Labels.pod }}{{ else }}{{ .Labels.k8s_pod_name }}{{ end }} | **Namespace:** {{ if .Labels.namespace }}{{ .Labels.namespace }}{{ else }}{{ .Labels.k8s_namespace_name }}{{ end }}
+              {{ if .Annotations.description }}**Description:** {{ .Annotations.description }}{{ end }}
+              {{ end }}
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+# C-0270/C-0271: resource limits; C-0211: pod securityContext (fsGroup/fsGroupChangePolicy)
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    fsGroup: 65534
+    fsGroupChangePolicy: OnRootMismatch

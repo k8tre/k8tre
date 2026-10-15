@@ -1,0 +1,138 @@
+# Overrides for kube-prometheus-stack. Only values that differ from the chart
+# defaults are listed here; see `helm show values kube-prometheus-stack` for the full set.
+
+grafana:
+  admin:
+    existingSecret: observability-grafana-secret
+    userKey: grafana-admin-user
+    passwordKey: grafana-admin-password
+
+  persistence:
+    enabled: true
+    type: sts
+    storageClassName: "rwo-default"
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    finalizers:
+      - kubernetes.io/pvc-protection
+
+  sidecar:
+    dashboards:
+      provider:
+        allowUiUpdates: true
+    datasources:
+      name: k8tre-metrics
+      url: http://prometheus-community-kube-prometheus.observability.svc.cluster.local:9090/
+
+kube-state-metrics:
+  # Expose user/project pod labels so usage dashboards can attribute workloads
+  metricLabelsAllowlist:
+    - pods=[k8tre.io/user,k8tre.io/project]
+  rbac:
+    extraRules:
+      - apiGroups: ["identity.k8tre.io"]
+        resources: ["users", "groups"]
+        verbs: ["list", "watch"]
+      - apiGroups: ["research.k8tre.io"]
+        resources: ["projects"]
+        verbs: ["list", "watch"]
+      - apiGroups: ["apiextensions.k8s.io"]
+        resources: ["customresourcedefinitions"]
+        verbs: ["list", "watch"]
+
+  customResourceState:
+    enabled: true
+    config:
+      spec:
+        resources:
+          - groupVersionKind:
+              group: identity.k8tre.io
+              version: v1alpha1
+              kind: User
+            metricNamePrefix: k8tre_user
+            labelsFromPath:
+              name: [metadata, name]
+            metrics:
+              - name: info
+                help: "TRE user identity and organisational affiliation"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      username: [spec, username]
+                      affiliation: [spec, affiliation]
+              - name: enabled
+                help: "Whether the TRE user account is enabled (1) or disabled (0)"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [spec, enabled]
+                    booleanTrue: 1
+                    booleanFalse: 0
+                    nilIsZero: true
+              - name: status_phase
+                help: "Current reconciliation phase of the TRE user"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+          - groupVersionKind:
+              group: research.k8tre.io
+              version: v1alpha1
+              kind: Project
+            metricNamePrefix: k8tre_project
+            labelsFromPath:
+              project: [metadata, name]
+            metrics:
+              - name: info
+                help: "TRE project, one series per Project resource"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      name: [metadata, name]
+              - name: workspace
+                help: "One series per workspace (JupyterHub profile) defined on a TRE project"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, profiles]
+                    labelsFromPath:
+                      workspace: [slug]
+              - name: status_phase
+                help: "Current reconciliation phase of the TRE project"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+          - groupVersionKind:
+              group: identity.k8tre.io
+              version: v1alpha1
+              kind: Group
+            metricNamePrefix: k8tre_group
+            labelsFromPath:
+              group_name: [metadata, name]
+            metrics:
+              - name: member
+                help: "One series per group member, use to count project memberships per user"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, members]
+                    labelsFromPath:
+                      username: []
+              - name: project
+                help: "One series per project the group grants access to"
+                each:
+                  type: Info
+                  info:
+                    path: [spec, projects]
+                    labelsFromPath:
+                      project: []
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false

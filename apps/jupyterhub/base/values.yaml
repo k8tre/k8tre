@@ -39,6 +39,10 @@ hub:
     K8TRE_ENV: "${ENVIRONMENT}"
     K8TRE_EXTERNAL_DOMAIN: "${DOMAIN}"
     K8TRE_BACKEND_URL: "https://portal.${DOMAIN}"
+    OTEL_SERVICE_NAME: "jupyterhub"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4318"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+    OTEL_RESOURCE_ATTRIBUTES: "k8s.namespace.name=jupyterhub,deployment.environment=${ENVIRONMENT}"
   extraConfig:
     00-authenticator: |
       exec(open('/etc/jupyterhub/config/authenticator.py').read())

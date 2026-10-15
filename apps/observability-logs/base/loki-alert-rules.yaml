@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-alert-rules
+  namespace: observability
+data:
+  error-alerts.yaml: |
+    groups:
+      - name: log-error-detection
+        interval: 1m
+        rules:
+          - alert: PodErrorLogs
+            expr: |
+              sum by (k8s_namespace_name, k8s_pod_name, k8s_cluster_domain) (
+                count_over_time(
+                  {k8s_namespace_name=~".+", k8s_pod_name=~".+"}
+                  | level="error"
+                  [5m]
+                )
+              ) > 5
+            for: 2m
+            labels:
+              severity: critical
+              source: loki
+            annotations:
+              summary: "Error logs detected in {{ $labels.k8s_pod_name }}"
+              description: >
+                Pod {{ $labels.k8s_pod_name }} in namespace
+                {{ $labels.k8s_namespace_name }} has logged more than 5
+                ERROR lines in the last 5 minutes.
+              log_query: '{k8s_namespace_name="{{ $labels.k8s_namespace_name }}", k8s_pod_name="{{ $labels.k8s_pod_name }}"} | level="error"'
+
+
+
+          - alert: PodInFailureState
+            expr: |
+              sum by (k8s_namespace_name, k8s_pod_name, k8s_cluster_domain) (
+                count_over_time(
+                  {k8s_namespace_name=~".+", k8s_pod_name=~".+"}
+                  |~ "CrashLoopBackOff|ImagePullBackOff|ErrImagePull"
+                  [5m]
+                )
+              ) > 0
+            for: 0m
+            labels:
+              severity: critical
+              source: loki
+            annotations:
+              summary: "Pod failure detected ({{ $labels.k8s_pod_name }})"
+              description: >
+                Pod {{ $labels.k8s_pod_name }} in namespace
+                {{ $labels.k8s_namespace_name }} has logged a failure state
+                (CrashLoopBackOff, ImagePullBackOff, or ErrImagePull) in the last 5 minutes.
+              log_query: '{k8s_namespace_name="{{ $labels.k8s_namespace_name }}", k8s_pod_name="{{ $labels.k8s_pod_name }}"} |~ "CrashLoopBackOff|ImagePullBackOff|ErrImagePull"'
+
+
+          - alert: ProjectErrorLogs
+            expr: |
+              sum by (k8s_namespace_name, k8s_pod_name, k8s_cluster_domain) (
+                count_over_time(
+                  {k8s_namespace_name=~"project-.+", k8s_pod_name=~".+"}
+                  |~ "(?i)(error|exception)"
+                  [5m]
+                )
+              ) > 2
+            for: 1m
+            labels:
+              severity: warning
+              source: loki
+            annotations:
+              summary: "Error logs in TRE project {{ $labels.k8s_namespace_name }}"
+              description: >
+                Project pod {{ $labels.k8s_pod_name }} in
+                {{ $labels.k8s_namespace_name }} is logging errors. This may
+                indicate a user workload failure requiring investigation before
+                data egress is attempted.
+              log_query: '{k8s_namespace_name="{{ $labels.k8s_namespace_name }}", k8s_pod_name="{{ $labels.k8s_pod_name }}"} |~ "error|exception|fail|critical"'

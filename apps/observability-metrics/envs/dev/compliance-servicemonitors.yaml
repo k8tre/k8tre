@@ -1,0 +1,65 @@
+# Kubescape prometheus-exporter
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubescape-compliance
+  namespace: observability
+  labels:
+    release: prometheus-community
+    app.kubernetes.io/part-of: k8tre-compliance
+spec:
+  namespaceSelector:
+    matchNames: [kubescape]
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: prometheus-exporter
+      app.kubernetes.io/instance: kubescape-operator
+  endpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 30s
+      honorLabels: true
+---
+# Tetragon agent
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tetragon-compliance
+  namespace: observability
+  labels:
+    release: prometheus-community
+    app.kubernetes.io/part-of: k8tre-compliance
+spec:
+  namespaceSelector:
+    matchNames: [kube-system]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tetragon
+      app.kubernetes.io/component: agent
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s
+      honorLabels: true
+---
+# Kyverno controllers
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kyverno-compliance
+  namespace: observability
+  labels:
+    release: prometheus-community
+    app.kubernetes.io/part-of: k8tre-compliance
+spec:
+  namespaceSelector:
+    matchNames: [kyverno]
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: kyverno
+  endpoints:
+    - port: metrics-port
+      path: /metrics
+      interval: 60s
+      honorLabels: true

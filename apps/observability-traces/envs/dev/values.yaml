@@ -1,0 +1,38 @@
+# Tempo standalone (monolithic) mode for dev — local filesystem storage.
+# For stg/prd, switch to grafana/tempo-distributed with object storage.
+
+tempo:
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal
+
+  # Accept traces via OTLP (from otel-collector) and Jaeger (for compatibility)
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    jaeger:
+      protocols:
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+
+  compactor:
+    compaction:
+      block_retention: 168h  # 7 days
+
+  # Expose metrics so Prometheus can scrape Tempo internals
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://prometheus-community-kube-prometheus.observability.svc.cluster.local:9090/api/v1/write"
+
+persistence:
+  enabled: true
+  storageClassName: "rwo-default"
+  size: 1Gi

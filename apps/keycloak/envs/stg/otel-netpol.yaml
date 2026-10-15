@@ -1,0 +1,35 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+
+metadata:
+  name: keycloak-otel-egress
+  namespace: keycloak
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: keycloakx
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s-app: kube-dns
+            kubernetes.io/metadata.name: kube-system
+      toPorts:
+        - ports:
+            - { port: "53", protocol: UDP }
+            - { port: "53", protocol: TCP }
+
+    - toEndpoints:
+        - matchLabels:
+            cnpg.io/cluster: keycloak-postgres-cluster
+            kubernetes.io/metadata.name: keycloak
+      toPorts:
+        - ports:
+            - { port: "5432", protocol: TCP }
+
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: opentelemetry-collector
+            kubernetes.io/metadata.name: observability
+      toPorts:
+        - ports:
+            - { port: "4317", protocol: TCP }

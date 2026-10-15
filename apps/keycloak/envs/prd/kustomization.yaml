@@ -3,9 +3,22 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - otel-netpol.yaml
 
 patches:
   - path: patch-cnpg-pdb.yaml
+  - path: patch-keycloak-env.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: keycloak-keycloakx
+  - path: patch-keycloak-otel-env.yaml
+    target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: keycloak-keycloakx
 
 configMapGenerator:
   - name: keycloak-config

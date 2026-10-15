@@ -1,0 +1,139 @@
+# Unified Compliance Overview
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compliance-overview-dashboard-cm
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"
+data:
+  compliance-overview-dashboard.json: |
+    {
+      "title": "Compliance Overview",
+      "uid": "compliance-overview",
+      "tags": ["compliance", "security", "kubescape", "tetragon", "kyverno"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "1m",
+      "time": { "from": "now-6h", "to": "now" },
+      "templating": {
+        "list": [
+          { "name": "datasource", "type": "datasource", "query": "prometheus", "current": {}, "hide": 0 }
+        ]
+      },
+      "panels": [
+        { "id": 100, "type": "row", "title": "Kubescape: in-cluster CVEs and compliance", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+        {
+          "id": 1, "type": "stat", "title": "Critical CVEs (total)",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } },
+          "targets": [ { "expr": "kubescape_vulnerabilities_total_cluster_critical", "refId": "A" } ]
+        },
+        {
+          "id": 2, "type": "stat", "title": "High CVEs (total)",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } },
+          "targets": [ { "expr": "kubescape_vulnerabilities_total_cluster_high", "refId": "A" } ]
+        },
+        {
+          "id": 3, "type": "stat", "title": "Relevant Critical (reachable)",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "dark-red" } } },
+          "targets": [ { "expr": "kubescape_vulnerabilities_relevant_cluster_critical", "refId": "A" } ]
+        },
+        {
+          "id": 4, "type": "stat", "title": "Relevant High (reachable)",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "yellow" } } },
+          "targets": [ { "expr": "kubescape_vulnerabilities_relevant_cluster_high", "refId": "A" } ]
+        },
+        {
+          "id": 5, "type": "timeseries", "title": "Cluster CVEs by severity (total)",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "kubescape_vulnerabilities_total_cluster_critical", "legendFormat": "Critical", "refId": "A" },
+            { "expr": "kubescape_vulnerabilities_total_cluster_high", "legendFormat": "High", "refId": "B" },
+            { "expr": "kubescape_vulnerabilities_total_cluster_medium", "legendFormat": "Medium", "refId": "C" },
+            { "expr": "kubescape_vulnerabilities_total_cluster_low", "legendFormat": "Low", "refId": "D" }
+          ]
+        },
+        {
+          "id": 6, "type": "piechart", "title": "Failed compliance controls by severity",
+          "gridPos": { "h": 8, "w": 6, "x": 12, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum(kubescape_controls_total_cluster_critical)", "legendFormat": "Critical", "refId": "A" },
+            { "expr": "sum(kubescape_controls_total_cluster_high)", "legendFormat": "High", "refId": "B" },
+            { "expr": "sum(kubescape_controls_total_cluster_medium)", "legendFormat": "Medium", "refId": "C" },
+            { "expr": "sum(kubescape_controls_total_cluster_low)", "legendFormat": "Low", "refId": "D" }
+          ]
+        },
+        {
+          "id": 7, "type": "table", "title": "CVEs by namespace (total)",
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "kubescape_vulnerabilities_total_namespace_critical", "refId": "A", "format": "table", "instant": true },
+            { "expr": "kubescape_vulnerabilities_total_namespace_high", "refId": "B", "format": "table", "instant": true }
+          ],
+          "transformations": [
+            { "id": "labelsToFields", "options": {} },
+            { "id": "merge", "options": {} },
+            { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "container": true, "endpoint": true, "instance": true, "job": true, "pod": true, "service": true }, "renameByName": { "kubescape_vulnerabilities_total_namespace_critical": "Critical", "kubescape_vulnerabilities_total_namespace_high": "High" } } }
+          ]
+        },
+        { "id": 200, "type": "row", "title": "Tetragon: runtime events (eBPF)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 } },
+        {
+          "id": 8, "type": "timeseries", "title": "Runtime kprobe events / sec by namespace",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum by (namespace) (rate(tetragon_events_total{type=\"PROCESS_KPROBE\"}[5m]))", "legendFormat": "{{namespace}}", "refId": "A" }
+          ]
+        },
+        {
+          "id": 9, "type": "table", "title": "Top pods by kprobe events",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "topk(15, sum by (namespace, pod) (increase(tetragon_events_total{type=\"PROCESS_KPROBE\", namespace!=\"\", pod!=\"\"}[$__range])))", "refId": "A", "format": "table", "instant": true }
+          ],
+          "transformations": [
+            { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "type": true, "binary": true, "workload": true, "container": true, "endpoint": true, "instance": true, "job": true, "service": true } } }
+          ]
+        },
+        { "id": 300, "type": "row", "title": "Kyverno: admission policy results", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 } },
+        {
+          "id": 10, "type": "stat", "title": "Policy failures (total)",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 23 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } },
+          "targets": [ { "expr": "sum(kyverno_policy_results_total{rule_result=\"fail\"})", "refId": "A" } ]
+        },
+        {
+          "id": 11, "type": "timeseries", "title": "Policy results / sec by outcome",
+          "gridPos": { "h": 8, "w": 12, "x": 6, "y": 23 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum by (rule_result) (rate(kyverno_policy_results_total[5m]))", "legendFormat": "{{rule_result}}", "refId": "A" }
+          ]
+        },
+        {
+          "id": 12, "type": "table", "title": "Failures by policy",
+          "gridPos": { "h": 8, "w": 6, "x": 18, "y": 23 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum by (policy_name) (kyverno_policy_results_total{rule_result=\"fail\"})", "refId": "A", "format": "table", "instant": true }
+          ],
+          "transformations": [
+            { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "service": true, "endpoint": true } } }
+          ]
+        }
+      ]
+    }

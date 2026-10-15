@@ -8,11 +8,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: nvidia-dcgm-exporter
+      app.kubernetes.io/instance: nvidia-dcgm-exporter
+      app.kubernetes.io/name: dcgm-exporter
   namespaceSelector:
     matchNames:
       - gpu-operator
   endpoints:
-    - port: gpu-metrics
+    - port: metrics
       path: /metrics
       interval: 15s
