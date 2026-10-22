@@ -31,14 +31,23 @@ hub:
               path: hooks.py
             - key: profile-form.html
               path: profile-form.html
+    - name: ca-bundle
+      configMap:
+        name: k8tre-ca-bundle
   extraVolumeMounts:
     - name: config-volume
       mountPath: /etc/jupyterhub/config
+      readOnly: true
+    - name: ca-bundle
+      mountPath: /etc/ssl/certs/ca-certificates.crt
+      subPath: ca-certificates.crt
       readOnly: true
   extraEnv:
     K8TRE_ENV: "${ENVIRONMENT}"
     K8TRE_EXTERNAL_DOMAIN: "${DOMAIN}"
     K8TRE_BACKEND_URL: "https://portal.${DOMAIN}"
+    SSL_CERT_FILE: "/etc/ssl/certs/ca-certificates.crt"
+    REQUESTS_CA_BUNDLE: "/etc/ssl/certs/ca-certificates.crt"
     OTEL_SERVICE_NAME: "jupyterhub"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4318"
     OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"

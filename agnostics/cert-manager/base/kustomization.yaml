@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - certificate.yaml
   - selfsigned-clusterissuer.yaml
+  - trust-bundle.yaml
 
 helmCharts:
   - name: cert-manager
@@ -12,3 +13,18 @@ helmCharts:
     releaseName: cert-manager
     namespace: cert-manager
     valuesFile: values.yaml
+  - name: trust-manager
+    repo: https://charts.jetstack.io
+    version: v0.20.3
+    releaseName: trust-manager
+    namespace: cert-manager
+    valuesInline:
+      crds:
+        enabled: true
+      app:
+        trust:
+          namespace: cert-manager
+        webhook:
+          tls:
+            approverPolicy:
+              enabled: false
