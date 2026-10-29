@@ -21,6 +21,28 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
 
+extraVolumes:
+  - name: ca-bundle
+    configMap:
+      name: k8tre-ca-bundle
+
+extraInitVolumeMounts:
+  - name: ca-bundle
+    mountPath: /etc/ssl/certs/ca-certificates.crt
+    subPath: ca-certificates.crt
+    readOnly: true
+
+extraContainerVolumeMounts:
+  - name: ca-bundle
+    mountPath: /etc/ssl/certs/ca-certificates.crt
+    subPath: ca-certificates.crt
+    readOnly: true
+
+deployment:
+  env:
+    - name: SSL_CERT_FILE
+      value: /etc/ssl/certs/ca-certificates.crt
+
 gitea:
   admin:
     existingSecret: gitea-secret

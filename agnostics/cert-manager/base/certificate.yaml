@@ -14,5 +14,5 @@ spec:
     - key encipherment
     - server auth
   issuerRef:
-    name: selfsigned
+    name: k8tre-ca
     kind: ClusterIssuer
