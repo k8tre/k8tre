@@ -6,7 +6,7 @@ repo_name: k8tre/k8tre
 
 theme:
   name: material
-  logo: img/logo.jpeg
+  logo: img/k8tre_tall_dark_logo.png
   palette:
     - scheme: default
       primary: deep purple
