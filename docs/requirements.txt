@@ -87,7 +87,7 @@ pygments==2.21.0
     # via mkdocs-material
 pymdown-extensions==12.3
     # via mkdocs-material
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via
     #   ghp-import
     #   mkdocs-macros-plugin
@@ -113,6 +113,8 @@ super-collections==0.6.2
     # via mkdocs-macros-plugin
 termcolor==3.3.0
     # via mkdocs-macros-plugin
+tzdata==2026.6
+    # via python-dateutil
 urllib3==2.8.0
     # via requests
 watchdog==6.0.0
