@@ -36,7 +36,7 @@ for namespace in $(kubectl get namespace -o jsonpath='{.items[*].metadata.name}'
   done
 done
 
-for namespace in backend cr8tor keycloak jupyterhub gateway kube-system; do
+for namespace in backend cr8tor keycloak jupyterhub gateway kube-system netbird; do
   for pod in $(kubectl -n "$namespace" get pods -o jsonpath='{.items[*].metadata.name}' 2>/dev/null); do
     echo "::group::logs $namespace/$pod"
     kubectl -n "$namespace" logs "$pod" --all-containers=true --tail=100 2>&1 || true
