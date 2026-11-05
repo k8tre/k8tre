@@ -77,7 +77,7 @@ pathspec==1.1.1
     #   mkdocs
     #   mkdocs-macros-plugin
     #   properdocs
-platformdirs==4.13.5
+platformdirs==4.14.3
     # via
     #   mkdocs-get-deps
     #   properdocs
