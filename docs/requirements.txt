@@ -117,7 +117,7 @@ tzdata==2026.6
     # via python-dateutil
 urllib3==2.8.0
     # via requests
-watchdog==6.0.0
+watchdog==7.0.0
     # via
     #   mkdocs
     #   properdocs
