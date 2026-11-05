@@ -68,3 +68,16 @@ spec:
               value: "${ENVIRONMENT}"
             - name: K8TRE_EXTERNAL_DOMAIN
               value: "${DOMAIN}"
+            - name: SSL_CERT_FILE
+              value: /etc/ssl/certs/ca-certificates.crt
+            - name: REQUESTS_CA_BUNDLE
+              value: /etc/ssl/certs/ca-certificates.crt
+          volumeMounts:
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+      volumes:
+        - name: ca-bundle
+          configMap:
+            name: k8tre-ca-bundle

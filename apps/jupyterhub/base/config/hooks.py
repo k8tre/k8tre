@@ -22,7 +22,7 @@ def logout_hook(user):
             f"{BACKEND_URL}/api/cleanup-session",
             headers={"X-Auth-User": user.name},
             timeout=5.0,
-            verify=False
+            verify=True
         )
         if response.status_code == 200:
             print(f"Successfully cleaned up session for user: {user.name}")
@@ -162,5 +162,22 @@ c.KubeSpawner.volume_mounts.append({
   "mountPath": "/etc/krb5.conf",
   "name": "krb5",
   "subPath": "config"
+})
+
+# Mount cluster CA bundle into spawned single-user notebook pods
+c.KubeSpawner.environment["SSL_CERT_FILE"] = "/etc/ssl/certs/ca-certificates.crt"
+c.KubeSpawner.environment["REQUESTS_CA_BUNDLE"] = "/etc/ssl/certs/ca-certificates.crt"
+c.KubeSpawner.environment["GIT_SSL_CAINFO"] = "/etc/ssl/certs/ca-certificates.crt"
+c.KubeSpawner.volumes.append({
+  "name": "ca-bundle",
+  "configMap": {
+    "name": "k8tre-ca-bundle",
+  }
+})
+c.KubeSpawner.volume_mounts.append({
+  "mountPath": "/etc/ssl/certs/ca-certificates.crt",
+  "name": "ca-bundle",
+  "subPath": "ca-certificates.crt",
+  "readOnly": True,
 })
 
