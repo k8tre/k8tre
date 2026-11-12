@@ -5,6 +5,7 @@ namespace: argocd
 resources:
   - agnostics/gateway.yaml
   - agnostics/cert-manager.yaml
+  - agnostics/trust-manager.yaml
   - agnostics/cluster-autoscaler.yaml
   - agnostics/cnpg.yaml
   # TODO: Move CiliumClusterwideNetworkPolicy/allow-pod-to-pod-via-gateway from

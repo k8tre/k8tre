@@ -33,7 +33,7 @@ def get_available_projects():
         response = requests.get(
             f"{BACKEND_URL}/internal/projects",
             headers=_get_internal_headers(),
-            verify=False,
+            verify=True,
             timeout=30
         )
         if response.status_code == 200:
@@ -111,7 +111,7 @@ def get_workspaces(spawner: KubeSpawner):
             response = requests.get(
                 f'{BACKEND_URL}/internal/projects/{requested_project}/profiles',
                 headers=_get_internal_headers(),
-                verify=False,
+                verify=True,
                 timeout=30
             )
 
