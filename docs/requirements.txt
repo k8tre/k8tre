@@ -85,7 +85,7 @@ properdocs==1.6.7
     # via mkdocs-redirects
 pygments==2.21.0
     # via mkdocs-material
-pymdown-extensions==12.3
+pymdown-extensions==13.0
     # via mkdocs-material
 python-dateutil==4.0.0
     # via
