@@ -6,7 +6,7 @@
 #
 babel==2.18.0
     # via mkdocs-material
-backrefs==8.2
+backrefs==8.3
     # via mkdocs-material
 certifi==2026.10.23
     # via requests
@@ -85,7 +85,7 @@ properdocs==1.6.7
     # via mkdocs-redirects
 pygments==2.21.0
     # via mkdocs-material
-pymdown-extensions==13.0
+pymdown-extensions==13.1
     # via mkdocs-material
 python-dateutil==4.0.0
     # via
