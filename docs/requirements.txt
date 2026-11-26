@@ -6,11 +6,11 @@
 #
 babel==2.18.0
     # via mkdocs-material
-backrefs==8.3
+backrefs==8.3.1
     # via mkdocs-material
-certifi==2026.10.23
+certifi==2026.11.20
     # via requests
-charset-normalizer==3.5.2
+charset-normalizer==3.5.3
     # via requests
 click==8.5.1
     # via
@@ -59,7 +59,7 @@ mkdocs-get-deps==0.2.2
     # via mkdocs
 mkdocs-macros-plugin==1.5.0
     # via -r requirements.in
-mkdocs-material==9.8.1
+mkdocs-material==9.8.2
     # via -r requirements.in
 mkdocs-material-extensions==1.3.1
     # via mkdocs-material
@@ -77,7 +77,7 @@ pathspec==1.1.1
     #   mkdocs
     #   mkdocs-macros-plugin
     #   properdocs
-platformdirs==4.14.5
+platformdirs==4.14.8
     # via
     #   mkdocs-get-deps
     #   properdocs
@@ -85,13 +85,13 @@ properdocs==1.6.7
     # via mkdocs-redirects
 pygments==2.21.0
     # via mkdocs-material
-pymdown-extensions==13.1
+pymdown-extensions==13.1.2
     # via mkdocs-material
 python-dateutil==4.0.0
     # via
     #   ghp-import
     #   mkdocs-macros-plugin
-pyyaml==6.0.3
+pyyaml==6.0.4
     # via
     #   mkdocs
     #   mkdocs-get-deps
@@ -115,7 +115,7 @@ tzdata==2026.6
     # via python-dateutil
 urllib3==2.8.0
     # via requests
-watchdog==7.1.0
+watchdog==7.1.1
     # via
     #   mkdocs
     #   properdocs
