@@ -1,0 +1,51 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: netbird-access
+  namespace: netbird
+spec:
+  description: "Minimal network policy for Netbird routing peer: external internet, host ports 80/443 for *.K8TRE_DOMAIN, and DNS"
+  endpointSelector:
+    matchLabels:
+      app: netbird
+  ingress:
+    # Allow incoming WireGuard tunnel and management traffic from external peers and host
+    - fromEntities:
+        - world
+        - host
+        - remote-node
+  egress:
+    # 1. External internet access (Netbird coordination, STUN/TURN, WireGuard peers, and routed internet traffic)
+    - toEntities:
+        - world
+
+    # 2. Host Gateway (Envoy) access for *.K8TRE_DOMAIN (e.g. portal.K8TRE_DOMAIN)
+    - toEntities:
+        - host
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+            - port: "443"
+              protocol: TCP
+
+    # 3. DNS resolution (CoreDNS in kube-system and host DNS)
+    - toEndpoints:
+        - matchLabels:
+            "k8s:io.kubernetes.pod.namespace": kube-system
+            "k8s:k8s-app": kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
